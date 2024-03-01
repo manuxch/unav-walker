@@ -1,0 +1,68 @@
+# Input file for agdamper
+# Author: Manuel Carlevaro
+# Date: 2023.12.05 
+#
+# Semilla del generador de números aleatorios
+rand_seed: 1729
+#
+# Parámetros de Box2D
+# Nota: Box2D utiliza el sistema métrico MKS
+#
+# Parámetros del contenedor
+# [altura_caja]: alto de la caja (dirección y)
+# [base_caja]: ancho de la caja (dirección x=
+# [friccion_caja]: coeficiente de fricción de la caja
+# [restitucion_caja]: coeficiente de restitución de la caja
+#   Control de la excitación
+# [Amplitud_exitacion]: amplitud de la excitación armónica
+# [Frecuencia_exitacion]: frecuencia de la excitación armónica (Hz)
+# [K_resorte]: constante elástica del resorte
+# [resorte_L0]: longitud del resorte en reposo
+# [Viscosidad_amortiguador]: constante de amortiguación viscosa
+altura_caja: 5
+base_caja: 4
+espesor_caja: 0.1
+densidad_caja: 1.0
+friccion_caja_s: 0.2
+friccion_caja_d: 0.16
+restitucion_caja: 0.1
+Amplitud_exitacion_gamma: __Gamma__
+Frecuencia_exitacion: 20.0
+Cero_tol: __ceroTol__  
+rho: 0.5
+fase_phi: __phPhi__ 
+
+# Granos
+#	[noTipoGranos]: cantidad de tipos de granos diferentes
+#	Por cada tipo de grano:
+#	[noGranos radio nLados dens fric rest ]
+#	(int double int double double double)
+#	Notas:
+#		nLados = 1 es un disco, o 3 <= nLados <= 8
+#		[radio] = m, [dens] = kg/m¹
+#		[fric]: Coeficiente de fricción del grano 0 <= fric 
+#		[rest]: Coeficiente de restitución del grano 0 <= rest <= 1
+noTipoGranos: 1
+1 0.5 1 0.1031324 0.5 0.5 
+#
+# Control de la simulación
+# [timeStep]: Paso de integración del movimiento (en s)
+# [tMax]: Máximo tiempo de simulación (en s)
+# [pIter]: iteraciones de posicion para la satisfacción de restricciones
+# [vIter]: iteraciones de velocidad para la satisfacción de restricciones
+# [g]: Magnitud de la aceleración de la gravedad (hacia -y) kg m / s²
+# [n_periodos_medida]: Cantidad de ciclos para mediciones de fuerza, posición, etc.
+timeStep: 0.0001 
+tMax: 1.0
+pIter: 60
+vIter: 60
+g: 9.80
+
+# Parámetros de registro
+# [dirID]: sufijo del nombre del directorio de guardado de frames
+# [preFrameFile]: prefijo del archivo de salida de frames
+# [saveFrameFreq]: Paso de guardado de los frames
+dirID: walker
+preFrameFile: frm
+saveFrameFreq: 0
+#

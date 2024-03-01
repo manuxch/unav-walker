@@ -1,0 +1,112 @@
+\ProvidesPackage{researchdiary}
+%%%%%%%%% MIKHAIL KLASSEN - RESEARCH DIARY HEADER %%%%%%%%%%%%
+%% @author:  Mikhail Klassen                                %%
+%% @contact: mikhail.klassen@gmail.com                      %%
+%% @revised:    12 / January / 2011                         %%
+%% @license: Creative Commons Share Alike 3.0               %%
+%%           http://creativecommons.org/licenses/by-sa/3.0/ %%
+%%                                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{fontspec}
+\usepackage{libertine}
+%\setmainfont{Iwona Light}
+\usepackage[scale=1]{ccicons}
+\usepackage{metalogo}
+\usepackage{xcolor,colortbl}
+\usepackage{multicol,multirow,booktabs}
+\usepackage{extract}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{mathtools, mathrsfs}
+%\usefonttheme{professionalfonts}
+\usepackage{textcomp, wasysym}
+\usepackage{graphicx}
+\usepackage[hmargin=2cm,vmargin=2.5cm]{geometry}
+\usepackage{wrapfig}
+\usepackage{framed}
+\usepackage{pdflscape}
+\usepackage[usenames,dvipsnames]{pstricks}
+\definecolor{darkblue}{RGB}{47,68,117}
+\definecolor{lightgray}{gray}{0.95}
+\usepackage{mismath}
+\usepackage{siunitx}
+\usepackage{bm}
+\usepackage{utfsym}
+\usepackage{cancel}
+\usepackage{fontawesome5}
+\usepackage{csquotes}
+\usepackage[backend=biber, natbib, sorting=nyt, doi=false, url=false, url=false, isbn=false, maxbibnames=10,style=verbose]{biblatex}
+\addbibresource{./utils/refs.bib}
+
+\usepackage[spanish, es-nodecimaldot]{babel}
+\setsansfont{Linux Libertine Display O}
+%\setsansfont[BoldFont={Iwona Bold}, Numbers={Lining, Proportional}]{Iwona Light}
+% \setmathsfont(Digits)[Numbers={Lining, Proportional}]{Fira Sans Light}
+\setmonofont[Scale=MatchLowercase]{DejaVu Sans Mono}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Notes on use of hyperlinks:
+%% \url{http://www.wikibooks.org}
+%% \href{http://www.wikibooks.org}{wikibooks home}
+%% \href{mailto:email@site.com}{email@site.com}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=blue,
+    filecolor=black,
+    linkcolor=blue,
+    urlcolor=blue
+}
+
+\pagestyle{fancy}
+\setlength\parindent{0in}
+\setlength\parskip{0.1in}
+\setlength\headheight{15pt}
+
+%%%%%%%%%%% HEADER / FOOTER %%%%%%%%%%%
+\rhead{\workingDate}
+\chead{\textsc{Diario de trabajo}}
+\lhead{\textsc{\userName}}
+\rfoot{\textsc{\thepage}}
+\cfoot{\textit{Última modificación: \today}}
+\lfoot{\textsc{\institution}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%% NEW COMMANDS %%%%%%%%%%%%%%
+\newcommand{\univlogo}{%
+  \noindent % University Logo
+  \begin{wrapfigure}{r}{0.1\textwidth}
+    \vspace{-38pt}
+    \begin{center}
+      \includegraphics[width=0.1\textwidth]{logo.png}
+    \end{center}
+    \vspace{-100pt}
+  \end{wrapfigure}
+}
+
+%%%%%%%%%%% MATHEMATICS %%%%%%%%%%%%%%%
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+\newcommand{\bea}{\begin{eqnarray}}
+\newcommand{\eea}{\end{eqnarray}}
+\newcommand{\eqnarr}{\begin{eqnarray}}
+\newcommand{\eqnend}{\end{eqnarray}}
+\newcommand{\deriv}[2]{\frac{d #1}{d #2}}
+\DeclareMathSymbol{\umu}{\mathalpha}{operators}{0}
+%\DeclareMathOperator{\sgn}{sgn}
+%%%%%%%%% NEW ENVIRONMENTS %%%%%%%%%%%%
+\newenvironment{bullets}{
+\begin{itemize}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{itemize}}
+\newenvironment{code}{
+\begin{quote}\begin{framed}
+}{\end{framed}\end{quote}}
+                           
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
