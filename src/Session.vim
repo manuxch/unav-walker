@@ -3,7 +3,7 @@ let s:so_save = &g:so | let s:siso_save = &g:siso | setg so=0 siso=0 | setl so=-
 let v:this_session=expand("<sfile>:p")
 silent only
 silent tabonly
-cd ~/granular/walker-unav/src
+cd ~/granular/unav-2024/unav-walker/src
 if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
   let s:wipebuf = bufnr('%')
 endif
@@ -13,16 +13,14 @@ if &shortmess =~ 'A'
 else
   set shortmess=aoO
 endif
-badd +87 simulacion.cpp
+badd +1 simulacion.cpp
 badd +1 params.in
 badd +1 globalsetup.hpp
 badd +1 globalsetup.cpp
-badd +1 notas.md
 argglobal
 %argdel
 $argadd simulacion.cpp
 set stal=2
-tabnew +setlocal\ bufhidden=wipe
 tabnew +setlocal\ bufhidden=wipe
 tabrewind
 edit simulacion.cpp
@@ -42,8 +40,8 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 84 + 85) / 171)
-exe 'vert 2resize ' . ((&columns * 86 + 85) / 171)
+exe 'vert 1resize ' . ((&columns * 103 + 103) / 206)
+exe 'vert 2resize ' . ((&columns * 102 + 103) / 206)
 argglobal
 setlocal fdm=manual
 setlocal fde=0
@@ -55,12 +53,12 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 53 - ((3 * winheight(0) + 19) / 38)
+let s:l = 53 - ((5 * winheight(0) + 23) / 47)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
 keepjumps 53
-normal! 012|
+normal! 0
 wincmd w
 argglobal
 if bufexists(fnamemodify("params.in", ":p")) | buffer params.in | else | edit params.in | endif
@@ -78,34 +76,15 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 14 - ((7 * winheight(0) + 19) / 38)
+let s:l = 14 - ((0 * winheight(0) + 23) / 47)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
 keepjumps 14
 normal! 013|
 wincmd w
-exe 'vert 1resize ' . ((&columns * 84 + 85) / 171)
-exe 'vert 2resize ' . ((&columns * 86 + 85) / 171)
-tabnext
-edit notas.md
-argglobal
-setlocal fdm=manual
-setlocal fde=0
-setlocal fmr={{{,}}}
-setlocal fdi=#
-setlocal fdl=0
-setlocal fml=1
-setlocal fdn=20
-setlocal fen
-silent! normal! zE
-let &fdl = &fdl
-let s:l = 4 - ((3 * winheight(0) + 19) / 38)
-if s:l < 1 | let s:l = 1 | endif
-keepjumps exe s:l
-normal! zt
-keepjumps 4
-normal! 0
+exe 'vert 1resize ' . ((&columns * 103 + 103) / 206)
+exe 'vert 2resize ' . ((&columns * 102 + 103) / 206)
 tabnext
 edit params.in
 let s:save_splitbelow = &splitbelow
@@ -128,11 +107,11 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe '1resize ' . ((&lines * 12 + 20) / 41)
-exe 'vert 1resize ' . ((&columns * 72 + 85) / 171)
-exe '2resize ' . ((&lines * 25 + 20) / 41)
-exe 'vert 2resize ' . ((&columns * 72 + 85) / 171)
-exe 'vert 3resize ' . ((&columns * 98 + 85) / 171)
+exe '1resize ' . ((&lines * 23 + 25) / 50)
+exe 'vert 1resize ' . ((&columns * 103 + 103) / 206)
+exe '2resize ' . ((&lines * 23 + 25) / 50)
+exe 'vert 2resize ' . ((&columns * 103 + 103) / 206)
+exe 'vert 3resize ' . ((&columns * 102 + 103) / 206)
 argglobal
 balt globalsetup.hpp
 setlocal fdm=manual
@@ -145,7 +124,7 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 29 - ((7 * winheight(0) + 6) / 12)
+let s:l = 29 - ((9 * winheight(0) + 11) / 23)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
@@ -168,7 +147,7 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 49 - ((6 * winheight(0) + 12) / 25)
+let s:l = 49 - ((0 * winheight(0) + 11) / 23)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
@@ -191,19 +170,19 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 311 - ((30 * winheight(0) + 19) / 38)
+let s:l = 306 - ((28 * winheight(0) + 23) / 47)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 311
-normal! 058|
+keepjumps 306
+normal! 0
 wincmd w
-exe '1resize ' . ((&lines * 12 + 20) / 41)
-exe 'vert 1resize ' . ((&columns * 72 + 85) / 171)
-exe '2resize ' . ((&lines * 25 + 20) / 41)
-exe 'vert 2resize ' . ((&columns * 72 + 85) / 171)
-exe 'vert 3resize ' . ((&columns * 98 + 85) / 171)
-tabnext 1
+exe '1resize ' . ((&lines * 23 + 25) / 50)
+exe 'vert 1resize ' . ((&columns * 103 + 103) / 206)
+exe '2resize ' . ((&lines * 23 + 25) / 50)
+exe 'vert 2resize ' . ((&columns * 103 + 103) / 206)
+exe 'vert 3resize ' . ((&columns * 102 + 103) / 206)
+tabnext 2
 set stal=1
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0 && getbufvar(s:wipebuf, '&buftype') isnot# 'terminal'
   silent exe 'bwipe ' . s:wipebuf

@@ -8,6 +8,180 @@
 
 \title{Diario de trabajo -- visita a UNAV}
 
+\section*{2024.04.10}
+\textbf{Tareas del (último) día:}
+\begin{enumerate}
+    \item Corregí el programa para que calcule el perfil de velocidad vertical y el 
+        packing fraction en la salida. Sigue haciendo algún problema al finalzar
+        cuando quiere liberar memoria, pero parece que los cáculos están bien, luego
+        de correr una simulación de prueba (pequeña):
+\begin{center}
+  \includegraphics[width=0.7\textwidth]{figs/perfil-pf.pdf}
+\end{center}
+\begin{center}
+  \includegraphics[width=0.7\textwidth]{figs/perfil-vy.pdf}
+\end{center}
+\item También puedo calcular la evolución del packing fraction en el tiempo en la salida (verde)
+    y en el bulk (violeta)
+\begin{center}
+  \includegraphics[width=0.7\textwidth]{figs/pf_t.png}
+\end{center}
+En todos los casos hace falta estadística porque la simulación fue breve y con
+pocas partículas.
+\end{enumerate}
+
+\section*{2024.04.09}
+\textbf{Tareas del día:}
+\begin{enumerate}
+\item Simulaciones con radios chicos. Hice una tanda de 10 simulaciones con radios de salida
+    entre 0.6 y 2.1 con fricción 0.16 (entre granos), y tiempos de simulación más extensos. Se producen
+    atascos en los radios más pequeños: $D = 1.2, 1.53, 1.87$, pero desde allí se puede
+    calcular un flujo. Se ve también que es necesario realizar simulaciones com múltiples 
+    semilllas para obtener un valor significativo del caudal.
+    \begin{center}
+      \includegraphics[width=0.7\textwidth]{figs/caudales-ext.pdf}
+    \end{center}
+    El script que genera el gráfico es \texttt{/scripts/plot-caudales-D.py}.
+\item Hice los histograma de $\delta t$ (intervalos de tiempo de salida entre dos granos
+    consecutivos) para el caso con $\mu = 0.16$ (entre granos):
+    \begin{center}
+      \includegraphics[width=0.7\textwidth]{figs/histo-dt-D.pdf}
+    \end{center}
+\end{enumerate}
+
+\section*{2024.03.30}
+\textbf{Tareas del día:}
+\begin{enumerate}
+\item Completé la función que mide el packing fraction durante la simulación para que calcule
+    también el pf en una región del bulk.
+\item Lancé en SLURM-2 una tanda de simulaciones con coeficiente de fricción entre granos
+    igual a cero. La comparación con fricción 0.16 (y coeficiente de restitución 0.95)
+    se ve en la siguiente figura:
+        \begin{center}
+          \includegraphics[width=0.7\textwidth]{figs/q_r_fric.pdf}
+        \end{center}
+\end{enumerate}
+
+
+\section*{2024.03.28}
+\textbf{Tareas del día:}
+\begin{enumerate}
+\item Hice el script \texttt{histo\_tiempos.py} para determinar la distribución de los tiempos
+    entre cada pasaje de partículas. EL ajuste en la parte lineal de la distribución,
+    cuando se puede hacer, da cerca de $-3$. En a figura está hecho el cálculo para
+    diámetro de salida $\approx 3.95$:
+    \begin{center}
+      \includegraphics[width=0.7\textwidth]{figs/histo-dt.png}
+    \end{center}
+\end{enumerate}
+
+
+\section*{2024.03.27}
+\textbf{Tareas del día:}
+\begin{enumerate}
+\item Para analizar el efecto del coeficiente de restitución, lancé otras 30 simulaciones en SLURM-2. Aparentemente
+    no hay un efecto notable con este coeficiente.
+        \begin{center}
+          \includegraphics[width=0.7\textwidth]{figs/q_r_rest.pdf}
+        \end{center}
+\item Implementé una función para medir el packing fraction en la salida, como la intersección de los discos
+    con el segmento $y = 0$, para $x \in [-r, r]$.
+\end{enumerate}
+
+\section*{2024.03.26}
+\textbf{Tareas del día:}
+\begin{enumerate}
+    \item Lancé 30 simulaciones en SLURM-2 de IFLySiB con $\Gamma = 1$, y analicé el caudal de salida de los primeros valores ajustando una 
+        recta con el script \texttt{calcula-flujos.py}, teniendo una visión preliminar de lo que sucede tal como 
+        muestra el gráfico siguiente:
+        \begin{center}
+          \includegraphics[width=0.7\textwidth]{figs/q_a.pdf}
+        \end{center}
+        donde $A$ es el diámetro de la apertura y Q está en partículas por segundo.
+\end{enumerate}
+
+
+\section*{2024.03.25}
+\textbf{Tareas del día:}
+\begin{enumerate}
+\item Modifiqué las salidas del archivo de flujo y *xy para incluir como dato inicial el radio de salida.
+\item Corregí el script de armado de archivos .in para correr en slurm.
+\item Verifiqué los valores de la velocidad de drift en función de $\Gamma$. Los valores obtenidos son:
+    \begin{center}
+        \begin{tabular}{cccc}
+            \toprule
+            $V_{\text{RMS}}$ \unit{mm/s} & $\Gamma$ & $v_{\text{exp}}$ \unit{mm/s} & $v_{\text{sim}}$ \unit{mm/s} \\
+            \midrule
+            30 & 1 & 10 & 10.06 \\
+            50 & 1.6219 & 20 & 24.89 \\
+            100 & 3.2438 & 42 & 59.81 \\
+            \bottomrule
+        \end{tabular}
+    \end{center}
+    Los valores son muy cercanos a los que obtuve para la fig. \ref{fig:2MM}.
+\end{enumerate}
+
+\section*{2024.03.21}
+\textbf{Tareas del día:}
+\begin{enumerate}
+    \item Implementación de atenuación de rotaciones. La animación de la simulación de prueba está en\\
+        \texttt{unav-2024/silo-vib/03-50-50-noRot.mp4}, que se puede comparar con \texttt{03\_50-50.mp4} que no tiene atenuación.
+    \item Generé una nueva condición inicial, separando por tipo de grano para que se crucen moviéndose en direcciones opuestas. Una corrida de prueba con 50 discos de cada tipo está en \texttt{silo-vib/00-50-50-X.mp4}.
+        Durante el tiempo que dura la simulación se observa un atascamiento del sistema.º
+    \item Implementé el mecanismo de reinyección de granos.
+    \item Implementé una tapa para ``depositar'' los granos en el fondo antes de comenzar la descarga.
+    \item Inicié un código para estudiar el movimiento cuando la base oscila con dos frecuencias en direcciones ortogonales. Este nuevo código está en \texttt{unav-2024/src-Xsilo}.
+\end{enumerate}
+
+\section*{2024.03.14}
+\textbf{Tareas del día:}
+\begin{enumerate}
+\item Pruebo diferentes configuraciones para generar granos que se mueven en dos direcciones. Para discos de radio 0.4:
+    \begin{itemize}
+      \item $\Gamma = 4.0, \phi = 1.8$
+    \item $\mu_s = 0.3$
+    \item $\mu_d^{(1)} = 0.26$
+\item $\mu_d^{(2)} = 0.08$
+    \end{itemize}
+\item Hay corridas de prueba con discos y triángulos, las animaciones están en \texttt{unav-2024/silo-vib}.
+\item {\color{red}{TODO:}} Es necesario incluir fricción rotacional con la base.
+\end{enumerate}
+
+\section*{2024.03.13}
+\textbf{Tareas del día:}
+\begin{enumerate}
+\item Hice un nuevo código para simular un silo horizontal con base vibrada. Está en \texttt{unav-walker/src-silo} y las primeras pruebas en \texttt{unav-2024/silo-vib}.
+\item Corrí ejecuciones de prueba en \texttt{unav-2024/silo-vib/}
+\end{enumerate}
+
+\section*{2024.03.12}
+\textbf{Tareas del día:}
+\begin{enumerate}
+\item Ajusté algunos parámetros para generar dos móviles que tengas velocidades opuestas y generar una colisión. Los valores obtenidos son:
+    \begin{itemize}
+      \item $\mu_s = 0.2$
+      \item $mu_d^{(1)} = 0.16$, $mu_d^{(2)} = 0.08$
+    \item $\phi = 1.8$
+    \item $\Gamma = 3.0$
+    \end{itemize}
+    \item Corrí algunas pruebas en \texttt{unav-2024/test-2w}. Un resultado es:
+    \begin{center}
+      \includegraphics[width=0.8\textwidth]{figs/dist-2w.png}
+      \includegraphics[width=0.45\textwidth]{figs/dist-2w-z1.png}
+      \includegraphics[width=0.45\textwidth]{figs/dist-2w-z2.png}
+    \end{center}
+
+\end{enumerate}
+
+\section*{2024.03.11}
+\textbf{Tareas del día:}
+\begin{enumerate}
+    \item Reordené el código y los subdirectorios para hacer nuevos programas. Ahora todo está en \\
+        \texttt{/granular/unav-2024/unav-walker}
+\item Hice un nuevo programa: \texttt{sim-2w} para simular la colisión entre dos móviles. El código está en \\
+    \texttt{/unav-walker/src-2w}. Las pruebas del código están en \texttt{/unav-2024/test-2w}.
+\end{enumerate}
+
 \section*{2024.02.29}
 \textbf{Tareas del día:}
 \begin{enumerate}
@@ -21,11 +195,14 @@
 \section*{2024.02.28}
 \textbf{Tareas del día:}
 \begin{enumerate}
-    \item Cálculo del rango de $\Gamma$: A partir de la ec. (2) del preprint MM, y usando $\rho = 1/2$, los valores de $\Gamma$ que cubren el rango de valores de $V_{\text{RMS}}$ de las curvas de la figura 2 ($(0, 100)$ \unit{mm/s}) es $\Gamma \in (0, 3.24)$.
+    \item Cálculo del rango de $\Gamma$: A partir de la ec. (2) del preprint MM, y usando $\rho = 1/2$, los valores de $\Gamma$ que cubren el rango de valores de $V_{\text{RMS}}$ de las curvas de la figura 2 ($(0, 100)$ \unit{mm/s}) es $\Gamma \in (0, 3.24)$. La definición de $V_{\text{RMS}}$ es:
+        \[ V_{\text{RMS}} = \frac{\gamma}{\sqrt{2} \omega} \sqrt{\rho^2 + \left(\frac{1 - \rho}{2}\right)^2} \]
+        que para $\rho=1/2$ queda $V_{\text{RMS}} = \sqrt{5/32}(\gamma/\omega)$.
     \item Modifico el script \texttt{set\_inis.sh} para generar los inputs con el rango anterior para $\Gamma$.
     \item Corrí dos conjuntos de 30 simulaciones con $\phi = 0$ (en \texttt{/test-04}) y $\phi = \pi/2$ (en \texttt{/test-05}). Calculé la velocidad media del móvil ajustando una recta sobre el desplazamiento (descartando los primeros valores iniciales). El resultado comparando con la Fig. 2 de MM es: 
         \begin{center}
             \includegraphics[width=0.8\textwidth]{figs/Fig_2_MM.pdf}
+            \label{fig:2MM}
         \end{center}
         En esta figura usé $\mu = \mu_d = 0.16$.
 \end{enumerate}
