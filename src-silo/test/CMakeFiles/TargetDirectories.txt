@@ -1,3 +1,0 @@
-/home/manuel/granular/unav-2024/unav-walker/src-silo/test/CMakeFiles/test.dir
-/home/manuel/granular/unav-2024/unav-walker/src-silo/test/CMakeFiles/edit_cache.dir
-/home/manuel/granular/unav-2024/unav-walker/src-silo/test/CMakeFiles/rebuild_cache.dir

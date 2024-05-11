@@ -268,6 +268,20 @@ void GlobalSetup::load(string inputFile) {
         if (ident == "pf_file:") {
             fin >> pf_file;
         }
+        if (ident == "freq_perfiles:") {
+            fin >> freq_perfiles;
+            if (pf_freq < 0) {
+            cout << "ERROR: la frecuencia de actualización de perfiles debe ser >= 0." << endl;
+            exit(1);
+            }
+        }
+        if (ident == "n_bin_perfiles:") {
+            fin >> n_bin_perfiles;
+            if (n_bin_perfiles <= 0) {
+            cout << "ERROR: el número de bins en perfiles debe ser > 0." << endl;
+            exit(1);
+            }
+        }
 
     } //fin bucle de lectura de inputFile
 } // Fin función load()
@@ -330,6 +344,8 @@ void GlobalSetup::printGlobalSetup(){
     cout << "# \t Frecuencia de guardado de frames: " << saveFrameFreq << endl;
     cout << "# \t Frecuencia de guardado del packing fraction en la salida: " << pf_freq << endl;
     cout << "# \t Archivo de guardado del packing fraction: " << pf_file << endl;
+    cout << "# \t Frecuencia de actualización de perfiles pf-v: " << freq_perfiles << endl;
+    cout << "# \t Número de bins en perfiles pf-v: " << n_bin_perfiles << endl;
 
     cout << "# Fin lectura de parámetros." << endl;
 }

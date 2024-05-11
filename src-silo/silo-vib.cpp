@@ -180,8 +180,8 @@ int main(int argc, char *argv[]) {
     bool saveFlux = (gs->fluxFreq > 0 ? true : false);
     bool savePF = (gs->pf_freq > 0 ? true : false);
     int n_frame = 0;
-    size_t pf_0[20] {0};
-    double vel_0[20] {0.0};
+    size_t pf_0[gs->n_bin_perfiles] {0};
+    double vel_0[gs->n_bin_perfiles] {0.0};
 
     // Preparo salida de flujo
     std::ofstream fileFlux;
@@ -251,8 +251,8 @@ int main(int argc, char *argv[]) {
             save_pf(world, gs, t, filePF);
         }
         // Si es necesario, guardamos los histos pf_0 y vel_0
-        if ( !(nStep % 1000)) {
-            update_pf_vx(world, vel_0, pf_0, 20, gs->silo.r);
+        if ( !(nStep % gs->freq_perfiles)) {
+            update_pf_vx(world, vel_0, pf_0, gs->n_bin_perfiles, gs->silo.r);
             n_reg++;
         }
         // Cálculo de descarga y reinyección
@@ -265,8 +265,8 @@ int main(int argc, char *argv[]) {
         nStep++;
     }
     cout << "# r pf_0 vel_0" << endl;
-    double delta_r = 2.0 * gs->silo.r / 20.0;
-    for (int i = 0; i < 20; ++i) {
+    double delta_r = 2.0 * gs->silo.r / gs->n_bin_perfiles;
+    for (int i = 0; i < gs->n_bin_perfiles; ++i) {
         cout << i * delta_r + delta_r / 2.0 - gs->silo.r << " "
              << pf_0[i] / double(n_reg) << " "
              << vel_0[i] / double(n_reg) << endl;

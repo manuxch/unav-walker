@@ -449,14 +449,17 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, int n_bins, double r_
         x_sup = pos.x + tmp;
         i_inf = floor((x_inf + r_out) / delta_r);
         i_sup = floor((x_sup + r_out) / delta_r);
-        if (i_inf < 0) {
+        if ((i_inf < 0) || (i_sup >= n_bins)) {
+            cout << "ERROR: Fuera de límites en perfiles! " << endl;
             cout << "i_inf: " << i_inf << " " << x_inf << endl;    
-            cout << pos.x << " " << pos.y << endl;
-        }
-        if (i_sup > 20) {
             cout << "i_sup: " << i_sup << " " << x_sup << endl;    
             cout << pos.x << " " << pos.y << endl;
+            exit(1);
         }
+        //if (i_sup > 20) {
+            //cout << "i_sup: " << i_sup << " " << x_sup << endl;    
+            //cout << pos.x << " " << pos.y << endl;
+        //}
         vel = b->GetLinearVelocity();
         for (int i = i_inf; i <= i_sup; ++i) {
             vel_0[i] += vel.y;

@@ -137,8 +137,11 @@ public:
     uint32_t rnd_seed; /*!< Semilla del generador de números aleatorios */
     int pf_freq; /*!< Frecuencia de guardado del packing fraction en la salida */
     string pf_file; /*!< Archivo de guardado del pf en la salida */
+    int freq_perfiles; /*!< Frecuencia de actualización de perfiles de pf y velocidad
+                         en la salida */
+    int n_bin_perfiles; /*!< Cantidad de bines en los perfiles de pf y velocidad 
+                        en la salida */
 
-    
 // Constructor & destructor
     GlobalSetup(string input);
     ~GlobalSetup();

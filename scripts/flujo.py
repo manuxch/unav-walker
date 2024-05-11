@@ -5,9 +5,10 @@ from scipy.stats import linregress
 import scipy.stats as sps
 import sys
 import matplotlib.pyplot as plt
+plt.style.use('/home/manuel/granular/unav-walker/utils/figs.mplstyle')
 
 
-def flujo_masico(t, g, m, tf, plot, n_trials, r2):
+def flujo_masico(t, g, m, tf, plot, n_trials, r2, save_pdf):
     """Calcula el flujo másico de descarga de silo
     Params:
     -------
@@ -18,6 +19,7 @@ def flujo_masico(t, g, m, tf, plot, n_trials, r2):
     plot: si es True hace un gráfico del ajuste
     n_trials: número de intentos de MC
     r2: valor objetivo de R^2
+    save_pdf: si True guarda la imagen en PDF
 
     Return:
     -------
@@ -62,13 +64,34 @@ def flujo_masico(t, g, m, tf, plot, n_trials, r2):
         plt.plot(t, g, label='mass_out')
         delta_t = t[lim[1]] - t[lim[0]]
         t_fit = np.linspace(t[lim[0]] - 0.5 * delta_t, t[lim[1]] + 0.5 * delta_t, 50)
-        plt.plot(t[lim[0]:lim[1]], g[lim[0]:lim[1]], '.', label='mass_fit')
-        plt.plot(t_fit, m * t_fit + i, label='fit')
+        plt.plot(t[lim[0]:lim[1]], g[lim[0]:lim[1]], '.', alpha=0.2, label='mass_fit')
+        plt.plot(t_fit, m * t_fit + i, label='fit', alpha=0.5)
         plt.scatter([t[lim[0]], t[lim[-1]]], [g[lim[0]], g[lim[1]]])
         plt.legend()
+        if (m == 1):
+            units = 'part/s'
+            y_label = 'Particles'
+        else:
+            units = 'g/s'
+            y_label = 'Mass [g]'
+        tinv = lambda p, df: abs(sps.t.ppf(p/2, df))
+        try:
+            ts = tinv(0.01, res['n_fit']-2)  # Intervalo de confianza del 98%
+            # ts = tinv(0.01, len(t)-2)  # Intervalo de confianza del 98%
+        except:
+            print("No se puede calcular intervalo de confianza: ts = 1")
+        ts = 1
+        ax = plt.gca()
+        sout = f"Caudal: ({res['caudal']:.3f} ± {ts * res['cov_caudal']:.3f}) {units}"
+        sout += f"\n$r^2$: {res['r2']:.6f}"
+        plt.text(0.60, 0.1, sout, horizontalalignment='left',
+            verticalalignment='center', transform=ax.transAxes)
         plt.xlabel("t [s]")
-        plt.ylabel("t [g]")
+        plt.ylabel(y_label)
         plt.show()
+        if save_pdf:
+            plt.tight_layout()
+            plt.savefig('fit.pdf')
 
     if (res['caudal'] < 0 or n_points < 10):
         return None
@@ -93,6 +116,8 @@ if __name__ == "__main__":
                         type=float, default=0.9999, required=False)
     parser.add_argument("-g", "--g_type", help="Tipo de grano (1, 2, ...) (Default 0 = total).",
                         type=int, default=0, required=False)
+    parser.add_argument("-s", "--save_pdf", help="Guarda la imagen en PDF (Default False).",
+                        type=bool, default=False, required=False)
 
     args = parser.parse_args()
     fin = args.flux
@@ -101,12 +126,13 @@ if __name__ == "__main__":
     plot = args.plot
     n_trials = args.n_trials
     r2 = args.r2
+    save_pdf = args.save_pdf
     if args.g_type:
         g_col = 2 + args.g_type
     else:
         g_col = 0
     t, g = np.loadtxt(fin, usecols=(2, g_col), unpack=True)
-    res = flujo_masico(t, g, m, tf, plot, n_trials, r2)
+    res = flujo_masico(t, g, m, tf, plot, n_trials, r2, save_pdf)
     tinv = lambda p, df: abs(sps.t.ppf(p/2, df))
     try:
         ts = tinv(0.01, len(t)-2)  # Intervalo de confianza del 98%
@@ -114,7 +140,11 @@ if __name__ == "__main__":
         print("No se puede calcular intervalo de confianza: ts = 1")
         ts = 1
     if res:
-        print(f"Caudal: ({res['caudal']:.3f} ± {ts * res['cov_caudal']:.3f}) g/s")
+        if (m == 1):
+            units = 'part/s'
+        else:
+            units = 'g/s'
+        print(f"Caudal: ({res['caudal']:.3f} ± {ts * res['cov_caudal']:.3f}) {units}")
         print(f"r_0^2: {res['r2']:.6f}")
         print(f"Ajuste izquierdo: [{res['izq'][0]:.3f}, {res['izq'][1]:.3f}]")
         print(f"Ajuste derecho: [{res['der'][0]:.3f}, {res['der'][1]:.3f}]")

@@ -3,7 +3,7 @@ let s:so_save = &g:so | let s:siso_save = &g:siso | setg so=0 siso=0 | setl so=-
 let v:this_session=expand("<sfile>:p")
 silent only
 silent tabonly
-cd ~/granular/unav-2024/unav-walker/src-silo
+cd ~/granular/unav-walker/src-silo
 if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
   let s:wipebuf = bufnr('%')
 endif
@@ -13,19 +13,21 @@ if &shortmess =~ 'A'
 else
   set shortmess=aoO
 endif
-badd +105 silo-vib.cpp
+badd +256 silo-vib.cpp
 badd +19 Makefile
 badd +131 siloAux.hpp
-badd +336 siloAux.cpp
-badd +133 globalsetup.hpp
+badd +458 siloAux.cpp
+badd +144 globalsetup.hpp
 badd +234 globalsetup.cpp
 badd +60 params.in
 badd +1 rng.hpp
-badd +0 ../../unav-walker/scripts/makePreMovie.py
+badd +1 ../../unav-walker/scripts/makePreMovie.py
 argglobal
 %argdel
 $argadd silo-vib.cpp
 set stal=2
+tabnew +setlocal\ bufhidden=wipe
+tabnew +setlocal\ bufhidden=wipe
 tabnew +setlocal\ bufhidden=wipe
 tabnew +setlocal\ bufhidden=wipe
 tabnew +setlocal\ bufhidden=wipe
@@ -51,6 +53,7 @@ set winwidth=1
 exe 'vert 1resize ' . ((&columns * 118 + 118) / 236)
 exe 'vert 2resize ' . ((&columns * 117 + 118) / 236)
 argglobal
+balt globalsetup.hpp
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -61,11 +64,11 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 177 - ((27 * winheight(0) + 29) / 58)
+let s:l = 269 - ((43 * winheight(0) + 26) / 52)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 177
+keepjumps 269
 normal! 05|
 wincmd w
 argglobal
@@ -84,12 +87,12 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 62 - ((54 * winheight(0) + 29) / 58)
+let s:l = 62 - ((0 * winheight(0) + 26) / 52)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
 keepjumps 62
-normal! 014|
+normal! 01|
 wincmd w
 exe 'vert 1resize ' . ((&columns * 118 + 118) / 236)
 exe 'vert 2resize ' . ((&columns * 117 + 118) / 236)
@@ -114,7 +117,7 @@ set winwidth=1
 exe 'vert 1resize ' . ((&columns * 118 + 118) / 236)
 exe 'vert 2resize ' . ((&columns * 117 + 118) / 236)
 argglobal
-balt params.in
+balt globalsetup.cpp
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -125,19 +128,19 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 133 - ((37 * winheight(0) + 29) / 58)
+let s:l = 144 - ((36 * winheight(0) + 26) / 52)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 133
-normal! 05|
+keepjumps 144
+normal! 0
 wincmd w
 argglobal
 if bufexists(fnamemodify("globalsetup.cpp", ":p")) | buffer globalsetup.cpp | else | edit globalsetup.cpp | endif
 if &buftype ==# 'terminal'
   silent file globalsetup.cpp
 endif
-balt siloAux.cpp
+balt globalsetup.hpp
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -148,12 +151,12 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 117 - ((3 * winheight(0) + 29) / 58)
+let s:l = 278 - ((28 * winheight(0) + 26) / 52)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 117
-normal! 0
+keepjumps 278
+normal! 024|
 wincmd w
 exe 'vert 1resize ' . ((&columns * 118 + 118) / 236)
 exe 'vert 2resize ' . ((&columns * 117 + 118) / 236)
@@ -189,11 +192,11 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 67 - ((29 * winheight(0) + 29) / 58)
+let s:l = 56 - ((3 * winheight(0) + 26) / 52)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 67
+keepjumps 56
 normal! 037|
 wincmd w
 argglobal
@@ -201,7 +204,7 @@ if bufexists(fnamemodify("siloAux.cpp", ":p")) | buffer siloAux.cpp | else | edi
 if &buftype ==# 'terminal'
   silent file siloAux.cpp
 endif
-balt globalsetup.cpp
+balt silo-vib.cpp
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -212,15 +215,56 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 18 - ((3 * winheight(0) + 29) / 58)
+let s:l = 384 - ((48 * winheight(0) + 26) / 52)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 18
-normal! 0
+keepjumps 384
+normal! 09|
 wincmd w
+2wincmd w
 exe 'vert 1resize ' . ((&columns * 118 + 118) / 236)
 exe 'vert 2resize ' . ((&columns * 117 + 118) / 236)
+tabnext
+edit silo-vib.cpp
+argglobal
+balt siloAux.cpp
+setlocal fdm=manual
+setlocal fde=0
+setlocal fmr={{{,}}}
+setlocal fdi=#
+setlocal fdl=0
+setlocal fml=1
+setlocal fdn=20
+setlocal fen
+silent! normal! zE
+let &fdl = &fdl
+let s:l = 182 - ((30 * winheight(0) + 26) / 52)
+if s:l < 1 | let s:l = 1 | endif
+keepjumps exe s:l
+normal! zt
+keepjumps 182
+normal! 010|
+tabnext
+edit params.in
+argglobal
+balt siloAux.hpp
+setlocal fdm=manual
+setlocal fde=0
+setlocal fmr={{{,}}}
+setlocal fdi=#
+setlocal fdl=0
+setlocal fml=1
+setlocal fdn=20
+setlocal fen
+silent! normal! zE
+let &fdl = &fdl
+let s:l = 81 - ((50 * winheight(0) + 26) / 52)
+if s:l < 1 | let s:l = 1 | endif
+keepjumps exe s:l
+normal! zt
+keepjumps 81
+normal! 018|
 tabnext
 edit Makefile
 argglobal
@@ -235,12 +279,12 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 19 - ((18 * winheight(0) + 29) / 58)
+let s:l = 17 - ((16 * winheight(0) + 26) / 52)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 19
-normal! 038|
+keepjumps 17
+normal! 048|
 tabnext
 edit ../../unav-walker/scripts/makePreMovie.py
 argglobal
@@ -255,13 +299,13 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 83 - ((39 * winheight(0) + 29) / 58)
+let s:l = 83 - ((35 * winheight(0) + 26) / 52)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
 keepjumps 83
 normal! 09|
-tabnext 1
+tabnext 3
 set stal=1
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0 && getbufvar(s:wipebuf, '&buftype') isnot# 'terminal'
   silent exe 'bwipe ' . s:wipebuf

@@ -77,4 +77,6 @@ fluxFile: flx.dat
 fluxFreq: 5
 packing_fraction_out_freq: 50
 pf_file: pf_out.dat
+freq_perfiles: 500
+n_bin_perfiles: 40
 #
