@@ -15,11 +15,18 @@ parser.add_argument("-m", "--mass",
 parser.add_argument("-t", "--t_factor",
             help="Escala de tiempo (sim -> exp [s]). Default: valor experimental",
             type=float, default=0.055328334, required=False)
+parser.add_argument("-n", "--n_trials",
+            help="Número de intentos MC (default: 5000).",
+            type=int, default=5000, required=False)
+parser.add_argument("-r", "--r2", help="Valor objetivo de R^2 (default: 0.9999).",
+            type=float, default=0.9999, required=False)
 
 args = parser.parse_args()
 preFile = args.flux_file
 m = args.mass
 tf = args.t_factor
+n_trials = args.n_trials
+r2 = args.r2
 
 files = glob.glob(preFile + "*")
 files.sort()
@@ -28,30 +35,48 @@ print("Archivos a analizar: ", len(files))
 Q = []
 calc_failed = 0
 for fname in files:
-    t, g = np.loadtxt(fname, usecols=(2, 4), unpack=True)
-    t = t * tf
+    f = fname.split("-")
+    rlabel = f[1][:-4]
+    with open(fname, 'r') as archivo:
+        t, g = np.loadtxt(fname, usecols=(2, 4), unpack=True)
+        t = t * tf
     g_max_fit = g.max() * 0.85
     g_min_fit = g.max() * 0.05
     dif_min = np.absolute(g-g_min_fit)
     idx_min = dif_min.argmin()
     dif_max = np.absolute(g-g_max_fit)
     idx_max = dif_max.argmin()
-    m, i, r, pv, mstd = linregress(t[idx_min:idx_max], g[idx_min:idx_max])
-    Q.append(m)
-    print(f"{fname}: {m:.3f}")
-    plt.plot(t, g, color='tab:gray', alpha=0.4)
+    mc_trial = 0
+    while mc_trial < n_trials:
+        try:
+            lim = np.sort(np.random.randint(idx_min, idx_max, size=2))
+        except:
+            print("Muy pocos datos!")
+        n_points = lim[1] - lim[0]
+        if n_points < t.size * 0.3:
+            mc_trial += 1
+            continue
+        m, i, r, pv, mstd = linregress(t[lim[0]:lim[1]], g[lim[0]:lim[1]])
+        if r**2 > r2:
+            Q.append(m)
+            print(f"{f}: {m:.3f}")
+        mc_trial += 1
+    plt.plot(t, g, alpha=0.3)
 
-units = '1/s'
-y_label = 'Walkers out'
+if (m == 1):
+    units = '1/s'
+    y_label = 'Walkers'
+else:
+    units = 'g/s'
+    y_label = 'Mass [g]'
+
 aQ = np.array(Q)
 q_mean = aQ.mean()
 q_std = aQ.std()
 ax = plt.gca()
-sout = f"Flow rate: ({q_mean:.3f} ± {q_std:.3f}) {units}"
-sout += f"\nNo. of simulations: {len(files)}"
-plt.text(0.55, 0.1, sout, horizontalalignment='left',
-    verticalalignment='center', transform=ax.transAxes,
-    fontsize='large')
+sout = f"Caudal: ({q_mean:.3f} ± {q_std:.3f}) {units}"
+plt.text(0.60, 0.1, sout, horizontalalignment='left',
+    verticalalignment='center', transform=ax.transAxes)
 plt.xlabel("t [s]")
 plt.ylabel(y_label)
 plt.tight_layout()
