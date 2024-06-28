@@ -282,6 +282,13 @@ void GlobalSetup::load(string inputFile) {
             exit(1);
             }
         }
+        if (ident == "save_ve_freq:") {
+            fin >> save_ve_freq;
+            if (save_ve_freq < 0) {
+            cout << "ERROR: la frecuencia de guardado de v y e debe ser >= 0." << endl;
+            exit(1);
+            }
+        }
 
     } //fin bucle de lectura de inputFile
 } // Fin función load()
@@ -346,6 +353,7 @@ void GlobalSetup::printGlobalSetup(){
     cout << "# \t Archivo de guardado del packing fraction: " << pf_file << endl;
     cout << "# \t Frecuencia de actualización de perfiles pf-v: " << freq_perfiles << endl;
     cout << "# \t Número de bins en perfiles pf-v: " << n_bin_perfiles << endl;
+    cout << "# \t Frecuencia de guardado de velocidades y enrgías: " << save_ve_freq << endl;
 
     cout << "# Fin lectura de parámetros." << endl;
 }

@@ -16,6 +16,7 @@ parser.add_argument("-t", "--t_factor",
 args = parser.parse_args()
 preFile = args.in_file
 tf = args.t_factor
+pf_max_2d = 0.9069 # = pi / (2 sqrt(3) ) valor ideal de Wikipedia
 
 files = glob.glob(preFile + "*")
 files.sort()
@@ -27,6 +28,7 @@ fig, ax1 = plt.subplots()
 for ifile in files:
     t, pf_bulk, pf_out = np.loadtxt(ifile, usecols=(0, 1, 2), unpack=True)
     t = t * tf
+    pf_out = pf_out * pf_max_2d
     ax1.plot(t, pf_out, color='tab:blue', alpha=alfa_o)
     ax1.plot(t, pf_bulk, color='tab:red', alpha=alfa_b)
 

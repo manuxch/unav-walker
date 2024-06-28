@@ -217,8 +217,11 @@ int main(int argc, char *argv[]) {
         do_base_force(world, bvel, epsilon_v, gs->g);
         do_rot_friction(world, gs);
         // Si es necesario, guardo el frame para graficar
-         if (saveFrm && !(nStep % gs->saveFrameFreq)) {
+        if (saveFrm && !(nStep % gs->saveFrameFreq)) {
              saveFrame(world, n_frame++, nStep, gs);
+         }
+        if (!(nStep % gs->save_ve_freq)) {
+             printVE(nStep, t, world, gs);
          }
         world->Step(tStep, pIter, vIter);
         world->ClearForces();

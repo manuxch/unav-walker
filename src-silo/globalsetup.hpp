@@ -141,6 +141,7 @@ public:
                          en la salida */
     int n_bin_perfiles; /*!< Cantidad de bines en los perfiles de pf y velocidad 
                         en la salida */
+    int save_ve_freq; /*!< Frecuencia de guardado de velocidades y energías */
 
 // Constructor & destructor
     GlobalSetup(string input);
