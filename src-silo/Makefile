@@ -13,6 +13,8 @@ BOX2D = /home/manuel/Tools/box2d/2-4-1
 LIBPATH = -L$(BOX2D)/build/bin
 INCLUDES = -I$(BOX2D)/include/
 LIBS = -lbox2d 
+#CXXFLAGS = -g -std=c++20 $(INCLUDES)
+#LDFLAGS = -g -Wall -std=c++20 -static $(LIBPATH) $(LIBS)
 CXXFLAGS = -O3 -std=c++20 $(INCLUDES)
 LDFLAGS = -O3 -Wall -std=c++20 -static $(LIBPATH) $(LIBS)
 

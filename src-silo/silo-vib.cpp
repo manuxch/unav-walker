@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
     BodyData **gInfo;
     gInfo = new BodyData*[gs->noTipoGranos];
     
-    int contGid = 1;
+    int contGid = 0;
     int *sumaTipo = new int[gs->noTipoGranos] {};
     double total_grain_mass = 0.0;
     cout << "#\t- Insertando granos..." << endl;
@@ -217,12 +217,12 @@ int main(int argc, char *argv[]) {
         do_base_force(world, bvel, epsilon_v, gs->g);
         do_rot_friction(world, gs);
         // Si es necesario, guardo el frame para graficar
-        if (saveFrm && !(nStep % gs->saveFrameFreq)) {
-             saveFrame(world, n_frame++, nStep, gs);
-         }
-        if (!(nStep % gs->save_ve_freq)) {
-             printVE(nStep, t, world, gs);
-         }
+        //if (saveFrm && !(nStep % gs->saveFrameFreq)) {
+             //saveFrame(world, n_frame++, nStep, gs);
+         //}
+        //if (gs->save_ve_freq && !(nStep % gs->save_ve_freq)) {
+             //printVE(nStep, t, world, gs);
+         //}
         world->Step(tStep, pIter, vIter);
         world->ClearForces();
         t += tStep;
@@ -247,14 +247,15 @@ int main(int argc, char *argv[]) {
         do_rot_friction(world, gs);
         // Si es necesario, guardo el frame para graficar
         if (saveFrm && !(nStep % gs->saveFrameFreq)) {
-             saveFrame(world, n_frame++, nStep, gs);
+            saveFrame(world, ++n_frame, nStep, gs);
+            save_tensors(world, n_frame, gs);
         }
         // Si es necesario, guardamos el pack_fraction
         if (savePF && !(nStep % gs->pf_freq)) {
             save_pf(world, gs, t, filePF);
         }
         // Si es necesario, guardamos los histos pf_0 y vel_0
-        if ( !(nStep % gs->freq_perfiles)) {
+        if (gs->freq_perfiles && !(nStep % gs->freq_perfiles)) {
             update_pf_vx(world, vel_0, pf_0, gs->n_bin_perfiles, gs->silo.r);
             n_reg++;
         }
@@ -267,12 +268,14 @@ int main(int argc, char *argv[]) {
         t += tStep;
         nStep++;
     }
-    cout << "# r pf_0 vel_0" << endl;
-    double delta_r = 2.0 * gs->silo.r / gs->n_bin_perfiles;
-    for (int i = 0; i < gs->n_bin_perfiles; ++i) {
-        cout << i * delta_r + delta_r / 2.0 - gs->silo.r << " "
-             << pf_0[i] / double(n_reg) << " "
-             << vel_0[i] / double(n_reg) << endl;
+    if (gs->freq_perfiles) {
+        cout << "# r pf_0 vel_0" << endl;
+        double delta_r = 2.0 * gs->silo.r / gs->n_bin_perfiles;
+        for (int i = 0; i < gs->n_bin_perfiles; ++i) {
+            cout << i * delta_r + delta_r / 2.0 - gs->silo.r << " "
+                 << pf_0[i] / double(n_reg) << " "
+                 << vel_0[i] / double(n_reg) << endl;
+        }
     }
     filePF.close();
     fileFlux.close();

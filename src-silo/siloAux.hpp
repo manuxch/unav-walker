@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <vector>
 #include <box2d/box2d.h>
 #include "globalsetup.hpp"
 #include <cmath>
@@ -20,6 +21,11 @@ using std::acos;
 
 extern GlobalSetup *globalSetup;
 extern RNG *rng;
+
+struct Tensor{
+    float xx, xy, yx, yy;
+};
+
 
 /*! Convierte un número en una string de ancho fijo
  * y rellena de ceros, para enumerar frames secuencialmente
@@ -178,3 +184,12 @@ double get_clipped_area(double y_inf, double y_sup, double y, double r);
  * \param double : r_out radio del orificio de salida
  * */
 void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, int n_bins, double r_out);
+
+/*! \fn save_tensors
+ * \brief Función que guarda los tensores fabric y stress de cada grano.
+ * \param b2World* : w mundo
+ * \param int : frm_id identificador de frame para nombre de archivo
+ * \param GlobalSetup* : gs parámetros de la simulación
+ * \return void
+ * */
+void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup);

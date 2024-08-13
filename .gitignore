@@ -3,6 +3,9 @@ test/
 # Prerequisites
 *.d
 
+# vi, vim, neovim
+*Session.vim
+
 # Compiled Object files
 *.slo
 *.lo

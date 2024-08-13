@@ -53,7 +53,7 @@ void saveFrame(b2World *w, int n_frame, int frm_id, const GlobalSetup *globalSet
     std::ofstream fileF;
     fileF.open(file_name.c_str());
     fileF << "# time: " << frm_id * globalSetup->tStep << " ";
-    fileF << "r_out: " << globalSetup->silo.r << " ";
+    fileF << "# r_out: " << globalSetup->silo.r << " ";
     fileF << endl;
     for ( b2Body* bd = w->GetBodyList(); bd; bd = bd->GetNext()) {
         BodyData* infGr = (BodyData*) (bd->GetUserData()).pointer;
@@ -468,3 +468,83 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, int n_bins, double r_
     }
     return;
 }
+
+
+void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) { 
+    string file_name = "frames_" + globalSetup->dirID + "/"
+        + globalSetup->preFrameFile + "_tens_" + int2str(n_frame) + ".dat";
+    std::ofstream fout;
+    fout.open(file_name.c_str());
+    fout << "# gID stres.xx stres.xy stres.yx stres.yy " << endl;
+    b2Body *body_A, *body_B;
+    BodyData *bd_data_A, *bd_data_B;
+    unsigned int n_grains = 0;
+    b2Vec2 pos_A, pos_B, l_A, l_B, force_N, force_T, force, c_point;
+    float normal_impulse, tangential_impulse;
+    for (b2Body* body = w->GetBodyList(); body; body = body->GetNext()) {
+        if (body->GetType() != b2_dynamicBody) {
+            continue;    
+        }
+        bd_data_A = (BodyData*) (body->GetUserData()).pointer;
+        if (bd_data_A->isGrain) n_grains++;
+    }
+    std::vector<Tensor> stress_tensors;
+    stress_tensors.resize(n_grains, {0, 0, 0, 0});
+    //float **stress_tensors = new float*[n_grains];
+    //for (uint32 i = 0; i < n_grains; ++i) {
+        //stress_tensors[i] = new float[4]{0.0};
+    //}
+    //for (uint32 i = 0; i < n_grains; ++i) {
+        //stress_tensors[i].xx = 0;
+        //stress_tensors[i].xy = 0;
+        //stress_tensors[i].yx = 0;
+        //stress_tensors[i].yy = 0;
+    //}
+
+    for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
+        if (c->IsTouching()) {
+            b2WorldManifold world_manifold;
+            c->GetWorldManifold(&world_manifold);
+            body_A = c->GetFixtureA()->GetBody();
+            body_B = c->GetFixtureB()->GetBody();
+            bd_data_A = (BodyData*) (body_A->GetUserData()).pointer;
+            bd_data_B = (BodyData*) (body_B->GetUserData()).pointer;
+
+            for (int32 i = 0; i < c->GetManifold()->pointCount; ++i) {
+                c_point = world_manifold.points[i];
+                normal_impulse = c->GetManifold()->points[i].normalImpulse;
+                tangential_impulse = c->GetManifold()->points[i].tangentImpulse;
+                // Normal apunta del body_A al body_B
+                force_N = -normal_impulse * world_manifold.normal;
+                force_T = -tangential_impulse * b2Vec2(-world_manifold.normal.y, 
+                                                  world_manifold.normal.x);
+                force = (1.0 / globalSetup->tStep) * (force_N + force_T); // impulso -> fuerza
+                l_A = c_point - body_A->GetWorldCenter();
+                l_B = c_point - body_B->GetWorldCenter();
+                if(bd_data_A->isGrain) {
+                    stress_tensors[bd_data_A->gID].xx += force.x * l_A.x;
+                    stress_tensors[bd_data_A->gID].xy += force.x * l_A.y;
+                    stress_tensors[bd_data_A->gID].yx += force.y * l_A.x;
+                    stress_tensors[bd_data_A->gID].yy += force.y * l_A.y;
+                }
+                if(bd_data_B->isGrain) {
+                    stress_tensors[bd_data_B->gID].xx -= force.x * l_B.x;
+                    stress_tensors[bd_data_B->gID].xy -= force.x * l_B.y;
+                    stress_tensors[bd_data_B->gID].yx -= force.y * l_B.x;
+                    stress_tensors[bd_data_B->gID].yy -= force.y * l_B.y;
+                }
+            }
+        }
+    }
+    for (uint32 i = 0; i < n_grains; ++i) {
+        fout << i << " " 
+             << stress_tensors[i].xx << " "
+             << stress_tensors[i].xy << " "
+             << stress_tensors[i].yx << " "
+             << stress_tensors[i].yy << " "
+             << endl;
+    }
+    fout << std::flush;
+    fout.close();
+}
+
