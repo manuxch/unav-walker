@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
         std::cout << "Error: archivo de parámetros requerido." << std::endl;
         exit(1);
     }
-    cout << "# silo-vib ver. 1.1" << endl;
-    cout << "# 2024.11.26" << endl;
+    cout << "# silo-vib ver. 2.0" << endl;
+    cout << "# 202?.XX.XX" << endl;
     gs = new GlobalSetup{argv[1]};
     rng = new RNG(gs->rnd_seed);
     string folder_cmd = "mkdir -p frames_" + gs->dirID;
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
     tapa_p_Fix.density = 0.0f;
     tapa_p_Fix.friction = gs->silo.fric;
     tapa_P->CreateFixture(&tapa_p_Fix);
-    cout << "#\t- Tapa piso creada." << endl;
+    cout << "#\t- Tapa oricifio creada." << endl;
     
     // Generación de granos.
     float siloInf, siloSup, siloIzq, siloDer, x, y;
@@ -183,8 +183,9 @@ int main(int argc, char *argv[]) {
     bool saveFlux = (gs->fluxFreq > 0 ? true : false);
     bool savePF = (gs->pf_freq > 0 ? true : false);
     int n_frame = 0;
-    size_t pf_0[gs->n_bin_perfiles] {0};
-    double vel_0[gs->n_bin_perfiles] {0.0};
+    size_t pf_0[gs->n_bin_perfiles] {0}; /*!< Histograma de acumulación de pf */
+    double vel_0[gs->n_bin_perfiles] {0.0}; /*!< Histograma de acumulación de velocidades */
+    size_t bin_count[gs->n_bin_perfiles] {0}; /*!< Histograma de conteo de bines no nulos */
 
     // Preparo salida de flujo
     std::ofstream fileFlux;
@@ -268,7 +269,7 @@ int main(int argc, char *argv[]) {
         }
         // Si es necesario, guardamos los histos pf_0 y vel_0
         if (gs->freq_perfiles && !(nStep % gs->freq_perfiles)) {
-            update_pf_vx(world, vel_0, pf_0, gs->n_bin_perfiles, gs->silo.r);
+            update_pf_vx(world, vel_0, pf_0, bin_count, gs->n_bin_perfiles, gs->silo.r);
             n_reg++;
         }
         // Si es necesario, guardamos las fuerzas de contacto 

@@ -180,10 +180,11 @@ double get_clipped_area(double y_inf, double y_sup, double y, double r);
  * \param b2World* : w mundo
  * \param double* : vel_0 array que almacena el histograma de velocidades
  * \param double* : pf_0 array que almacena el histograma de packing fraction
+ * \param size_t* : bin_count array que registra los bines no nulos 
  * \param int : n_bins número de bins que divide el orificio de salida
  * \param double : r_out radio del orificio de salida
  * */
-void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, int n_bins, double r_out);
+void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin:count, int n_bins, double r_out);
 
 /*! \fn save_tensors
  * \brief Función que guarda los tensores fabric y stress de cada grano.
