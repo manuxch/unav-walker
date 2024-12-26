@@ -17,6 +17,8 @@ int main(int argc, char *argv[]) {
         std::cout << "Error: archivo de parámetros requerido." << std::endl;
         exit(1);
     }
+    cout << "# silo-vib ver. 1.1" << endl;
+    cout << "# 2024.11.26" << endl;
     gs = new GlobalSetup{argv[1]};
     rng = new RNG(gs->rnd_seed);
     string folder_cmd = "mkdir -p frames_" + gs->dirID;
@@ -177,6 +179,7 @@ int main(int argc, char *argv[]) {
     unsigned int deltaG = 0, nGranosDesc = 0;
     double epsilon_v = gs->silo.zero_tol;
     bool saveFrm = (gs->saveFrameFreq > 0 ? true : false);
+    bool saveVE = (gs->save_ve_freq > 0 ? true : false);
     bool saveFlux = (gs->fluxFreq > 0 ? true : false);
     bool savePF = (gs->pf_freq > 0 ? true : false);
     int n_frame = 0;
@@ -217,12 +220,17 @@ int main(int argc, char *argv[]) {
         do_base_force(world, bvel, epsilon_v, gs->g);
         do_rot_friction(world, gs);
         // Si es necesario, guardo el frame para graficar
-        //if (saveFrm && !(nStep % gs->saveFrameFreq)) {
-             //saveFrame(world, n_frame++, nStep, gs);
-         //}
-        //if (gs->save_ve_freq && !(nStep % gs->save_ve_freq)) {
-             //printVE(nStep, t, world, gs);
-         //}
+        if (saveFrm && !(nStep % gs->saveFrameFreq)) {
+            saveFrame(world, ++n_frame, nStep, gs);
+            //save_tensors(world, n_frame, gs);
+         }
+        // Si es necesario, guardamos las fuerzas de contacto 
+        if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
+            saveContacts(world, t, n_frame, gs);
+        }
+        if (gs->save_ve_freq && !(nStep % gs->save_ve_freq)) {
+             printVE(nStep, t, world, gs);
+         }
         world->Step(tStep, pIter, vIter);
         world->ClearForces();
         t += tStep;
@@ -248,16 +256,24 @@ int main(int argc, char *argv[]) {
         // Si es necesario, guardo el frame para graficar
         if (saveFrm && !(nStep % gs->saveFrameFreq)) {
             saveFrame(world, ++n_frame, nStep, gs);
-            save_tensors(world, n_frame, gs);
+            //save_tensors(world, n_frame, gs);
         }
         // Si es necesario, guardamos el pack_fraction
         if (savePF && !(nStep % gs->pf_freq)) {
             save_pf(world, gs, t, filePF);
         }
+        // Si es necesario, guardamos el velocidades y energías
+        if (saveVE && !(nStep % gs->save_ve_freq)) {
+            printVE(n_frame, t, world, gs);
+        }
         // Si es necesario, guardamos los histos pf_0 y vel_0
         if (gs->freq_perfiles && !(nStep % gs->freq_perfiles)) {
             update_pf_vx(world, vel_0, pf_0, gs->n_bin_perfiles, gs->silo.r);
             n_reg++;
+        }
+        // Si es necesario, guardamos las fuerzas de contacto 
+        if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
+            saveContacts(world, t, n_frame, gs);
         }
         // Cálculo de descarga y reinyección
         deltaG = countDesc(world, sumaTipo, nStep, fileFlux, gs);

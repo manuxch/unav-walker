@@ -194,6 +194,8 @@ void saveContacts(b2World *w, float ts, int file_id, const GlobalSetup *globalSe
         "/force_contact_" + int2str(file_id) + ".dat";
     std::ofstream ff;
     ff.open(file_name.c_str());
+    ff << "# Time:  " << ts << endl;
+    ff << "# gID_A gID_B cp.x cp.y norm tan n_pc " << endl;
     float norm, tang;
     for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
         if (!c->IsTouching()) continue;
@@ -211,7 +213,7 @@ void saveContacts(b2World *w, float ts, int file_id, const GlobalSetup *globalSe
                   << worldManifold.points[i].y << " ";
             norm = (c->GetManifold())->points[i].normalImpulse;
             tang = (c->GetManifold())->points[i].tangentImpulse;
-            ff << norm/ts << " " << fabs(tang)/ts
+            ff << norm/ts << " " << tang/ts
                   << " CP" << numPoints << endl;
         }
     }
@@ -340,7 +342,8 @@ void do_rot_friction(b2World *w, const GlobalSetup *gs) {
 void do_reinyection(b2World *w, GlobalSetup *gs) {
     b2Vec2 pos;
     BodyData *infGr;
-    double r_elim = -gs->silo.R;
+    //double r_elim = -gs->silo.R;
+    double r_elim = -5.0;
     double x_new, y_new, angle;
     for (b2Body* b = w->GetBodyList(); b; b = b->GetNext()) {
         if (b->GetType() != b2_dynamicBody) {
@@ -462,8 +465,10 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, int n_bins, double r_
         //}
         vel = b->GetLinearVelocity();
         for (int i = i_inf; i <= i_sup; ++i) {
-            vel_0[i] += vel.y;
-            pf_0[i] += 1;
+            vel_0[i] = vel.y; // \TODO Verficar si debo hacer la suma 
+            pf_0[i] = 1;
+        //    vel_0[i] += vel.y;
+        //    pf_0[i] += 1;
         }
     }
     return;
@@ -472,7 +477,7 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, int n_bins, double r_
 
 void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) { 
     string file_name = "frames_" + globalSetup->dirID + "/"
-        + globalSetup->preFrameFile + "_tens_" + int2str(n_frame) + ".dat";
+        + globalSetup->preFrameFile + "_" + int2str(n_frame) + ".sxy";
     std::ofstream fout;
     fout.open(file_name.c_str());
     fout << "# gID stres.xx stres.xy stres.yx stres.yy " << endl;
@@ -490,17 +495,6 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) {
     }
     std::vector<Tensor> stress_tensors;
     stress_tensors.resize(n_grains, {0, 0, 0, 0});
-    //float **stress_tensors = new float*[n_grains];
-    //for (uint32 i = 0; i < n_grains; ++i) {
-        //stress_tensors[i] = new float[4]{0.0};
-    //}
-    //for (uint32 i = 0; i < n_grains; ++i) {
-        //stress_tensors[i].xx = 0;
-        //stress_tensors[i].xy = 0;
-        //stress_tensors[i].yx = 0;
-        //stress_tensors[i].yy = 0;
-    //}
-
     for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
         if (c->IsTouching()) {
             b2WorldManifold world_manifold;
