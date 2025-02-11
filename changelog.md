@@ -1,3 +1,10 @@
+# Versión 2.1
+
+2025.02.10 
+
+- El cálculo del prefil de velocidad en el orificio de salida ahora se calcula
+dividiendo por el número de veces que se registró una velocidad en cada bin.
+
 # Versión 2.0
 
 2024-12-26 

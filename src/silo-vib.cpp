@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
         std::cout << "Error: archivo de parámetros requerido." << std::endl;
         exit(1);
     }
-    cout << "# silo-vib ver. 2.0" << endl;
-    cout << "# 202?.XX.XX" << endl;
+    cout << "# silo-vib ver. 2.1" << endl;
+    cout << "# 2025.02.10" << endl;
     gs = new GlobalSetup{argv[1]};
     rng = new RNG(gs->rnd_seed);
     string folder_cmd = "mkdir -p frames_" + gs->dirID;
@@ -291,7 +291,7 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < gs->n_bin_perfiles; ++i) {
             cout << i * delta_r + delta_r / 2.0 - gs->silo.r << " "
                  << pf_0[i] / double(n_reg) << " "
-                 << vel_0[i] / double(n_reg) << endl;
+                 << vel_0[i] / double(bin_count[i]) << endl;
         }
     }
     filePF.close();

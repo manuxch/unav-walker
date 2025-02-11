@@ -421,7 +421,8 @@ double get_clipped_area(double y_inf, double y_sup, double y, double r) {
     return PI * r * r - a;
 }
 
-void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, int n_bins, double r_out) {
+void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count, 
+                  int n_bins, double r_out) {
     b2Vec2 pos, vel, pv;
     BodyData *infGr;
     double x_inf, x_sup, tmp;
@@ -433,6 +434,7 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, int n_bins, double r_
             continue;    
         }
         pos = b->GetPosition();
+        if (abs(pos.x) > r_out) continue;
         b2Fixture* fixt = b->GetFixtureList();
         b2Shape *shape = fixt->GetShape();
         infGr = (BodyData*) (b->GetUserData()).pointer;
@@ -446,7 +448,6 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, int n_bins, double r_
             radio = pv.Length();
         }
         if (abs(pos.y) > radio) continue;
-        if (abs(pos.x) > r_out) continue;
         tmp = sqrt(radio * radio - pos.y * pos.y);
         x_inf = pos.x - tmp;
         x_sup = pos.x + tmp;
@@ -465,8 +466,9 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, int n_bins, double r_
         //}
         vel = b->GetLinearVelocity();
         for (int i = i_inf; i <= i_sup; ++i) {
-            vel_0[i] = vel.y; // \TODO Verficar si debo hacer la suma 
-            pf_0[i] = 1;
+            vel_0[i] += vel.y; // \TODO Verficar si debo hacer la suma 
+            pf_0[i] += 1;
+            bin_count[i] += 1;
         //    vel_0[i] += vel.y;
         //    pf_0[i] += 1;
         }
@@ -484,7 +486,7 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) {
     b2Body *body_A, *body_B;
     BodyData *bd_data_A, *bd_data_B;
     unsigned int n_grains = 0;
-    b2Vec2 pos_A, pos_B, l_A, l_B, force_N, force_T, force, c_point;
+    b2Vec2 l_A, l_B, force_N, force_T, force, c_point;
     float normal_impulse, tangential_impulse;
     for (b2Body* body = w->GetBodyList(); body; body = body->GetNext()) {
         if (body->GetType() != b2_dynamicBody) {
