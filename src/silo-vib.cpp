@@ -221,17 +221,17 @@ int main(int argc, char *argv[]) {
         do_base_force(world, bvel, epsilon_v, gs->g);
         do_rot_friction(world, gs);
         // Si es necesario, guardo el frame para graficar
-        if (saveFrm && !(nStep % gs->saveFrameFreq)) {
-            saveFrame(world, ++n_frame, nStep, gs);
-            //save_tensors(world, n_frame, gs);
-         }
-        // Si es necesario, guardamos las fuerzas de contacto 
-        if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
-            saveContacts(world, t, n_frame, gs);
-        }
-        if (gs->save_ve_freq && !(nStep % gs->save_ve_freq)) {
-             printVE(nStep, t, world, gs);
-         }
+        /*if (saveFrm && t > gs->t_register && !(nStep % gs->saveFrameFreq)) {*/
+        /*    saveFrame(world, ++n_frame, nStep, gs);*/
+        /*    //save_tensors(world, n_frame, gs);*/
+        /* }*/
+        /*// Si es necesario, guardamos las fuerzas de contacto */
+        /*if (gs->save_contact_freq && t > gs->t_register && !(nStep % gs->save_contact_freq)) {*/
+        /*    saveContacts(world, t, n_frame, gs);*/
+        /*}*/
+        /*if (gs->save_ve_freq && t > gs->t_register && !(nStep % gs->save_ve_freq)) {*/
+        /*     printVE(nStep, t, world, gs);*/
+        /* }*/
         world->Step(tStep, pIter, vIter);
         world->ClearForces();
         t += tStep;
@@ -255,25 +255,25 @@ int main(int argc, char *argv[]) {
         do_base_force(world, bvel, epsilon_v, gs->g);
         do_rot_friction(world, gs);
         // Si es necesario, guardo el frame para graficar
-        if (saveFrm && !(nStep % gs->saveFrameFreq)) {
+        if (saveFrm && t > gs->t_register && !(nStep % gs->saveFrameFreq)) {
             saveFrame(world, ++n_frame, nStep, gs);
             //save_tensors(world, n_frame, gs);
         }
         // Si es necesario, guardamos el pack_fraction
-        if (savePF && !(nStep % gs->pf_freq)) {
+        if (savePF && t > gs->t_register && !(nStep % gs->pf_freq)) {
             save_pf(world, gs, t, filePF);
         }
         // Si es necesario, guardamos el velocidades y energías
-        if (saveVE && !(nStep % gs->save_ve_freq)) {
+        if (saveVE && t > gs->t_register && !(nStep % gs->save_ve_freq)) {
             printVE(n_frame, t, world, gs);
         }
         // Si es necesario, guardamos los histos pf_0 y vel_0
-        if (gs->freq_perfiles && !(nStep % gs->freq_perfiles)) {
+        if (gs->freq_perfiles && t > gs->t_register && !(nStep % gs->freq_perfiles)) {
             update_pf_vx(world, vel_0, pf_0, bin_count, gs->n_bin_perfiles, gs->silo.r);
             n_reg++;
         }
         // Si es necesario, guardamos las fuerzas de contacto 
-        if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
+        if (gs->save_contact_freq && t > gs->t_register && !(nStep % gs->save_contact_freq)) {
             saveContacts(world, t, n_frame, gs);
         }
         // Cálculo de descarga y reinyección

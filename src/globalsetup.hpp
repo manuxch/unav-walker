@@ -120,6 +120,7 @@ public:
     double tBlock; /*!< Tiempo de simulación con salida bloqueada */
     double maxT; /*!< Límite temporal de la simulación - en períodos de 
                            la excitación */
+    double t_register; /*!< Tiempo de inicio de registros */
     int pIter; /*!< Iteraciones para la satisfacción de restricciones de 
                  posición */
     int vIter; /*!< Iteraciones para la satisfacción de restricciones de 

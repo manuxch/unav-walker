@@ -203,6 +203,14 @@ void GlobalSetup::load(string inputFile) {
                 exit(1);
             }
         }
+        if (ident == "t_Register:") {
+            fin >> t_register;
+            if (t_register < 0.0) {
+                cout << "ERROR: el tiempo de inicio de registros debe ser > 0." 
+                     << endl;
+                exit(1);
+            }
+        }
         if (ident == "tBlock:") {
             fin >> tBlock;
             if (tBlock < 0.0) {
@@ -348,6 +356,7 @@ void GlobalSetup::printGlobalSetup(){
     cout << "# \t Paso de integración: " << tStep << " s."<< endl;
     cout << "# \t Tiempo de simulación con salida bloqueada: " << tBlock << " s." << endl;
     cout << "# \t Tiempo máximo de simulación: " << maxT << " s." << endl;
+    cout << "# \t Tiempo de inicio de registro: " << t_register << " s." << endl;
     cout << "# \t Iteraciones para restricciones de posición: " << pIter << endl;
     cout << "# \t Iteraciones para restricciones de velocidad: " << vIter 
          << endl;
