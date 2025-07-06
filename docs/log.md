@@ -1,3 +1,10 @@
+# 2025.07.06
+
+Hice algunos cambios menores para retomar las simulaciones y comparar con los experimentos.
+
+- Modifiqué la forma de registrar incorporando una variable `t_register` que es el tiempo a partir del cual se comienzan a registrar cosas, para sacar el período transitorio.
+- Hice un script `heatmap-velocities.py` para realizar mapas de calor de velocidades, pero se puede adaptar para otras magnitudes (por ejemplo stress).
+
 # 2024.12.26
 
 Este es la primera entrada del nuevo log en formato markdown.
