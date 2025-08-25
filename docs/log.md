@@ -54,6 +54,12 @@ $\Gamma$ distintos: 1 y 3. El resultado dio $\phi$ = 1.6329057179736992.
 
 Como referencia utilizo la ec. 7 del PRL 2024
 
+# 2025.07.06
+
+Hice algunos cambios menores para retomar las simulaciones y comparar con los experimentos.
+
+- Modifiqué la forma de registrar incorporando una variable `t_register` que es el tiempo a partir del cual se comienzan a registrar cosas, para sacar el período transitorio.
+- Hice un script `heatmap-velocities.py` para realizar mapas de calor de velocidades, pero se puede adaptar para otras magnitudes (por ejemplo stress).
 
 # 2024.12.26
 

@@ -122,11 +122,20 @@ public:
   double tBlock; /*!< Tiempo de simulación con salida bloqueada */
   double maxT;   /*!< Límite temporal de la simulación - en períodos de
                            la excitación */
+<<<<<<< HEAD
   int pIter;     /*!< Iteraciones para la satisfacción de restricciones de
                    posición */
   int vIter;     /*!< Iteraciones para la satisfacción de restricciones de
                    velocidad */
   double g;      /*!< Aceleración de la gravedad */
+=======
+    double t_register; /*!< Tiempo de inicio de registros */
+    int pIter; /*!< Iteraciones para la satisfacción de restricciones de 
+                 posición */
+    int vIter; /*!< Iteraciones para la satisfacción de restricciones de 
+                 velocidad */
+    double g; /*!< Aceleración de la gravedad */
+>>>>>>> 17b2591a5328a53cf6fa988799edeb6ae78c0ff5
 
   // Parámetros de estadísticas y control
   string dirID; /*!< Identificador del directorio de archivos de frames de modo
