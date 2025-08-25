@@ -5,6 +5,8 @@
 - El cálculo del prefil de velocidad en el orificio de salida ahora se calcula
 dividiendo por el número de veces que se registró una velocidad en cada bin.
 
+- Corrección del cálculo del tensor de estrés (faltaba dividir por el área del grano)
+
 # Versión 2.0
 
 2024-12-26 

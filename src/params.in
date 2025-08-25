@@ -24,7 +24,7 @@ radio_silo: 7
 radio_out_silo: 2.5
 restitucion_silo: 0.1
 atenuacion_rotacional: 0.95
-Amplitud_exitacion_gamma: 3.2438
+Amplitud_exitacion_gamma: 1.0
 Frecuencia_exitacion: 1.10656667
 Cero_tol: 0.00001  
 rho: 0.5

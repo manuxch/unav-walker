@@ -159,7 +159,7 @@ int countDesc(b2World *w, int *st, int paso,
     return nGranos;
 }
 
-void printVE(int frm_id, float timeS, b2World *w, const GlobalSetup* gs) {
+void printVE(const int frm_id, const float timeS, b2World *w, const GlobalSetup* gs) {
     b2Vec2 pi, vi; 
     float wi, mi, Ii, vim;
     b2Vec2 vt(0.0, 0.0);
@@ -487,7 +487,7 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) {
     BodyData *bd_data_A, *bd_data_B;
     unsigned int n_grains = 0;
     b2Vec2 l_A, l_B, force_N, force_T, force, c_point;
-    float normal_impulse, tangential_impulse;
+    float normal_impulse, tangential_impulse, area_a, area_b;
     for (b2Body* body = w->GetBodyList(); body; body = body->GetNext()) {
         if (body->GetType() != b2_dynamicBody) {
             continue;    
@@ -505,6 +505,8 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) {
             body_B = c->GetFixtureB()->GetBody();
             bd_data_A = (BodyData*) (body_A->GetUserData()).pointer;
             bd_data_B = (BodyData*) (body_B->GetUserData()).pointer;
+            area_a = get_body_area(body_A);
+            area_b = get_body_area(body_B);
 
             for (int32 i = 0; i < c->GetManifold()->pointCount; ++i) {
                 c_point = world_manifold.points[i];
@@ -518,16 +520,16 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) {
                 l_A = c_point - body_A->GetWorldCenter();
                 l_B = c_point - body_B->GetWorldCenter();
                 if(bd_data_A->isGrain) {
-                    stress_tensors[bd_data_A->gID].xx += force.x * l_A.x;
-                    stress_tensors[bd_data_A->gID].xy += force.x * l_A.y;
-                    stress_tensors[bd_data_A->gID].yx += force.y * l_A.x;
-                    stress_tensors[bd_data_A->gID].yy += force.y * l_A.y;
+                    stress_tensors[bd_data_A->gID].xx += force.x * l_A.x / area_a;
+                    stress_tensors[bd_data_A->gID].xy += force.x * l_A.y / area_a;
+                    stress_tensors[bd_data_A->gID].yx += force.y * l_A.x / area_a;
+                    stress_tensors[bd_data_A->gID].yy += force.y * l_A.y / area_a;
                 }
                 if(bd_data_B->isGrain) {
-                    stress_tensors[bd_data_B->gID].xx -= force.x * l_B.x;
-                    stress_tensors[bd_data_B->gID].xy -= force.x * l_B.y;
-                    stress_tensors[bd_data_B->gID].yx -= force.y * l_B.x;
-                    stress_tensors[bd_data_B->gID].yy -= force.y * l_B.y;
+                    stress_tensors[bd_data_B->gID].xx -= force.x * l_B.x / area_b;
+                    stress_tensors[bd_data_B->gID].xy -= force.x * l_B.y / area_b;
+                    stress_tensors[bd_data_B->gID].yx -= force.y * l_B.x / area_b;
+                    stress_tensors[bd_data_B->gID].yy -= force.y * l_B.y / area_b;
                 }
             }
         }
@@ -542,5 +544,29 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) {
     }
     fout << std::flush;
     fout.close();
+}
+
+
+float get_body_area(b2Body* body) {
+    float totalArea = 0.0f;
+    b2Fixture* fixt = body->GetFixtureList();
+    b2Shape *shape = fixt->GetShape();
+    BodyData *infGr = (BodyData*) (body->GetUserData()).pointer;
+    if (infGr->nLados == 1) {
+        float radio = shape->m_radius;
+        totalArea = M_PI * radio * radio;
+    }
+    else {
+        b2PolygonShape *poly = (b2PolygonShape*) shape;
+        int count = poly->m_count;
+        b2Vec2* verts = (b2Vec2*) poly->m_vertices;
+        float area = 0.0f;
+        for (int i = 0; i < count - 1; ++i)  {
+            area += verts[i].x * verts[i + 1].y - verts[i + 1].x * verts[i].y;
+        }  
+        totalArea += std::fabs(area) * 0.5f;
+    }
+
+    return totalArea;
 }
 
