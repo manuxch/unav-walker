@@ -1,3 +1,9 @@
+# 2025.09.25 
+
+- Reunión con Diego M.
+  Hacer simulaciones con las nuevas dimensiones, y guardar con paso 1 los tensores de 
+  estrés durante 4 o 5 simulaciones.
+
 # 2025.03.28
 
 - Hice nuevas corridas para $\Gamma = 1, 3$, pero ahora con el coeficiente de restitución

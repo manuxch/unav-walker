@@ -269,129 +269,57 @@ int main(int argc, char *argv[]) {
     // Si es necesario, guardamos el pack_fraction
     if (savePF && !(nStep % gs->pf_freq)) {
       save_pf(world, gs, t, filePF);
-      // Deposición en el fondo
-      cout << "# Iniciando deposición sobre fondo ..." << endl;
-      while (t < gs->tBlock) {
-        auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
-        do_base_force(world, bvel, epsilon_v, gs->g);
-        do_rot_friction(world, gs);
-        // Si es necesario, guardo el frame para graficar
-        /*if (saveFrm && t > gs->t_register && !(nStep % gs->saveFrameFreq)) {*/
-        /*    saveFrame(world, ++n_frame, nStep, gs);*/
-        /*    //save_tensors(world, n_frame, gs);*/
-        /* }*/
-        /*// Si es necesario, guardamos las fuerzas de contacto */
-        /*if (gs->save_contact_freq && t > gs->t_register && !(nStep %
-         * gs->save_contact_freq)) {*/
-        /*    saveContacts(world, t, n_frame, gs);*/
-        /*}*/
-        /*if (gs->save_ve_freq && t > gs->t_register && !(nStep %
-         * gs->save_ve_freq)) {*/
-        /*     printVE(nStep, t, world, gs);*/
-        /* }*/
-        world->Step(tStep, pIter, vIter);
-        world->ClearForces();
-        t += tStep;
-        nStep++;
-      }
-      cout << "# Fin tiempo de bloqueo del silo." << endl;
-
-      // Eliminación de la tapa
-      world->DestroyBody(tapa_P);
-      tapa_P = NULL;
-      cout << "# Tapa removida, inicio de la descarga." << endl;
-
-      // Bucle de simulación
-      t = 0.0;
-      size_t n_reg = 0;
-      cout << "# Inicio de la simulación ... " << endl;
-      auto start_time = std::chrono::high_resolution_clock::now();
-      cout << "# Fecha y hora de comienzo (UTC): " << start_time << endl;
-      while (t < gs->maxT) {
-        auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
-        do_base_force(world, bvel, epsilon_v, gs->g);
-        do_rot_friction(world, gs);
-        // Si es necesario, guardo el frame para graficar
-        if (saveFrm && t > gs->t_register && !(nStep % gs->saveFrameFreq)) {
-          saveFrame(world, ++n_frame, nStep, gs);
-          // save_tensors(world, n_frame, gs);
-        }
-        // Si es necesario, guardamos el pack_fraction
-        if (savePF && t > gs->t_register && !(nStep % gs->pf_freq)) {
-          save_pf(world, gs, t, filePF);
-        }
-        // Si es necesario, guardamos el velocidades y energías
-        if (saveVE && t > gs->t_register && !(nStep % gs->save_ve_freq)) {
-          printVE(n_frame, t, world, gs);
-        }
-        // Si es necesario, guardamos los histos pf_0 y vel_0
-        if (gs->freq_perfiles && t > gs->t_register &&
-            !(nStep % gs->freq_perfiles)) {
-          update_pf_vx(world, vel_0, pf_0, bin_count, gs->n_bin_perfiles,
-                       gs->silo.r);
-          n_reg++;
-        }
-        // Si es necesario, guardamos las fuerzas de contacto
-        if (gs->save_contact_freq && t > gs->t_register &&
-            !(nStep % gs->save_contact_freq)) {
-          saveContacts(world, t, n_frame, gs);
-        }
-        // Cálculo de descarga y reinyección
-        deltaG = countDesc(world, sumaTipo, nStep, fileFlux, gs);
-        nGranosDesc += deltaG;
-        do_reinyection(world, gs);
-        world->Step(tStep, pIter, vIter);
-        world->ClearForces();
-        t += tStep;
-        nStep++;
-      }
-      // Si es necesario, guardamos el velocidades y energías
-      if (saveVE && !(nStep % gs->save_ve_freq)) {
-        printVE(n_frame, t, world, gs);
-      }
-      // Si es necesario, guardamos los histos pf_0 y vel_0
-      if (gs->freq_perfiles && !(nStep % gs->freq_perfiles)) {
-        update_pf_vx(world, vel_0, pf_0, bin_count, gs->n_bin_perfiles,
-                     gs->silo.r);
-        n_reg++;
-      }
-      // Si es necesario, guardamos las fuerzas de contacto
-      if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
-        saveContacts(world, t, n_frame, gs);
-      }
-      // Si es necesario, guardamos el tensor de estrés
-      if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {
-        save_tensors(world, n_frame, gs);
-      }
-      // Cálculo de descarga y reinyección
-      deltaG = countDesc(world, sumaTipo, nStep, fileFlux, gs);
-      nGranosDesc += deltaG;
-      do_reinyection(world, gs);
-      world->Step(tStep, pIter, vIter);
-      world->ClearForces();
-      t += tStep;
-      nStep++;
     }
-    if (gs->freq_perfiles) {
-      cout << "# r pf_0 vel_0" << endl;
-      double delta_r = 2.0 * gs->silo.r / gs->n_bin_perfiles;
-      for (int i = 0; i < gs->n_bin_perfiles; ++i) {
-        cout << i * delta_r + delta_r / 2.0 - gs->silo.r << " "
-             << pf_0[i] / double(n_reg) << " "
-             << vel_0[i] / double(bin_count[i]) << endl;
-      }
+
+    // Si es necesario, guardamos el velocidades y energías
+    if (saveVE && !(nStep % gs->save_ve_freq)) {
+      printVE(n_frame, t, world, gs);
     }
-    filePF.close();
-    fileFlux.close();
-    cout << "# Simulación finalizada." << endl;
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto elapsed_time =
-        duration_cast<std::chrono::duration<double>>(end_time - start_time);
-    int hours = elapsed_time.count() / 3600;
-    int minutes = (elapsed_time.count() - hours * 3600) / 60;
-    int seconds = elapsed_time.count() - hours * 3600 - minutes * 60;
-    cout << "# Fecha y hora de finalización (UTC): " << end_time << endl;
-    cout << "# Tiempo transcurrido: " << hours << " horas, " << minutes
-         << " minutos, " << seconds << " segundos." << endl;
-    return 0;
+    // Si es necesario, guardamos los histos pf_0 y vel_0
+    if (gs->freq_perfiles && !(nStep % gs->freq_perfiles)) {
+      update_pf_vx(world, vel_0, pf_0, bin_count, gs->n_bin_perfiles,
+                   gs->silo.r);
+      n_reg++;
+    }
+    // Si es necesario, guardamos las fuerzas de contacto
+    if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
+      saveContacts(world, t, n_frame, gs);
+    }
+    // Si es necesario, guardamos el tensor de estrés
+    if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {
+      save_tensors(world, n_frame, gs);
+    }
+    // Cálculo de descarga y reinyección
+    deltaG = countDesc(world, sumaTipo, nStep, fileFlux, gs);
+    nGranosDesc += deltaG;
+    do_reinyection(world, gs);
+    world->Step(tStep, pIter, vIter);
+    world->ClearForces();
+    t += tStep;
+    nStep++;
+  } // Fin bucle principal de simulación
+  //
+  // Guardado de perfiles de velocidad y packing-fraction
+  if (gs->freq_perfiles) {
+    cout << "# r pf_0 vel_0" << endl;
+    double delta_r = 2.0 * gs->silo.r / gs->n_bin_perfiles;
+    for (int i = 0; i < gs->n_bin_perfiles; ++i) {
+      cout << i * delta_r + delta_r / 2.0 - gs->silo.r << " "
+           << pf_0[i] / double(n_reg) << " " << vel_0[i] / double(bin_count[i])
+           << endl;
+    }
   }
+  filePF.close();
+  fileFlux.close();
+  cout << "# Simulación finalizada." << endl;
+  auto end_time = std::chrono::high_resolution_clock::now();
+  auto elapsed_time =
+      duration_cast<std::chrono::duration<double>>(end_time - start_time);
+  int hours = elapsed_time.count() / 3600;
+  int minutes = (elapsed_time.count() - hours * 3600) / 60;
+  int seconds = elapsed_time.count() - hours * 3600 - minutes * 60;
+  cout << "# Fecha y hora de finalización (UTC): " << end_time << endl;
+  cout << "# Tiempo transcurrido: " << hours << " horas, " << minutes
+       << " minutos, " << seconds << " segundos." << endl;
+  return 0;
+}

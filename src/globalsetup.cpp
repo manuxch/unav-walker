@@ -166,23 +166,6 @@ void GlobalSetup::load(string inputFile) {
         if (granos[i]->dens <= 0) {
           cout << "ERROR: La densidad de los granos debe ser > 0." << endl;
           exit(1);
-          if (ident == "t_Register:") {
-            fin >> t_register;
-            if (t_register < 0.0) {
-              cout << "ERROR: el tiempo de inicio de registros debe ser > 0."
-                   << endl;
-              exit(1);
-            }
-          }
-          if (ident == "tBlock:") {
-            fin >> tBlock;
-            if (tBlock < 0.0) {
-              cout << "ERROR: el tiempo de simulación con el silo bloqueado "
-                      "debe ser > 0."
-                   << endl;
-              exit(1);
-            }
-          }
           if (granos[i]->fric < 0.0) {
             cout << "ERROR: El coeficiente de rozamiento debe ser ";
             cout << "0 <= rozam." << endl;
@@ -208,213 +191,218 @@ void GlobalSetup::load(string inputFile) {
         }
       }
       // Fin parámetros de granos
-      // Parámetros de control de la simulación
-      if (ident == "timeStep:") {
-        fin >> tStep;
-        if (tStep < 0.0) {
-          cout << "ERROR: El paso de integración debe ser >= 0." << endl;
-          exit(1);
-        }
-      }
-      if (ident == "tMax:") {
-        fin >> maxT;
-        if (maxT < 0.0) {
-          cout << "ERROR: el tiempo máximo de simulación debe ser > 0." << endl;
-          exit(1);
-        }
-      }
-      if (ident == "tBlock:") {
-        fin >> tBlock;
-        if (tBlock < 0.0) {
-          cout << "ERROR: el tiempo de simulación con el silo bloqueado debe "
-                  "ser "
-                  "> 0."
-               << endl;
-          exit(1);
-        }
-      }
-      if (ident == "pIter:") {
-        fin >> pIter;
-        if (pIter < 0) {
-          cout << "ERROR: El número de iteraciones de posicion debe ser ";
-          cout << " > 0." << endl;
-          exit(1);
-        }
-      }
-      if (ident == "vIter:") {
-        fin >> vIter;
-        if (vIter < 0) {
-          cout << "ERROR: El número de iteraciones de velocidad debe ser";
-          cout << " > 0." << endl;
-          exit(1);
-        }
-      }
-      if (ident == "g:") {
-        fin >> g;
-        if (g < 0) {
-          cout << "ERROR: la magnitud de g (vertical) debe ser >= 0" << endl;
-          exit(1);
-        }
-      }
-      if (ident == "preFrameFile:") {
-        fin >> preFrameFile;
-      }
-      if (ident == "dirID:") {
-        fin >> dirID;
-      }
-      if (ident == "saveFrameFreq:") {
-        fin >> saveFrameFreq;
-        if (saveFrameFreq < 0) {
-          cout << "ERROR: la frecuencia de guardado debe ser >= 0." << endl;
-          exit(1);
-        }
-      }
-      if (ident == "fluxFile:") {
-        fin >> fluxFile;
-      }
-      if (ident == "fluxFreq:") {
-        fin >> fluxFreq;
-        if (fluxFreq < 0) {
-          cout << "ERROR: la frecuencia de guardado del flujo debe ser ";
-          cout << ">= 0." << endl;
-          exit(1);
-        }
-      }
-      if (ident == "packing_fraction_out_freq:") {
-        fin >> pf_freq;
-        if (pf_freq < 0) {
-          cout << "ERROR: la frecuencia de guardado del PF debe ser >= 0."
-               << endl;
-          exit(1);
-        }
-      }
-      if (ident == "pf_file:") {
-        fin >> pf_file;
-      }
-      if (ident == "freq_perfiles:") {
-        fin >> freq_perfiles;
-        if (pf_freq < 0) {
-          cout << "ERROR: la frecuencia de actualización de perfiles debe ser "
-                  ">= "
-                  "0."
-               << endl;
-          exit(1);
-        }
-      }
-      if (ident == "n_bin_perfiles:") {
-        fin >> n_bin_perfiles;
-        if (n_bin_perfiles <= 0) {
-          cout << "ERROR: el número de bins en perfiles debe ser > 0." << endl;
-          exit(1);
-        }
-      }
-      if (ident == "save_ve_freq:") {
-        fin >> save_ve_freq;
-        if (save_ve_freq < 0) {
-          cout << "ERROR: la frecuencia de guardado de v y e debe ser >= 0."
-               << endl;
-          exit(1);
-        }
-      }
-      if (ident == "freq_save_contacts:") {
-        fin >> save_contact_freq;
-        if (save_contact_freq < 0) {
-          cout << "ERROR: la frecuencia de guardado de contactos debe ser >= 0."
-               << endl;
-          exit(1);
-        }
-      }
-      if (ident == "save_tensors_freq:") {
-        fin >> save_tensors_freq;
-        if (save_tensors_freq < 0) {
-          cout << "ERROR: la frecuencia de guardado de tensores de estrés debe "
-                  "ser >= 0."
-               << endl;
-          exit(1);
-        }
-      }
-
-    } // fin bucle de lectura de inputFile
-  } // Fin función load()
-
-  /*! \fn GlobalSetup::printGlobalSetup()
-      Función que imprime las variables contenidas en GlobalSetup
-      */
-  void GlobalSetup::printGlobalSetup() {
-    cout << "# Archivo de parámetros: " << input_par_file << endl;
-    cout << "#\tValor de la semilla del generador de números aleatorios: "
-         << rnd_seed << endl;
-    cout << "# Parámetros de la simulación con Box2D: " << endl;
-    cout << "# Contenedor: " << endl;
-    cout << "#\tAltura del silo: " << silo.H << endl;
-    cout << "#\tRadio del silo: " << silo.R << endl;
-    cout << "#\tRadio del orificio de salida del silo: " << silo.r << endl;
-    cout << "#\tCoeficiente de restitución del contenedor: " << silo.rest
-         << endl;
-    cout << "#\tCoeficiente de fricción del contenedor: " << silo.fric << endl;
-    cout << "#\tCoeficiente de atenuación de rotaciones: " << silo.at_rotac
-         << endl;
-    cout << "#\tFrecuencia de la excitación armónica: " << silo.frec << " Hz."
-         << endl;
-    cout << "#\tAmplitud de la excitación armónica (reducida - Gamma): "
-         << silo.Gamma << endl;
-    cout << "#\tTolerancia para comparación con cero de velocidad: "
-         << silo.zero_tol << endl;
-    cout << "#\tProporción de amplitudes entre armónicos (rho): " << silo.rho
-         << endl;
-    cout << "#\tDiferencia de fase phi entre armónicos: " << silo.phi << endl;
-    cout << "# Granos: " << endl;
-    cout << "# \tNúmero de tipos de granos: " << noTipoGranos << endl;
-    for (int i = 0; i < noTipoGranos; i++) {
-      cout << "# \tGrano tipo " << i + 1 << ":" << endl;
-      cout << "# \t   Número de granos: " << granos[i]->noGranos << endl;
-      cout << "# \t   Radio = " << granos[i]->radio << " [m]" << endl;
-      cout << "# \t   Densidad = " << granos[i]->dens << " [kg/m²]" << endl;
-      cout << "# \t   Coeficiente de fricción = " << granos[i]->fric << endl;
-      cout << "# \t   Coeficiente de fricción estática c/base = "
-           << granos[i]->fric_s << endl;
-      cout << "# \t   Coeficiente de fricción dinámica c/base = "
-           << granos[i]->fric_d << endl;
-      cout << "# \t   Coeficiente de fricción = " << granos[i]->fric << endl;
-      cout << "# \t   Coeficiente de restitución = " << granos[i]->rest << endl;
-      cout << "# \t   Geometría: ";
-      if (granos[i]->nLados == 1)
-        cout << "Disco." << endl;
-      else {
-        cout << "# Polígono de " << granos[i]->nLados << " lados." << endl;
-        cout << "# \tVértices: " << endl;
-        for (int j = 0; j < granos[i]->nLados; j++) {
-          cout << "# \t\t(" << fixed << setw(4) << granos[i]->vertices[j][0]
-               << ", " << fixed << setw(4) << granos[i]->vertices[j][1] << "), "
-               << endl;
-        }
+    }
+    // Parámetros de control de la simulación
+    if (ident == "timeStep:") {
+      fin >> tStep;
+      if (tStep < 0.0) {
+        cout << "ERROR: El paso de integración debe ser >= 0." << endl;
+        exit(1);
       }
     }
-    cout << "# Parámetros de control de la simulación:" << endl;
-    cout << "# \t Paso de integración: " << tStep << " s." << endl;
-    cout << "# \t Tiempo de simulación con salida bloqueada: " << tBlock
-         << " s." << endl;
-    cout << "# \t Tiempo máximo de simulación: " << maxT << " s." << endl;
-    cout << "# \t Iteraciones para restricciones de posición: " << pIter
-         << endl;
-    cout << "# \t Iteraciones para restricciones de velocidad: " << vIter
-         << endl;
-    cout << "# \t Magnitud de g (hacia -y):" << g << endl;
-    cout << "# Parámetros de estadísticas y registros:" << endl;
-    cout << "#\t Identificador de carpeta y archivos: " << dirID << endl;
-    cout << "# \t Prefijo de archivos de frames: " << preFrameFile << endl;
-    cout << "# \t Frecuencia de guardado de frames: " << saveFrameFreq << endl;
-    cout << "# \t Frecuencia de guardado del packing fraction en la salida: "
-         << pf_freq << endl;
-    cout << "# \t Archivo de guardado del packing fraction: " << pf_file
-         << endl;
-    cout << "# \t Frecuencia de actualización de perfiles pf-v: "
-         << freq_perfiles << endl;
-    cout << "# \t Número de bins en perfiles pf-v: " << n_bin_perfiles << endl;
-    cout << "# \t Frecuencia de guardado de velocidades y enrgías: "
-         << save_ve_freq << endl;
-    cout << "# \t Frecuencia de guardado de tensores de estrés: "
-         << save_tensors_freq << endl;
+    if (ident == "tMax:") {
+      fin >> maxT;
+      if (maxT < 0.0) {
+        cout << "ERROR: el tiempo máximo de simulación debe ser > 0." << endl;
+        exit(1);
+      }
+    }
+    if (ident == "t_Register:") {
+      fin >> t_register;
+      if (t_register < 0.0) {
+        cout << "ERROR: el tiempo de inicio de registros debe ser >= 0."
+             << endl;
+        exit(1);
+      }
+    }
+    if (ident == "tBlock:") {
+      fin >> tBlock;
+      if (tBlock < 0.0) {
+        cout << "ERROR: el tiempo de simulación con el silo bloqueado "
+                "debe ser > 0."
+             << endl;
+        exit(1);
+      }
+    }
+    if (ident == "pIter:") {
+      fin >> pIter;
+      if (pIter < 0) {
+        cout << "ERROR: El número de iteraciones de posicion debe ser ";
+        cout << " > 0." << endl;
+        exit(1);
+      }
+    }
+    if (ident == "vIter:") {
+      fin >> vIter;
+      if (vIter < 0) {
+        cout << "ERROR: El número de iteraciones de velocidad debe ser";
+        cout << " > 0." << endl;
+        exit(1);
+      }
+    }
+    if (ident == "g:") {
+      fin >> g;
+      if (g < 0) {
+        cout << "ERROR: la magnitud de g (vertical) debe ser >= 0" << endl;
+        exit(1);
+      }
+    }
+    if (ident == "preFrameFile:") {
+      fin >> preFrameFile;
+    }
+    if (ident == "dirID:") {
+      fin >> dirID;
+    }
+    if (ident == "saveFrameFreq:") {
+      fin >> saveFrameFreq;
+      if (saveFrameFreq < 0) {
+        cout << "ERROR: la frecuencia de guardado debe ser >= 0." << endl;
+        exit(1);
+      }
+    }
+    if (ident == "fluxFile:") {
+      fin >> fluxFile;
+    }
+    if (ident == "fluxFreq:") {
+      fin >> fluxFreq;
+      if (fluxFreq < 0) {
+        cout << "ERROR: la frecuencia de guardado del flujo debe ser ";
+        cout << ">= 0." << endl;
+        exit(1);
+      }
+    }
+    if (ident == "packing_fraction_out_freq:") {
+      fin >> pf_freq;
+      if (pf_freq < 0) {
+        cout << "ERROR: la frecuencia de guardado del PF debe ser >= 0."
+             << endl;
+        exit(1);
+      }
+    }
+    if (ident == "pf_file:") {
+      fin >> pf_file;
+    }
+    if (ident == "freq_perfiles:") {
+      fin >> freq_perfiles;
+      if (pf_freq < 0) {
+        cout << "ERROR: la frecuencia de actualización de perfiles debe ser "
+                ">= "
+                "0."
+             << endl;
+        exit(1);
+      }
+    }
+    if (ident == "n_bin_perfiles:") {
+      fin >> n_bin_perfiles;
+      if (n_bin_perfiles <= 0) {
+        cout << "ERROR: el número de bins en perfiles debe ser > 0." << endl;
+        exit(1);
+      }
+    }
+    if (ident == "save_ve_freq:") {
+      fin >> save_ve_freq;
+      if (save_ve_freq < 0) {
+        cout << "ERROR: la frecuencia de guardado de v y e debe ser >= 0."
+             << endl;
+        exit(1);
+      }
+    }
+    if (ident == "freq_save_contacts:") {
+      fin >> save_contact_freq;
+      if (save_contact_freq < 0) {
+        cout << "ERROR: la frecuencia de guardado de contactos debe ser >= 0."
+             << endl;
+        exit(1);
+      }
+    }
+    if (ident == "save_tensors_freq:") {
+      fin >> save_tensors_freq;
+      if (save_tensors_freq < 0) {
+        cout << "ERROR: la frecuencia de guardado de tensores de estrés debe "
+                "ser >= 0."
+             << endl;
+        exit(1);
+      }
+    }
 
-    cout << "# Fin lectura de parámetros." << endl;
+  } // fin bucle de lectura de inputFile
+} // Fin función load()
+
+/*! \fn GlobalSetup::printGlobalSetup()
+    Función que imprime las variables contenidas en GlobalSetup
+    */
+void GlobalSetup::printGlobalSetup() {
+  cout << "# Archivo de parámetros: " << input_par_file << endl;
+  cout << "#\tValor de la semilla del generador de números aleatorios: "
+       << rnd_seed << endl;
+  cout << "# Parámetros de la simulación con Box2D: " << endl;
+  cout << "# Contenedor: " << endl;
+  cout << "#\tAltura del silo: " << silo.H << endl;
+  cout << "#\tRadio del silo: " << silo.R << endl;
+  cout << "#\tRadio del orificio de salida del silo: " << silo.r << endl;
+  cout << "#\tCoeficiente de restitución del contenedor: " << silo.rest << endl;
+  cout << "#\tCoeficiente de fricción del contenedor: " << silo.fric << endl;
+  cout << "#\tCoeficiente de atenuación de rotaciones: " << silo.at_rotac
+       << endl;
+  cout << "#\tFrecuencia de la excitación armónica: " << silo.frec << " Hz."
+       << endl;
+  cout << "#\tAmplitud de la excitación armónica (reducida - Gamma): "
+       << silo.Gamma << endl;
+  cout << "#\tTolerancia para comparación con cero de velocidad: "
+       << silo.zero_tol << endl;
+  cout << "#\tProporción de amplitudes entre armónicos (rho): " << silo.rho
+       << endl;
+  cout << "#\tDiferencia de fase phi entre armónicos: " << silo.phi << endl;
+  cout << "# Granos: " << endl;
+  cout << "# \tNúmero de tipos de granos: " << noTipoGranos << endl;
+  for (int i = 0; i < noTipoGranos; i++) {
+    cout << "# \tGrano tipo " << i + 1 << ":" << endl;
+    cout << "# \t   Número de granos: " << granos[i]->noGranos << endl;
+    cout << "# \t   Radio = " << granos[i]->radio << " [m]" << endl;
+    cout << "# \t   Densidad = " << granos[i]->dens << " [kg/m²]" << endl;
+    cout << "# \t   Coeficiente de fricción = " << granos[i]->fric << endl;
+    cout << "# \t   Coeficiente de fricción estática c/base = "
+         << granos[i]->fric_s << endl;
+    cout << "# \t   Coeficiente de fricción dinámica c/base = "
+         << granos[i]->fric_d << endl;
+    cout << "# \t   Coeficiente de fricción = " << granos[i]->fric << endl;
+    cout << "# \t   Coeficiente de restitución = " << granos[i]->rest << endl;
+    cout << "# \t   Geometría: ";
+    if (granos[i]->nLados == 1)
+      cout << "Disco." << endl;
+    else {
+      cout << "# Polígono de " << granos[i]->nLados << " lados." << endl;
+      cout << "# \tVértices: " << endl;
+      for (int j = 0; j < granos[i]->nLados; j++) {
+        cout << "# \t\t(" << fixed << setw(4) << granos[i]->vertices[j][0]
+             << ", " << fixed << setw(4) << granos[i]->vertices[j][1] << "), "
+             << endl;
+      }
+    }
   }
+  cout << "# Parámetros de control de la simulación:" << endl;
+  cout << "# \t Paso de integración: " << tStep << " s." << endl;
+  cout << "# \t Tiempo de simulación con salida bloqueada: " << tBlock << " s."
+       << endl;
+  cout << "# \t Tiempo máximo de simulación: " << maxT << " s." << endl;
+  cout << "# \t Iteraciones para restricciones de posición: " << pIter << endl;
+  cout << "# \t Iteraciones para restricciones de velocidad: " << vIter << endl;
+  cout << "# \t Magnitud de g (hacia -y):" << g << endl;
+  cout << "# Parámetros de estadísticas y registros:" << endl;
+  cout << "# \t Identificador de carpeta y archivos: " << dirID << endl;
+  cout << "# \t Tiempo de inicio de registros: " << t_register << endl;
+  cout << "# \t Prefijo de archivos de frames: " << preFrameFile << endl;
+  cout << "# \t Frecuencia de guardado de frames: " << saveFrameFreq << endl;
+  cout << "# \t Frecuencia de guardado del packing fraction en la salida: "
+       << pf_freq << endl;
+  cout << "# \t Archivo de guardado del packing fraction: " << pf_file << endl;
+  cout << "# \t Frecuencia de actualización de perfiles pf-v: " << freq_perfiles
+       << endl;
+  cout << "# \t Número de bins en perfiles pf-v: " << n_bin_perfiles << endl;
+  cout << "# \t Frecuencia de guardado de velocidades y enrgías: "
+       << save_ve_freq << endl;
+  cout << "# \t Frecuencia de guardado de tensores de estrés: "
+       << save_tensors_freq << endl;
+
+  cout << "# Fin lectura de parámetros." << endl;
+}
