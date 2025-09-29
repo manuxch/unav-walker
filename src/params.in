@@ -58,10 +58,10 @@ noTipoGranos: 1
 # [pIter]: iteraciones de posicion para la satisfacción de restricciones
 # [vIter]: iteraciones de velocidad para la satisfacción de restricciones
 # [g]: Magnitud de la aceleración de la gravedad (hacia -y) kg m / s²
-timeStep: 0.005 
+timeStep: 0.005  // 222 pasos por período = 1.11 s
 tMax: 300.0
 tBlock: 150.0
-t_Register: 10
+t_Register: 298.9  // tMax - 1 período
 pIter: 60
 vIter: 60
 g: 1.0

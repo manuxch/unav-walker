@@ -261,33 +261,34 @@ int main(int argc, char *argv[]) {
     auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
     do_base_force(world, bvel, epsilon_v, gs->g);
     do_rot_friction(world, gs);
-    // Si es necesario, guardo el frame para graficar
-    if (saveFrm && !(nStep % gs->saveFrameFreq)) {
-      saveFrame(world, ++n_frame, nStep, gs);
-      // save_tensors(world, n_frame, gs);
-    }
-    // Si es necesario, guardamos el pack_fraction
-    if (savePF && !(nStep % gs->pf_freq)) {
-      save_pf(world, gs, t, filePF);
-    }
+    if (t >= gs->t_register) { // Guardamos a partir de t_register
+      // Si es necesario, guardo el frame para graficar
+      if (saveFrm && !(nStep % gs->saveFrameFreq)) {
+        saveFrame(world, ++n_frame, nStep, gs);
+      }
+      // Si es necesario, guardamos el pack_fraction
+      if (savePF && !(nStep % gs->pf_freq)) {
+        save_pf(world, gs, t, filePF);
+      }
 
-    // Si es necesario, guardamos el velocidades y energías
-    if (saveVE && !(nStep % gs->save_ve_freq)) {
-      printVE(n_frame, t, world, gs);
-    }
-    // Si es necesario, guardamos los histos pf_0 y vel_0
-    if (gs->freq_perfiles && !(nStep % gs->freq_perfiles)) {
-      update_pf_vx(world, vel_0, pf_0, bin_count, gs->n_bin_perfiles,
-                   gs->silo.r);
-      n_reg++;
-    }
-    // Si es necesario, guardamos las fuerzas de contacto
-    if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
-      saveContacts(world, t, n_frame, gs);
-    }
-    // Si es necesario, guardamos el tensor de estrés
-    if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {
-      save_tensors(world, n_frame, gs);
+      // Si es necesario, guardamos el velocidades y energías
+      if (saveVE && !(nStep % gs->save_ve_freq)) {
+        printVE(n_frame, t, world, gs);
+      }
+      // Si es necesario, guardamos los histos pf_0 y vel_0
+      if (gs->freq_perfiles && !(nStep % gs->freq_perfiles)) {
+        update_pf_vx(world, vel_0, pf_0, bin_count, gs->n_bin_perfiles,
+                     gs->silo.r);
+        n_reg++;
+      }
+      // Si es necesario, guardamos las fuerzas de contacto
+      if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
+        saveContacts(world, t, n_frame, gs);
+      }
+      // Si es necesario, guardamos el tensor de estrés
+      if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {
+        save_tensors(world, n_frame, gs);
+      }
     }
     // Cálculo de descarga y reinyección
     deltaG = countDesc(world, sumaTipo, nStep, fileFlux, gs);
