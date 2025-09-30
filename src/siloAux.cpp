@@ -163,8 +163,8 @@ void printVE(const int frm_id, const float timeS, b2World *w, const GlobalSetup*
     b2Vec2 pi, vi; 
     float wi, mi, Ii, vim;
     b2Vec2 vt(0.0, 0.0);
-    string file_name = "frames_" + gs->dirID + "/ve_"
-        + gs->preFrameFile + "_" + int2str(frm_id) + ".dat";
+    string file_name = "frames_" + gs->dirID + "/"
+        + gs->preFrameFile + "_" + int2str(frm_id) + ".ve";
     std::ofstream fileF;
     fileF.open(file_name.c_str());
     fileF << "# gID type x y vx vy w E_kin_lin E_kin_rot "
