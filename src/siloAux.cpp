@@ -163,8 +163,8 @@ void printVE(const int frm_id, const float timeS, b2World *w, const GlobalSetup*
     b2Vec2 pi, vi; 
     float wi, mi, Ii, vim;
     b2Vec2 vt(0.0, 0.0);
-    string file_name = "frames_" + gs->dirID + "/ve_"
-        + gs->preFrameFile + "_" + int2str(frm_id) + ".dat";
+    string file_name = "frames_" + gs->dirID + "/"
+        + gs->preFrameFile + "_" + int2str(frm_id) + ".ve";
     std::ofstream fileF;
     fileF.open(file_name.c_str());
     fileF << "# gID type x y vx vy w E_kin_lin E_kin_rot "
@@ -477,7 +477,7 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
 }
 
 
-void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) { 
+void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup, double *pmin, double *pmax) { 
     string file_name = "frames_" + globalSetup->dirID + "/"
         + globalSetup->preFrameFile + "_" + int2str(n_frame) + ".sxy";
     std::ofstream fout;
@@ -497,6 +497,7 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) {
     }
     std::vector<Tensor> stress_tensors;
     stress_tensors.resize(n_grains, {0, 0, 0, 0});
+    double pressure;
     for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
         if (c->IsTouching()) {
             b2WorldManifold world_manifold;
@@ -541,6 +542,9 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup) {
              << stress_tensors[i].yx << " "
              << stress_tensors[i].yy << " "
              << endl;
+        pressure = -0.5 * (stress_tensors[i].xx + stress_tensors[i].yy);
+        if (pressure < *pmin) *pmin = pressure;
+        if (pressure > *pmax) *pmax = pressure;
     }
     fout << std::flush;
     fout.close();
