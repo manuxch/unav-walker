@@ -254,6 +254,8 @@ int main(int argc, char *argv[]) {
   // Bucle de simulación
   t = 0.0;
   size_t n_reg = 0;
+  double p_min = 1.0e8;
+  double p_max = -1.0e8; // Presiones mínima y maxima durante la simulación.
   cout << "# Inicio de la simulación ... " << endl;
   auto start_time = std::chrono::high_resolution_clock::now();
   cout << "# Fecha y hora de comienzo (UTC): " << start_time << endl;
@@ -287,7 +289,7 @@ int main(int argc, char *argv[]) {
       }
       // Si es necesario, guardamos el tensor de estrés
       if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {
-        save_tensors(world, n_frame, gs);
+        save_tensors(world, n_frame, gs, &p_min, &p_max);
       }
     }
     // Cálculo de descarga y reinyección
@@ -322,5 +324,9 @@ int main(int argc, char *argv[]) {
   cout << "# Fecha y hora de finalización (UTC): " << end_time << endl;
   cout << "# Tiempo transcurrido: " << hours << " horas, " << minutes
        << " minutos, " << seconds << " segundos." << endl;
+  if (gs->save_tensors_freq) {
+    cout << "# Presión mínima registrada: " << p_min << endl;
+    cout << "# Presión máxima registrada: " << p_max << endl;
+  }
   return 0;
 }

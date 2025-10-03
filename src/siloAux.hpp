@@ -201,9 +201,12 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
  * \param b2World* : w mundo
  * \param int : frm_id identificador de frame para nombre de archivo
  * \param GlobalSetup* : gs parámetros de la simulación
+ * \param double* : pmin mínima presión del frame
+ * \param double* : pmax máxima presión del frame
  * \return void
  * */
-void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup);
+void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
+                  double *pmin, double *pmax);
 
 
 /*! \fn get_body_area
