@@ -102,15 +102,23 @@ void saveFrame(b2World *w, int n_frame, int frm_id,
       fileF << (infGr->gID == -110 ? "LID-F" : "LID-W") << endl;
     } else { // Es la caja
       for (b2Fixture *f = bd->GetFixtureList(); f; f = f->GetNext()) {
-        fileF << infGr->gID << " ";
+        // fileF << infGr->gID << " ";
+        // b2ChainShape *s = (b2ChainShape *)f->GetShape();
+        // b2Vec2 *verts = (b2Vec2 *)s->m_vertices;
+        // fileF << s->m_count << " ";
+        // for (int i = 0; i < s->m_count; ++i) {
+        //   verts[i] = bd->GetWorldPoint(verts[i]);
+        //   fileF << verts[i].x << " " << verts[i].y << " ";
+        // }
+        // fileF << "LINE" << endl;
         b2ChainShape *s = (b2ChainShape *)f->GetShape();
         b2Vec2 *verts = (b2Vec2 *)s->m_vertices;
-        fileF << s->m_count << " ";
-        for (int i = 0; i < s->m_count; ++i) {
-          verts[i] = bd->GetWorldPoint(verts[i]);
-          fileF << verts[i].x << " " << verts[i].y << " ";
+        for (int i = 0; i < s->m_count - 1; ++i) {  // Recorro los segmentos
+            fileF << infGr->gID << " 2 ";
+            fileF << verts[i].x << " " << verts[i].y << " ";
+            fileF << verts[i + 1].x << " " << verts[i + 1].y;
+            fileF << " LINE" << endl;
         }
-        fileF << "LINE" << endl;
       }
     }
   }

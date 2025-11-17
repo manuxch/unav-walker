@@ -399,7 +399,7 @@ void GlobalSetup::printGlobalSetup() {
   cout << "# \t Frecuencia de actualización de perfiles pf-v: " << freq_perfiles
        << endl;
   cout << "# \t Número de bins en perfiles pf-v: " << n_bin_perfiles << endl;
-  cout << "# \t Frecuencia de guardado de velocidades y enrgías: "
+  cout << "# \t Frecuencia de guardado de velocidades y energías: "
        << save_ve_freq << endl;
   cout << "# \t Frecuencia de guardado de tensores de estrés: "
        << save_tensors_freq << endl;
