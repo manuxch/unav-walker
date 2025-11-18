@@ -348,7 +348,7 @@ void do_reinyection(b2World *w, GlobalSetup *gs) {
   b2Vec2 pos;
   BodyData *infGr;
   // double r_elim = -gs->silo.R;
-  double r_elim = -5.0;
+  double r_elim = -10.0;
   double x_new, y_new, angle;
   for (b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
     if (b->GetType() != b2_dynamicBody) {
