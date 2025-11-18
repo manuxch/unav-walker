@@ -224,21 +224,21 @@ int main(int argc, char *argv[]) {
     do_base_force(world, bvel, epsilon_v, gs->g);
     do_rot_friction(world, gs);
     // Si es necesario, guardo el frame para graficar
-    /*if (saveFrm && !(nStep % gs->saveFrameFreq)) {*/
-    /*  saveFrame(world, ++n_frame, nStep, gs);*/
-    /*}*/
+    if (saveFrm && !(nStep % gs->saveFrameFreq)) {
+      saveFrame(world, ++n_frame, nStep, gs);
+    }
     // Si es necesario, guardamos las fuerzas de contacto
-    /*if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {*/
-    /*  saveContacts(world, t, n_frame, gs);*/
-    /*}*/
+    if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
+      saveContacts(world, t, n_frame, gs);
+    }
     // Si es necesario, guardamos el tensor de estrés
     /*if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {*/
     /*  save_tensors(world, n_frame, gs);*/
     /*}*/
     // Si es necesario, guardamos el velocidades y energías
-    /*if (gs->save_ve_freq && !(nStep % gs->save_ve_freq)) {*/
-    /*  printVE(nStep, t, world, gs);*/
-    /*}*/
+    if (gs->save_ve_freq && !(nStep % gs->save_ve_freq)) {
+      printVE(nStep, t, world, gs);
+    }
     world->Step(tStep, pIter, vIter);
     world->ClearForces();
     t += tStep;
@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
   cout << "# Tapa removida, inicio de la descarga." << endl;
 
   // Bucle de simulación
-  t = 0.0;
+  // t = 0.0;   // <-- necesario si reiniciamos el tiempo al remover la tapa
   size_t n_reg = 0;
   double p_min = 1.0e8;
   double p_max = -1.0e8; // Presiones mínima y maxima durante la simulación.
