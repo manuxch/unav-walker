@@ -29,7 +29,7 @@ GlobalSetup::~GlobalSetup() {}
  */
 void GlobalSetup::load(string inputFile) {
   ifstream fin(inputFile.c_str());
-  string ident;
+  string ident, temp_string;
   if (!fin.is_open()) {
     cout << "ERROR: No se puede abrir el archivo " << inputFile << endl;
     exit(1);
@@ -240,6 +240,15 @@ void GlobalSetup::load(string inputFile) {
         exit(1);
       }
     }
+    if (ident == "do_reinyection:") {
+      fin >> temp_string;
+      if (temp_string == "T" || temp_string == "t") {
+        reinyection = true;
+      }
+      else {
+        reinyection = false;
+      }
+    }
     if (ident == "g:") {
       fin >> g;
       if (g < 0) {
@@ -388,6 +397,9 @@ void GlobalSetup::printGlobalSetup() {
   cout << "# \t Iteraciones para restricciones de posición: " << pIter << endl;
   cout << "# \t Iteraciones para restricciones de velocidad: " << vIter << endl;
   cout << "# \t Magnitud de g (hacia -y):" << g << endl;
+  cout << "# \t Se realiza reinyección de granos? ";
+  cout << (reinyection ? "Si." : "No.") << endl;
+
   cout << "# Parámetros de estadísticas y registros:" << endl;
   cout << "# \t Identificador de carpeta y archivos: " << dirID << endl;
   cout << "# \t Tiempo de inicio de registros: " << t_register << endl;

@@ -126,6 +126,7 @@ public:
                        posición */
   int vIter;         /*!< Iteraciones para la satisfacción de restricciones de
                        velocidad */
+  bool reinyection; /*!< True si se realiza reinyección de granos por arriba */
   double g;          /*!< Aceleración de la gravedad */
   double t_register; /*!< Tiempo de inicio de registros */
 

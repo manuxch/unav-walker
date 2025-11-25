@@ -1,3 +1,26 @@
+# Perfil de velocidades
+[2025.11.23]
+
+Corrí una simulación de prueba en el cluster del GMG. Traje los archivos de salida al directorio 
+
+    /granular/unav-sliders/vel-profile
+    
+de la PC de casa.
+
+Extraje las coordenadas y las velocidades. Hice videos de la dinámica y también analicé con el programa `granular_cmap_render` la magnitud de la velocidad.
+
+Procesé el histograma de salida para obtener una figura, usando el script
+
+    `plot-perfil-vel.py`
+    
+usando como input el histograma que está en el subdirectorio `renders` producido por `granular_cmap_render`.
+    
+Todos los resultados están en la carpeta 
+
+    /unav-sliders/unav-walker/resultados
+    
+\TODO Tengo que emprolijar el análisis y los resultados en un solo directorio.
+
 # Velocidades de partícula única
 2025.11.17
 

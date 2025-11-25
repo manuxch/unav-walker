@@ -1,3 +1,9 @@
+# Versión 2.2 
+
+2025.11.24 
+
+- Agregada la opción de reinyectar o no los granos.
+
 # Versión 2.1
 
 2025.02.10 

@@ -18,8 +18,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Error: archivo de parámetros requerido." << std::endl;
     exit(1);
   }
-  cout << "# silo-vib ver. 2.1" << endl;
-  cout << "# 2025.02.10" << endl;
+  cout << "# silo-vib ver. 2.2" << endl;
+  cout << "# 2025.11.24" << endl;
   gs = new GlobalSetup{argv[1]};
   rng = new RNG(gs->rnd_seed);
   string folder_cmd = "mkdir -p frames_" + gs->dirID;
@@ -67,6 +67,31 @@ int main(int argc, char *argv[]) {
   silo_fix_2.friction = gs->silo.fric;
   silo->CreateFixture(&silo_fix_2);
   cout << "#\t- Silo creado." << endl;
+
+  // Creación de la caja para recojer granos no reinyectados
+  b2BodyDef bdcaja;
+  bdcaja.position.Set(0.0f, 0.0f);
+  bdcaja.type = b2_staticBody;
+  BodyData *cajaD = new BodyData;
+  cajaD->isGrain = false;
+  cajaD->nLados = 3;
+  cajaD->gID = -200;
+  bdcaja.userData.pointer = uintptr_t(cajaD);
+  b2Body *caja = world->CreateBody(&bdcaja);
+
+  b2ChainShape caja_poly;
+  b2Vec2 caja_vertices[4];
+  caja_vertices[0].Set(-gs->silo.R, -10.0f);
+  caja_vertices[1].Set(-gs->silo.R, -10.0f - 1.2f * gs->silo.H);
+  caja_vertices[2].Set(gs->silo.R, -10.0f - 1.2f * gs->silo.H);
+  caja_vertices[3].Set(gs->silo.R, -10.0f);
+  caja_poly.CreateChain(caja_vertices, 4, caja_vertices[0], caja_vertices[3]);
+  b2FixtureDef caja_fix;
+  caja_fix.shape = &caja_poly;
+  caja_fix.density = 0.0f;
+  caja_fix.friction = gs->silo.fric;
+  caja->CreateFixture(&caja_fix);
+  cout << "#\t- Caja fondo creada." << endl;
 
   // Tapa
   b2BodyDef tapa_piso;
@@ -218,6 +243,8 @@ int main(int argc, char *argv[]) {
   cout << "# Fin de resolución de overlaps." << endl;
 
   // Deposición en el fondo
+  auto start_time = std::chrono::high_resolution_clock::now();
+  cout << "# Fecha y hora de comienzo (UTC): " << start_time << endl;
   cout << "# Iniciando deposición sobre fondo ..." << endl;
   while (t < gs->tBlock) {
     auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
@@ -257,8 +284,6 @@ int main(int argc, char *argv[]) {
   double p_min = 1.0e8;
   double p_max = -1.0e8; // Presiones mínima y maxima durante la simulación.
   cout << "# Inicio de la simulación ... " << endl;
-  auto start_time = std::chrono::high_resolution_clock::now();
-  cout << "# Fecha y hora de comienzo (UTC): " << start_time << endl;
   while (t < gs->maxT) {
     auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
     do_base_force(world, bvel, epsilon_v, gs->g);
@@ -295,7 +320,8 @@ int main(int argc, char *argv[]) {
     // Cálculo de descarga y reinyección
     deltaG = countDesc(world, sumaTipo, nStep, fileFlux, gs);
     nGranosDesc += deltaG;
-    do_reinyection(world, gs);
+    if (gs->reinyection)
+        do_reinyection(world, gs);
     world->Step(tStep, pIter, vIter);
     world->ClearForces();
     t += tStep;
