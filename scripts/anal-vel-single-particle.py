@@ -1,64 +1,64 @@
 #!/usr/bin/env python3
+# Script para analizar la velocidad de una sola partícula.
+# Este script está hecho para validar los resultados experimentales
+# de Tomás
+# 2025.11.29
 
-import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import glob
-plt.style.use('/home/manuel/granular/unav-walker/utils/figs.mplstyle')
+from scipy.stats import linregress
+# plt.style.use('../../utils/figs.mplstyle')
+# plt.style.use('/home/manuel/granular/unav-walker/utils/figs.mplstyle')
 
-parser = argparse.ArgumentParser(
-            prog='anal-vel-single-particle.py',
-            description='Análisis de la velocidad de un solo walker')
-
-parser.add_argument('gamma')
-args = parser.parse_args()
-gamma = args.gamma
-
-if gamma == "1":
-    files = glob.glob('gamma-1/frames_walker/ve_frm_*.dat')
-else:
-    files = glob.glob('gamma-3/frames_walker/ve_frm_*.dat')
-
+files = glob.glob('*.ve')
 print(len(files))
 files.sort()
-v_s_2_e = 0.542217668
-t_s_2_e = 0.055328334
-
+x_s_2_e = 0.005
+v_s_2_e = 0.221359436211787
+t_s_2_e = 0.0225876975726313
 ts = []
-vels_x = []
-vels_y = []
-n_start = 10000
-delta_t = 5000
-for f in files:
-    with open(f, 'r') as fin:
-        lineas = fin.readlines()
-        if (len(lineas) < 2):
-            raise ValueError(f"El archivo {f} no tiene al menos dos líneas")
+ys = []
+vels = []
+# # Valores para obtener velocidad de drift
+# n_start = 100
+# n_end = 500
+# Valores para ver la colisión
+n_start = 00
+n_end = 2200
+pid = 34
+for f in files[5:]:
+    fin = open(f, 'r')
+    data = fin.readlines()
+    fin.close()
+    ts.append(float(data[0].split()[12]) * t_s_2_e)
+    for fila in data[1:]:
+        fila = fila.split()
+        if int(fila[0]) == pid:
+            ys.append(float(fila[3]) * x_s_2_e)
+            vels.append(float(fila[5]) * v_s_2_e * 100)
 
-    ts.append(float(lineas[0].split()[-1]))
-    vels_x.append(float(lineas[1].split()[4]))
-    vels_y.append(float(lineas[1].split()[5]))
+ats = np.array(ts)
+ays = np.array(ys)
+avels = np.array(vels)
+vmean = avels[n_start:n_end].mean()
+print(vmean, avels[n_start:n_end].std())
+res = linregress(ats[n_start:n_end], ys[n_start:n_end])
+vel = res.slope
+print(f'fit vel: {vel:.3f}')
+# plt.plot(ats, avels)
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
-# ats = np.array(ts)
-ats = np.array(ts) * t_s_2_e
-avelx = np.array(vels_x) * v_s_2_e
-avely = np.array(vels_y) * v_s_2_e
-vymean = avely[n_start:-10].mean()
-vystd = avely[n_start:-10].std()
-
-print(f"Gamma = {gamma} - v_y mean: {vymean}, v_y std: {vystd}")
-# plt.plot(ats, avelx, label=r"$v_x$")
-# plt.plot(ats, avely, '.-', label=r"$v_y$")
-plt.plot(ats[n_start:n_start+delta_t], avely[n_start:n_start+delta_t], '.-',
-         label=f"mean: {vymean:.4f} m/s")
-# plt.plot(ats, '.')
-plt.xlabel('$t$ [s]')
-plt.ylabel(r'$v_y$ [m/s]')
-plt.title(f'$\Gamma = {gamma}$')
-plt.legend()
+ax1.plot(ats[n_start:n_end], ays[n_start:n_end] * 100, label=fr'$v_y = {100 * vel:.3f}$ [cm/s] (fit)')
+ax1.set_ylabel(r'$y$ [cm]')
+ax1.legend()
+ax2.plot(ats[n_start:n_end], avels[n_start:n_end], label=fr'$\langle v_y \rangle = {vmean:.3f}$ [cm/s]')
+ax2.set_xlabel('$t$ [s]')
+ax2.set_ylabel(r'$v_y$ [cm/s]')
+ax2.legend()
+# plt.title(r'$\mu_d = 0.13$')
 plt.tight_layout()
-plt.savefig(f'vy-t-{gamma}.pdf')
-# plt.show()
+plt.savefig('vy-t.pdf')
 
 
 

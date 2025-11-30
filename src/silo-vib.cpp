@@ -69,29 +69,29 @@ int main(int argc, char *argv[]) {
   cout << "#\t- Silo creado." << endl;
 
   // Creación de la caja para recojer granos no reinyectados
-  b2BodyDef bdcaja;
-  bdcaja.position.Set(0.0f, 0.0f);
-  bdcaja.type = b2_staticBody;
-  BodyData *cajaD = new BodyData;
-  cajaD->isGrain = false;
-  cajaD->nLados = 3;
-  cajaD->gID = -200;
-  bdcaja.userData.pointer = uintptr_t(cajaD);
-  b2Body *caja = world->CreateBody(&bdcaja);
-
-  b2ChainShape caja_poly;
-  b2Vec2 caja_vertices[4];
-  caja_vertices[0].Set(-gs->silo.R, -10.0f);
-  caja_vertices[1].Set(-gs->silo.R, -10.0f - 1.2f * gs->silo.H);
-  caja_vertices[2].Set(gs->silo.R, -10.0f - 1.2f * gs->silo.H);
-  caja_vertices[3].Set(gs->silo.R, -10.0f);
-  caja_poly.CreateChain(caja_vertices, 4, caja_vertices[0], caja_vertices[3]);
-  b2FixtureDef caja_fix;
-  caja_fix.shape = &caja_poly;
-  caja_fix.density = 0.0f;
-  caja_fix.friction = gs->silo.fric;
-  caja->CreateFixture(&caja_fix);
-  cout << "#\t- Caja fondo creada." << endl;
+  // b2BodyDef bdcaja;
+  // bdcaja.position.Set(0.0f, 0.0f);
+  // bdcaja.type = b2_staticBody;
+  // BodyData *cajaD = new BodyData;
+  // cajaD->isGrain = false;
+  // cajaD->nLados = 3;
+  // cajaD->gID = -200;
+  // bdcaja.userData.pointer = uintptr_t(cajaD);
+  // b2Body *caja = world->CreateBody(&bdcaja);
+  //
+  // b2ChainShape caja_poly;
+  // b2Vec2 caja_vertices[4];
+  // caja_vertices[0].Set(-gs->silo.R, -10.0f);
+  // caja_vertices[1].Set(-gs->silo.R, -10.0f - 1.2f * gs->silo.H);
+  // caja_vertices[2].Set(gs->silo.R, -10.0f - 1.2f * gs->silo.H);
+  // caja_vertices[3].Set(gs->silo.R, -10.0f);
+  // caja_poly.CreateChain(caja_vertices, 4, caja_vertices[0], caja_vertices[3]);
+  // b2FixtureDef caja_fix;
+  // caja_fix.shape = &caja_poly;
+  // caja_fix.density = 0.0f;
+  // caja_fix.friction = gs->silo.fric;
+  // caja->CreateFixture(&caja_fix);
+  // cout << "#\t- Caja fondo creada." << endl;
 
   // Tapa
   b2BodyDef tapa_piso;
@@ -321,7 +321,9 @@ int main(int argc, char *argv[]) {
     deltaG = countDesc(world, sumaTipo, nStep, fileFlux, gs);
     nGranosDesc += deltaG;
     if (gs->reinyection)
-        do_reinyection(world, gs);
+        do_reinyection(world, gs, true);
+    else
+        do_reinyection(world, gs, false);
     world->Step(tStep, pIter, vIter);
     world->ClearForces();
     t += tStep;

@@ -344,31 +344,80 @@ void do_rot_friction(b2World *w, const GlobalSetup *gs) {
   return;
 }
 
-void do_reinyection(b2World *w, GlobalSetup *gs) {
+// void do_reinyection(b2World *w, GlobalSetup *gs) {
+//   b2Vec2 pos;
+//   BodyData *infGr;
+//   // double r_elim = -gs->silo.R;
+//   double r_elim = -10.0;
+//   double x_new, y_new, angle;
+//   for (b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
+//     if (b->GetType() != b2_dynamicBody) {
+//       continue;
+//     }
+//     infGr = (BodyData *)(b->GetUserData()).pointer;
+//     if (infGr->isIn)
+//       continue;
+//     pos = b->GetPosition();
+//     if (pos.y > r_elim)
+//       continue;
+//     angle = b->GetAngle();
+//     x_new = rng->get_double(-0.9 * gs->silo.R, 0.9 * gs->silo.R);
+//     y_new = rng->get_double(0.75 * gs->silo.H, 0.95 * gs->silo.H);
+//     b2Vec2 new_pos(x_new, y_new);
+//     b->SetTransform(new_pos, angle);
+//     infGr->isIn = true;
+//   }
+//   return;
+// }
+
+void do_reinyection(b2World *w, GlobalSetup *gs, bool reinyect) {
   b2Vec2 pos;
   BodyData *infGr;
   // double r_elim = -gs->silo.R;
   double r_elim = -10.0;
   double x_new, y_new, angle;
-  for (b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
+  
+  b2Body *b = w->GetBodyList();
+  while (b) {
+    // Guardar el siguiente cuerpo ANTES de cualquier posible eliminación
+    b2Body *nextBody = b->GetNext();
+    
     if (b->GetType() != b2_dynamicBody) {
+      b = nextBody;
       continue;
     }
+    
     infGr = (BodyData *)(b->GetUserData()).pointer;
-    if (infGr->isIn)
+    if (infGr->isIn) {
+      b = nextBody;
       continue;
+    }
+    
     pos = b->GetPosition();
-    if (pos.y > r_elim)
+    if (pos.y > r_elim) {
+      b = nextBody;
       continue;
-    angle = b->GetAngle();
-    x_new = rng->get_double(-0.9 * gs->silo.R, 0.9 * gs->silo.R);
-    y_new = rng->get_double(0.75 * gs->silo.H, 0.95 * gs->silo.H);
-    b2Vec2 new_pos(x_new, y_new);
-    b->SetTransform(new_pos, angle);
-    infGr->isIn = true;
+    }
+    
+    if (reinyect) {
+      angle = b->GetAngle();
+      x_new = rng->get_double(-0.9 * gs->silo.R, 0.9 * gs->silo.R);
+      y_new = rng->get_double(0.75 * gs->silo.H, 0.95 * gs->silo.H);
+      b2Vec2 new_pos(x_new, y_new);
+      b->SetTransform(new_pos, angle);
+      infGr->isIn = true;
+    }
+    // Si llegamos aquí, significa que pos.y <= r_elim
+    // Eliminar el cuerpo
+    w->DestroyBody(b);
+    b = nullptr;  // Asignar nullptr para evitar referencia colgante
+    
+    // Avanzar al siguiente cuerpo que ya guardamos
+    b = nextBody;
   }
   return;
 }
+
 
 void save_pf(b2World *w, GlobalSetup *gs, double t, std::ofstream &fout) {
   b2Vec2 pos, pv;

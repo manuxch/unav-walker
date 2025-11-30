@@ -158,9 +158,10 @@ void do_rot_friction(b2World *w, const GlobalSetup *gs);
  * \brief Función que reinyecta los granos que salieron del silo.
  * \param b2World* : w mundo
  * \param GlobalSetup* : gs parámetros de simulación
+ * \param bool : reinyect Reinyecta si true, elimina si false
  * \return void
  * */
-void do_reinyection(b2World *w, GlobalSetup *gs);
+void do_reinyection(b2World *w, GlobalSetup *gs, bool reinyect);
 
 /*! \fn save_pf
  * \brief Guarda el packing fraction bulk y a la salida del silo.

@@ -31,3 +31,9 @@ Hice una simulación con pocas partículas he hice el seguimiento de su posició
 Al hacer el seguimiento de las que inicialmente están lejos del "base", todas las velocidades de drift dieron iguales. Las figuras `vy-t-fit.pdf`, `vy-t-colision.pdf` y `vy-t-base.pdf` muestran distintos períodos del segimiento de la partícula 1: durante el desplazamiento libre (que ajusta la velocidad de drift), al colisionar con la base, y cuando queda rebotando contra la misma.
 
 El ajuste obtenido de la velocidad de drift es similar al que midieron experimentalmente: 1 cm/s.
+
+El script que realiza el análisis está en 
+
+    /unav-walkers/scripts/anal-vel-single-particle.py
+    
+
