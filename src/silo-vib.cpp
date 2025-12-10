@@ -10,6 +10,8 @@ using std::endl;
 #include <stdexcept>
 #include <tuple>
 
+void comprehensiveCheck(b2World* world, int step);
+
 GlobalSetup *gs;
 RNG *rng;
 
@@ -18,8 +20,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Error: archivo de parámetros requerido." << std::endl;
     exit(1);
   }
-  cout << "# silo-vib ver. 2.2" << endl;
-  cout << "# 2025.11.24" << endl;
+  cout << "# silo-vib ver. 2.3" << endl;
+  cout << "# 2025.12.10" << endl;
   gs = new GlobalSetup{argv[1]};
   rng = new RNG(gs->rnd_seed);
   string folder_cmd = "mkdir -p frames_" + gs->dirID;
@@ -246,25 +248,29 @@ int main(int argc, char *argv[]) {
   auto start_time = std::chrono::high_resolution_clock::now();
   cout << "# Fecha y hora de comienzo (UTC): " << start_time << endl;
   cout << "# Iniciando deposición sobre fondo ..." << endl;
+  // int stepCount = 0;
   while (t < gs->tBlock) {
+    // comprehensiveCheck(world, stepCount++);
     auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
     do_base_force(world, bvel, epsilon_v, gs->g);
     do_rot_friction(world, gs);
-    // Si es necesario, guardo el frame para graficar
-    if (saveFrm && !(nStep % gs->saveFrameFreq)) {
-      saveFrame(world, ++n_frame, nStep, gs);
-    }
-    // Si es necesario, guardamos las fuerzas de contacto
-    if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
-      saveContacts(world, t, n_frame, gs);
-    }
-    // Si es necesario, guardamos el tensor de estrés
-    /*if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {*/
-    /*  save_tensors(world, n_frame, gs);*/
-    /*}*/
-    // Si es necesario, guardamos el velocidades y energías
-    if (gs->save_ve_freq && !(nStep % gs->save_ve_freq)) {
-      printVE(nStep, t, world, gs);
+    if (t >= gs->t_register) {
+        // Si es necesario, guardo el frame para graficar
+        if (saveFrm && !(nStep % gs->saveFrameFreq)) {
+        saveFrame(world, ++n_frame, nStep, gs);
+        }
+        // Si es necesario, guardamos las fuerzas de contacto
+        if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
+        saveContacts(world, t, n_frame, gs);
+        }
+        // Si es necesario, guardamos el tensor de estrés
+        /*if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {*/
+        /*  save_tensors(world, n_frame, gs, t);*/
+        /*}*/
+        // Si es necesario, guardamos el velocidades y energías
+        if (gs->save_ve_freq && !(nStep % gs->save_ve_freq)) {
+        printVE(n_frame, t, world, gs);
+        }
     }
     world->Step(tStep, pIter, vIter);
     world->ClearForces();
@@ -285,6 +291,7 @@ int main(int argc, char *argv[]) {
   double p_max = -1.0e8; // Presiones mínima y maxima durante la simulación.
   cout << "# Inicio de la simulación ... " << endl;
   while (t < gs->maxT) {
+    // comprehensiveCheck(world, stepCount++);
     auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
     do_base_force(world, bvel, epsilon_v, gs->g);
     do_rot_friction(world, gs);
@@ -314,7 +321,7 @@ int main(int argc, char *argv[]) {
       }
       // Si es necesario, guardamos el tensor de estrés
       if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {
-        save_tensors(world, n_frame, gs, &p_min, &p_max);
+        save_tensors(world, n_frame, gs, &p_min, &p_max, t);
       }
     }
     // Cálculo de descarga y reinyección
@@ -357,4 +364,29 @@ int main(int argc, char *argv[]) {
     cout << "# Presión máxima registrada: " << p_max << endl;
   }
   return 0;
+}
+
+
+// Ejemplo de chequeo extensivo
+void comprehensiveCheck(b2World* world, int step) {
+    cout << "=== Check paso " << step << " ===" << endl;
+    
+    for (b2Body* b = world->GetBodyList(); b; b = b->GetNext()) {
+        BodyData* bd = (BodyData*)b->GetUserData().pointer;
+        if (!bd || !bd->isGrain) continue;
+        
+        b2Vec2 pos = b->GetPosition();
+        b2Vec2 vel = b->GetLinearVelocity();
+        
+        bool hasNaN = false;
+        if (std::isnan(pos.x)) { cout << "gID " << bd->gID << ": pos.x NaN" << endl; hasNaN = true; }
+        if (std::isnan(pos.y)) { cout << "gID " << bd->gID << ": pos.y NaN" << endl; hasNaN = true; }
+        if (std::isnan(vel.x)) { cout << "gID " << bd->gID << ": vel.x NaN" << endl; hasNaN = true; }
+        if (std::isnan(vel.y)) { cout << "gID " << bd->gID << ": vel.y NaN" << endl; hasNaN = true; }
+        
+        if (hasNaN) {
+            cout << "  Posición: (" << pos.x << ", " << pos.y << ")" << endl;
+            cout << "  Velocidad: (" << vel.x << ", " << vel.y << ")" << endl;
+        }
+    }
 }

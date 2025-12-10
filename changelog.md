@@ -1,3 +1,9 @@
+# Versión 2.3 
+
+2025.12.10
+
+- Corrección de guardado de frames.
+
 # Versión 2.2 
 
 2025.11.24 

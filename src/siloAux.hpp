@@ -53,11 +53,12 @@ void savePart(b2World *w, int file_id, const GlobalSetup *globalSetup);
 /*! Escribe todas las coordenadas necesarias para generar imágenes
  * y posteriores animaciones
  * \param b2World* w
- * \param int frm_id
+ * \param int frm_id : identificador de frame, usualmente un contador incremental
+ * \param int nStep : paso de la simulación (para calcular tiempo)
  * \param GlobalSetup* parámetros globales
  * \return void
  */
-void saveFrame(b2World *w, int n_frame, int frm_id,
+void saveFrame(b2World *w, int n_frame, int nStep,
                const GlobalSetup *globalSetup);
 
 /*! Devuelve la cantidad de granos descargados
@@ -73,6 +74,7 @@ int countDesc(b2World *w, int *st, int paso, std::ofstream &fluxFile,
               const GlobalSetup *gs);
 
 /*! Imprime las velocidades y energías
+ * \param frm_id : identificador de frame (acumulativo)
  * \param float timeS : tiempo de la
  * \param b2Word* w : mundo
  * \param GlobalSetup* parámetros globales
@@ -204,10 +206,11 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
  * \param GlobalSetup* : gs parámetros de la simulación
  * \param double* : pmin mínima presión del frame
  * \param double* : pmax máxima presión del frame
+ * \param double tSim : tiempo de simulación
  * \return void
  * */
 void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
-                  double *pmin, double *pmax);
+                  double *pmin, double *pmax, double tSim);
 
 
 /*! \fn get_body_area

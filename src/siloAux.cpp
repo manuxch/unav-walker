@@ -9,6 +9,7 @@
  */
 
 #include "siloAux.hpp"
+#include <map>
 
 std::string int2str(int num) {
   std::ostringstream oss;
@@ -48,14 +49,14 @@ void savePart(b2World *w, int file_id, const GlobalSetup *globalSetup) {
   ff.close();
 }
 
-void saveFrame(b2World *w, int n_frame, int frm_id,
+void saveFrame(b2World *w, int n_frame, int nStep,
                const GlobalSetup *globalSetup) {
   float xtmp, ytmp;
   string file_name = "frames_" + globalSetup->dirID + "/" +
                      globalSetup->preFrameFile + "_" + int2str(n_frame) + ".xy";
   std::ofstream fileF;
   fileF.open(file_name.c_str());
-  fileF << "# time: " << frm_id * globalSetup->tStep << " ";
+  fileF << "# time: " << nStep * globalSetup->tStep << " ";
   fileF << "# r_out: " << globalSetup->silo.r << " ";
   fileF << endl;
   for (b2Body *bd = w->GetBodyList(); bd; bd = bd->GetNext()) {
@@ -178,8 +179,8 @@ void printVE(const int frm_id, const float timeS, b2World *w,
                      int2str(frm_id) + ".ve";
   std::ofstream fileF;
   fileF.open(file_name.c_str());
-  fileF << "# gID type x y vx vy w E_kin_lin E_kin_rot "
-        << " ## sim_time: " << timeS << endl;
+  fileF << " ## sim_time: " << timeS << endl;
+  fileF << "# gID type x y vx vy w E_kin_lin E_kin_rot\n ";
   for (b2Body *bi = w->GetBodyList(); bi; bi = bi->GetNext()) {
     BodyData *igi = (BodyData *)(bi->GetUserData()).pointer;
     if (!igi->isGrain) {
@@ -394,6 +395,14 @@ void do_reinyection(b2World *w, GlobalSetup *gs, bool reinyect) {
     }
     
     pos = b->GetPosition();
+    if (std::isnan(pos.x) || std::isnan(pos.y)) {
+      cout << "ERROR: Grano " << infGr->gID << " tiene posición inválida (NaN)" << endl;
+      // Decidir qué hacer: eliminar o intentar recuperar
+      w->DestroyBody(b);
+      b = nextBody;
+      continue;
+    }
+
     if (pos.y > r_elim) {
       b = nextBody;
       continue;
@@ -407,11 +416,13 @@ void do_reinyection(b2World *w, GlobalSetup *gs, bool reinyect) {
       b->SetTransform(new_pos, angle);
       infGr->isIn = true;
     }
-    // Si llegamos aquí, significa que pos.y <= r_elim
-    // Eliminar el cuerpo
-    w->DestroyBody(b);
-    b = nullptr;  // Asignar nullptr para evitar referencia colgante
-    
+    else {
+        // Eliminar el cuerpo
+        cout << "gID: " << infGr->gID << " isIn? " << infGr->isIn << endl;
+        cout << "Elim! " << pos.x << " " << pos.y << endl;
+        w->DestroyBody(b);
+        b = nullptr;  // Asignar nullptr para evitar referencia colgante
+    }
     // Avanzar al siguiente cuerpo que ya guardamos
     b = nextBody;
   }
@@ -534,29 +545,39 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
 }
 
 void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
-                  double *pmin, double *pmax) {
+                  double *pmin, double *pmax, double tSim) {
   string file_name = "frames_" + globalSetup->dirID + "/" +
                      globalSetup->preFrameFile + "_" + int2str(n_frame) +
                      ".sxy";
   std::ofstream fout;
   fout.open(file_name.c_str());
+  fout << "# tSim: " << tSim << endl;
   fout << "# gID stres.xx stres.xy stres.yx stres.yy " << endl;
   b2Body *body_A, *body_B;
   BodyData *bd_data_A, *bd_data_B;
-  unsigned int n_grains = 0;
+  // unsigned int n_grains = 0;
   b2Vec2 l_A, l_B, force_N, force_T, force, c_point;
   float normal_impulse, tangential_impulse, area_a, area_b;
-  for (b2Body *body = w->GetBodyList(); body; body = body->GetNext()) {
-    if (body->GetType() != b2_dynamicBody) {
-      continue;
+  // for (b2Body *body = w->GetBodyList(); body; body = body->GetNext()) {
+  //   if (body->GetType() != b2_dynamicBody) {
+  //     continue;
+  //   }
+  //   bd_data_A = (BodyData *)(body->GetUserData()).pointer;
+  //   if (bd_data_A->isGrain)
+  //     n_grains++;
+  // }
+  // std::vector<Tensor> stress_tensors;
+  // stress_tensors.resize(n_grains, {0, 0, 0, 0});
+  std::map<uint32_t, Tensor> stress_tensors;
+  
+  // Recorrer cuerpos para inicializar
+    for (b2Body *body = w->GetBodyList(); body; body = body->GetNext()) {
+        if (body->GetType() != b2_dynamicBody) continue;
+        BodyData *bd = (BodyData *)(body->GetUserData()).pointer;
+        if (bd->isGrain) {
+            stress_tensors[bd->gID] = {0, 0, 0, 0};  // Inicializa en cero
+        }
     }
-    bd_data_A = (BodyData *)(body->GetUserData()).pointer;
-    if (bd_data_A->isGrain)
-      n_grains++;
-  }
-  std::vector<Tensor> stress_tensors;
-  stress_tensors.resize(n_grains, {0, 0, 0, 0});
-  double pressure;
   for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
     if (c->IsTouching()) {
       b2WorldManifold world_manifold;
@@ -581,30 +602,33 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
         l_A = c_point - body_A->GetWorldCenter();
         l_B = c_point - body_B->GetWorldCenter();
         if (bd_data_A->isGrain) {
-          stress_tensors[bd_data_A->gID].xx += force.x * l_A.x / area_a;
-          stress_tensors[bd_data_A->gID].xy += force.x * l_A.y / area_a;
-          stress_tensors[bd_data_A->gID].yx += force.y * l_A.x / area_a;
-          stress_tensors[bd_data_A->gID].yy += force.y * l_A.y / area_a;
+            Tensor& tensor_A = stress_tensors[bd_data_A->gID];
+            tensor_A.xx += force.x * l_A.x / area_a;
+            tensor_A.xy += force.x * l_A.y / area_a;
+            tensor_A.yx += force.y * l_A.x / area_a;
+            tensor_A.yy += force.y * l_A.y / area_a;
         }
         if (bd_data_B->isGrain) {
-          stress_tensors[bd_data_B->gID].xx -= force.x * l_B.x / area_b;
-          stress_tensors[bd_data_B->gID].xy -= force.x * l_B.y / area_b;
-          stress_tensors[bd_data_B->gID].yx -= force.y * l_B.x / area_b;
-          stress_tensors[bd_data_B->gID].yy -= force.y * l_B.y / area_b;
+            Tensor& tensor_B = stress_tensors[bd_data_B->gID];
+            tensor_B.xx -= force.x * l_B.x / area_b;
+            tensor_B.xy -= force.x * l_B.y / area_b;
+            tensor_B.yx -= force.y * l_B.x / area_b;
+            tensor_B.yy -= force.y * l_B.y / area_b;
         }
       }
     }
   }
-  for (uint32 i = 0; i < n_grains; ++i) {
-    fout << i << " " << stress_tensors[i].xx << " " << stress_tensors[i].xy
-         << " " << stress_tensors[i].yx << " " << stress_tensors[i].yy << " "
-         << endl;
-    pressure = -0.5 * (stress_tensors[i].xx + stress_tensors[i].yy);
-    if (pressure < *pmin)
-      *pmin = pressure;
-    if (pressure > *pmax)
-      *pmax = pressure;
+  // Escribir resultados (solo granos que tienen contactos)
+  double pressure;
+  for (const auto& [gID, tensor] : stress_tensors) {
+    fout << gID << " " << tensor.xx << " " << tensor.xy
+         << " " << tensor.yx << " " << tensor.yy << " " << endl;
+    
+    pressure = -0.5 * (tensor.xx + tensor.yy);
+    if (pressure < *pmin) *pmin = pressure;
+    if (pressure > *pmax) *pmax = pressure;
   }
+  
   fout << std::flush;
   fout.close();
 }

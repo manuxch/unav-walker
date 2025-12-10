@@ -9,12 +9,15 @@
 
 #CXX = clang
 CXX = g++
-BOX2D = /home/manuel/Tools/box2d/2-4-1
+BOX2D = /home/manuel/Tools/box2d/2-4-2
 LIBPATH = -L$(BOX2D)/build/bin
 INCLUDES = -I$(BOX2D)/include/
 LIBS = -lbox2d 
-#CXXFLAGS = -g -std=c++20 $(INCLUDES)
-#LDFLAGS = -g -Wall -std=c++20 -static $(LIBPATH) $(LIBS)
+# Opciones para debuggear 
+# CXXFLAGS = -fsanitize=address -g -std=c++20 $(INCLUDES)
+# LDFLAGS = -fsanitize=address -g -Wall -std=c++20 $(LIBPATH) $(LIBS)
+# LDFLAGS = -g -Wall -std=c++20 -static $(LIBPATH) $(LIBS)
+# Opciones para correr en producción
 CXXFLAGS = -O3 -std=c++20 $(INCLUDES)
 LDFLAGS = -O3 -Wall -std=c++20 -static $(LIBPATH) $(LIBS)
 
