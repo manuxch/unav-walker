@@ -418,8 +418,8 @@ void do_reinyection(b2World *w, GlobalSetup *gs, bool reinyect) {
     }
     else {
         // Eliminar el cuerpo
-        cout << "gID: " << infGr->gID << " isIn? " << infGr->isIn << endl;
-        cout << "Elim! " << pos.x << " " << pos.y << endl;
+        // cout << "gID: " << infGr->gID << " isIn? " << infGr->isIn << endl;
+        // cout << "Elim! " << pos.x << " " << pos.y << endl;
         w->DestroyBody(b);
         b = nullptr;  // Asignar nullptr para evitar referencia colgante
     }
