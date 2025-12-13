@@ -3,7 +3,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
-plt.style.use('/home/manuel/granular/unav-sliders/unav-walker/utils/figs.mplstyle')
+plt.style.use('/home/manuel/granular/unav-walker/utils/figs.mplstyle')
+# plt.style.use('/home/manuel/granular/unav-sliders/unav-walker/utils/figs.mplstyle')
 
 def leer_datos_histograma(nombre_archivo):
     """

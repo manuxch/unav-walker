@@ -28,6 +28,8 @@ using std::fixed;
 using std::setw;
 #include "rng.hpp"
 #include <box2d/box2d.h>
+#include <chrono>
+#include <sstream>
 
 #define PI 3.141592653589793
 #define INFO(msg)                                                              \

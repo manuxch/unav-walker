@@ -654,3 +654,12 @@ float get_body_area(b2Body *body) {
 
   return totalArea;
 }
+
+std::string get_local_time() {
+    auto now = std::chrono::system_clock::now();
+    auto now_time = std::chrono::system_clock::to_time_t(now);
+    
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&now_time), "%Y-%m-%d %H:%M:%S");
+    return ss.str();
+}

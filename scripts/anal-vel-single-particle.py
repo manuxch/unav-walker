@@ -26,13 +26,13 @@ vels = []
 # Valores para ver la colisión
 n_start = 00
 n_end = 2200
-pid = 34
-for f in files[5:]:
+pid = 6
+for f in files[15:]:
     fin = open(f, 'r')
     data = fin.readlines()
     fin.close()
-    ts.append(float(data[0].split()[12]) * t_s_2_e)
-    for fila in data[1:]:
+    ts.append(float(data[0].split()[2]) * t_s_2_e)
+    for fila in data[2:]:
         fila = fila.split()
         if int(fila[0]) == pid:
             ys.append(float(fila[3]) * x_s_2_e)
@@ -58,7 +58,8 @@ ax2.set_ylabel(r'$v_y$ [cm/s]')
 ax2.legend()
 # plt.title(r'$\mu_d = 0.13$')
 plt.tight_layout()
-plt.savefig('vy-t.pdf')
+plt.show()
+# plt.savefig('vy-t.pdf')
 
 
 

@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <chrono>
 using std::acos;
 using std::atan2;
 using std::cos;
@@ -219,3 +220,10 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
  * \return float : área del cuerpo
  */
 float get_body_area(b2Body* body);
+
+/*! \fn get_local_time 
+ * \brief Función para obtener la hora local como string
+ * \param void
+ * \return string
+ * */ 
+std::string get_local_time();

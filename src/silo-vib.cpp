@@ -20,8 +20,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Error: archivo de parámetros requerido." << std::endl;
     exit(1);
   }
-  cout << "# silo-vib ver. 2.3" << endl;
-  cout << "# 2025.12.10" << endl;
+  cout << "# silo-vib ver. 2.4" << endl;
+  cout << "# 2025.12.11" << endl;
   gs = new GlobalSetup{argv[1]};
   rng = new RNG(gs->rnd_seed);
   string folder_cmd = "mkdir -p frames_" + gs->dirID;
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
 
   // Deposición en el fondo
   auto start_time = std::chrono::high_resolution_clock::now();
-  cout << "# Fecha y hora de comienzo (UTC): " << start_time << endl;
+  cout << "# Fecha y hora de comienzo: " << get_local_time() << endl;
   cout << "# Iniciando deposición sobre fondo ..." << endl;
   // int stepCount = 0;
   while (t < gs->tBlock) {
@@ -356,7 +356,7 @@ int main(int argc, char *argv[]) {
   int hours = elapsed_time.count() / 3600;
   int minutes = (elapsed_time.count() - hours * 3600) / 60;
   int seconds = elapsed_time.count() - hours * 3600 - minutes * 60;
-  cout << "# Fecha y hora de finalización (UTC): " << end_time << endl;
+  cout << "# Fecha y hora de finalización: " << get_local_time() << endl;
   cout << "# Tiempo transcurrido: " << hours << " horas, " << minutes
        << " minutos, " << seconds << " segundos." << endl;
   if (gs->save_tensors_freq) {
