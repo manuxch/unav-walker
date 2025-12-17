@@ -14,19 +14,22 @@ from scipy.stats import linregress
 files = glob.glob('*.ve')
 print(len(files))
 files.sort()
-x_s_2_e = 0.005
+x_s_2_e = 0.005 * 100
 v_s_2_e = 0.221359436211787
 t_s_2_e = 0.0225876975726313
 ts = []
 ys = []
+xs = []
 vels = []
 # # Valores para obtener velocidad de drift
 # n_start = 100
 # n_end = 500
 # Valores para ver la colisión
 n_start = 00
-n_end = 2200
-pid = 6
+n_end = 7600
+t_start = 223.78
+t_end = 225
+pid = 984
 for f in files[15:]:
     fin = open(f, 'r')
     data = fin.readlines()
@@ -36,22 +39,37 @@ for f in files[15:]:
         fila = fila.split()
         if int(fila[0]) == pid:
             ys.append(float(fila[3]) * x_s_2_e)
+            xs.append(float(fila[2]) * x_s_2_e)
             vels.append(float(fila[5]) * v_s_2_e * 100)
 
 ats = np.array(ts)
 ays = np.array(ys)
+axs = np.array(xs)
 avels = np.array(vels)
-vmean = avels[n_start:n_end].mean()
-print(vmean, avels[n_start:n_end].std())
-res = linregress(ats[n_start:n_end], ys[n_start:n_end])
+mask = (ats >= t_start) & (ats <= t_end)
+vmean = avels[mask].mean()
+vstd = avels[mask].std()
+# vmean = avels[n_start:n_end].mean()
+print("Análisis de velocidades")
+print(f"t_start: {t_start} - t_end: {t_end}")
+print(f"v_mean: {vmean}, std: {vstd}")
+res = linregress(ats[mask], ays[mask])
+# res = linregress(ats[n_start:n_end], ys[n_start:n_end])
 vel = res.slope
-print(f'fit vel: {vel:.3f}')
+print("Ajuste de posición vertical")
+print(f'fit vel: {vel:.5f}')
 # plt.plot(ats, avels)
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
-ax1.plot(ats[n_start:n_end], ays[n_start:n_end] * 100, label=fr'$v_y = {100 * vel:.3f}$ [cm/s] (fit)')
+ax1.plot(ats, ays, label=fr'$y$ cm')
+ax1.plot(ats, axs, label=fr'$x$ cm')
+ax1.plot(ats[mask], axs[mask], label=f"pid: {pid} - x")
+ax1.plot(ats[mask], ays[mask], label=f"pid: {pid} - y")
+ax1.axhline(y = 0, color='tab:red', alpha=0.5)
+ax1.axvline(x = t_start, color='tab:blue', alpha=0.5)
+ax1.axvline(x = t_end, color='tab:blue', alpha=0.5)
 ax1.set_ylabel(r'$y$ [cm]')
-ax1.legend()
+ax1.legend(title=f"v_fit = {vel:.5f} cm/s")
 ax2.plot(ats[n_start:n_end], avels[n_start:n_end], label=fr'$\langle v_y \rangle = {vmean:.3f}$ [cm/s]')
 ax2.set_xlabel('$t$ [s]')
 ax2.set_ylabel(r'$v_y$ [cm/s]')
