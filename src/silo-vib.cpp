@@ -255,6 +255,9 @@ int main(int argc, char *argv[]) {
     do_base_force(world, bvel, epsilon_v, gs->g);
     do_rot_friction(world, gs);
     if (t >= gs->t_register) {
+      if (saveFrm || saveVE || gs->save_contact_freq || gs->save_tensors_freq) {
+          ++n_frame;
+      }
         // Si es necesario, guardo el frame para graficar
         if (saveFrm && !(nStep % gs->saveFrameFreq)) {
         saveFrame(world, ++n_frame, nStep, gs);
@@ -297,8 +300,11 @@ int main(int argc, char *argv[]) {
     do_rot_friction(world, gs);
     if (t >= gs->t_register) { // Guardamos a partir de t_register
       // Si es necesario, guardo el frame para graficar
+      if (saveFrm || saveVE || gs->save_contact_freq || gs->save_tensors_freq) {
+          ++n_frame;
+      }
       if (saveFrm && !(nStep % gs->saveFrameFreq)) {
-        saveFrame(world, ++n_frame, nStep, gs);
+        saveFrame(world, n_frame, nStep, gs);
       }
       // Si es necesario, guardamos el pack_fraction
       if (savePF && !(nStep % gs->pf_freq)) {
