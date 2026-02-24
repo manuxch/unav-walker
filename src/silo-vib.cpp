@@ -20,8 +20,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Error: archivo de parámetros requerido." << std::endl;
     exit(1);
   }
-  cout << "# silo-vib ver. 2.4" << endl;
-  cout << "# 2025.12.11" << endl;
+  cout << "# silo-vib ver. 2.5" << endl;
+  cout << "# 2026.02.24" << endl;
   gs = new GlobalSetup{argv[1]};
   rng = new RNG(gs->rnd_seed);
   string folder_cmd = "mkdir -p frames_" + gs->dirID;
@@ -292,8 +292,10 @@ int main(int argc, char *argv[]) {
   size_t n_reg = 0;
   double p_min = 1.0e8;
   double p_max = -1.0e8; // Presiones mínima y maxima durante la simulación.
+  bool stop_by_grains = (gs->maxGranosDesc > 0);
   cout << "# Inicio de la simulación ... " << endl;
-  while (t < gs->maxT) {
+  while (t < gs->maxT &&
+         !(stop_by_grains && nGranosDesc >= (unsigned int)gs->maxGranosDesc)) {
     // comprehensiveCheck(world, stepCount++);
     auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
     do_base_force(world, bvel, epsilon_v, gs->g);
@@ -342,6 +344,12 @@ int main(int argc, char *argv[]) {
     t += tStep;
     nStep++;
   } // Fin bucle principal de simulación
+  // Motivo de parada
+  if (stop_by_grains && nGranosDesc >= (unsigned int)gs->maxGranosDesc)
+    cout << "# Simulación finalizada por número de granos descargados (N = "
+         << nGranosDesc << ")." << endl;
+  else
+    cout << "# Simulación finalizada por tiempo máximo." << endl;
   //
   // Guardado de perfiles de velocidad y packing-fraction
   if (gs->freq_perfiles) {
