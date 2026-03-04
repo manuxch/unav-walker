@@ -28,6 +28,8 @@ GlobalSetup::~GlobalSetup() {}
  * \return void
  */
 void GlobalSetup::load(string inputFile) {
+  // Valores por defecto para parámetros opcionales
+  maxGranosDesc = 0;
   ifstream fin(inputFile.c_str());
   string ident, temp_string;
   if (!fin.is_open()) {
@@ -333,6 +335,15 @@ void GlobalSetup::load(string inputFile) {
         exit(1);
       }
     }
+    if (ident == "maxGranosDesc:") {
+      fin >> maxGranosDesc;
+      if (maxGranosDesc < 0) {
+        cout << "ERROR: maxGranosDesc debe ser >= 0 (0 = condición "
+                "deshabilitada)."
+             << endl;
+        exit(1);
+      }
+    }
 
   } // fin bucle de lectura de inputFile
 } // Fin función load()
@@ -394,6 +405,11 @@ void GlobalSetup::printGlobalSetup() {
   cout << "# \t Tiempo de simulación con salida bloqueada: " << tBlock << " s."
        << endl;
   cout << "# \t Tiempo máximo de simulación: " << maxT << " s." << endl;
+  cout << "# \t Máx. granos descargados para parar: ";
+  if (maxGranosDesc > 0)
+    cout << maxGranosDesc << endl;
+  else
+    cout << "(deshabilitado)" << endl;
   cout << "# \t Iteraciones para restricciones de posición: " << pIter << endl;
   cout << "# \t Iteraciones para restricciones de velocidad: " << vIter << endl;
   cout << "# \t Magnitud de g (hacia -y):" << g << endl;

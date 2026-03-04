@@ -201,7 +201,7 @@ void printVE(const int frm_id, const float timeS, b2World *w,
 
 void saveContacts(b2World *w, float ts, int file_id,
                   const GlobalSetup *globalSetup) {
-  string file_name = "frames_" + globalSetup->dirID + "/force_contact_" +
+  string file_name = "frames_" + globalSetup->dirID + "/fc_" + globalSetup->preFrameFile + "_" +
                      int2str(file_id) + ".dat";
   std::ofstream ff;
   ff.open(file_name.c_str());

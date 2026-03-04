@@ -1,3 +1,15 @@
+# 2026.02.24 
+
+Luego de una reunión con DM y Tomás, decidimos estudiar con simulación la relación entre el 
+perfil de velocidades vertical en la zona central y el estrés de las partículas.
+
+Lancé cuatro simulaciones con radio de salida 2.0 3.5 4.0 y 5 d guardando las velocidades
+instantáneas y la información de contacto. 
+
+Las corridas están en SLURM:
+
+    /home/mcarlevaro/unav-walker/perfvel-stress
+
 # 2025.09.25 
 
 - Reunión con Diego M.

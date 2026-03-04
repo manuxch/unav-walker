@@ -36,7 +36,7 @@ def calcular_perfil_velocidad(xr, n_bins=50, y_min=None, y_max=None):
     
     print(f"Procesando {len(archivos_txt)} archivos...")
     
-    for archivo in archivos_txt:
+    for archivo in archivos_txt[3000:4000]:
         # nro_frame = int(archivo[-9:].split('.')[0])
         # if nro_frame < 500:
         #     continue
@@ -93,6 +93,11 @@ def calcular_perfil_velocidad(xr, n_bins=50, y_min=None, y_max=None):
     # Crear bins para el perfil
     bins_y = np.linspace(y_min, y_max, n_bins + 1)
     centros_bins = (bins_y[:-1] + bins_y[1:]) / 2
+
+    # hist, bin_edges = np.histogram(todas_magnitudes_velocidad, bins='auto', range=None, density=True, weights=None)
+    # plt.plot(bin_edges[:-1], hist )
+    # plt.show()
+
     
     # Calcular promedio de velocidad en cada bin
     promedio_velocidad = np.zeros(n_bins)
@@ -103,6 +108,7 @@ def calcular_perfil_velocidad(xr, n_bins=50, y_min=None, y_max=None):
         mascara_bin = (todas_posiciones_y >= bins_y[i]) & (todas_posiciones_y < bins_y[i+1])
         if np.sum(mascara_bin) > 0:
             velocidades_bin = todas_magnitudes_velocidad[mascara_bin]
+            print(bins_y[i], bins_y[i+1], velocidades_bin, np.mean(velocidades_bin))
             promedio_velocidad[i] = np.mean(velocidades_bin)
             desviacion_velocidad[i] = np.std(velocidades_bin)
             conteo_partículas[i] = len(velocidades_bin)

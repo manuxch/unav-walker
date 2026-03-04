@@ -131,6 +131,8 @@ public:
   bool reinyection; /*!< True si se realiza reinyección de granos por arriba */
   double g;          /*!< Aceleración de la gravedad */
   double t_register; /*!< Tiempo de inicio de registros */
+  int maxGranosDesc; /*!< Máx. número de granos descargados para detener la
+                       simulación. 0 o negativo = condición deshabilitada. */
 
   // Parámetros de estadísticas y control
   string dirID; /*!< Identificador del directorio de archivos de frames de modo

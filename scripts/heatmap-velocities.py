@@ -141,7 +141,7 @@ for file in fileFrames:
     heatmap.add_frame(np.column_stack((x, y)), v)
 
 heatmap.plot(save_path='Heatmap_vel.pdf', log_scale=False)
-
+heatmap.plot()
 
 # Simular varios frames
 # for frame in range(100):
