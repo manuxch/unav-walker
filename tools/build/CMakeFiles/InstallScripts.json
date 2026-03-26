@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/manuel/granular/unav-walker/tools/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

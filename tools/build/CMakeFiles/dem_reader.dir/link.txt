@@ -1,0 +1,2 @@
+/usr/bin/ar qc libdem_reader.a CMakeFiles/dem_reader.dir/dem_reader.cpp.o
+/usr/bin/ranlib libdem_reader.a
