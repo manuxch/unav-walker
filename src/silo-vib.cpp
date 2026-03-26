@@ -211,6 +211,9 @@ int main(int argc, char *argv[]) {
   bool saveFlux = (gs->fluxFreq > 0 ? true : false);
   bool savePF = (gs->pf_freq > 0 ? true : false);
   int n_frame = 0;
+  int n_frame_CF = 0; // contador de frames de fuerzas de contacto
+  int n_frame_VE = 0; // Contador de frames de velocidad y energías
+  int n_frame_ST = 0; // Contador de frames del tensor de estrés
   size_t pf_0[gs->n_bin_perfiles]{0}; /*!< Histograma de acumulación de pf */
   double vel_0[gs->n_bin_perfiles]{
       0.0}; /*!< Histograma de acumulación de velocidades */
@@ -264,15 +267,15 @@ int main(int argc, char *argv[]) {
         }
         // Si es necesario, guardamos las fuerzas de contacto
         if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
-        saveContacts(world, t, n_frame, gs);
+        saveContacts(world, t, ++n_frame_CF, gs);
         }
         // Si es necesario, guardamos el tensor de estrés
         /*if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {*/
-        /*  save_tensors(world, n_frame, gs, t);*/
+        /*  save_tensors(world, ++n_frame_ST, gs, t);*/
         /*}*/
         // Si es necesario, guardamos el velocidades y energías
         if (gs->save_ve_freq && !(nStep % gs->save_ve_freq)) {
-        printVE(n_frame, t, world, gs);
+        printVE(++n_frame_VE, t, world, gs);
         }
     }
     world->Step(tStep, pIter, vIter);
@@ -315,7 +318,7 @@ int main(int argc, char *argv[]) {
 
       // Si es necesario, guardamos el velocidades y energías
       if (saveVE && !(nStep % gs->save_ve_freq)) {
-        printVE(n_frame, t, world, gs);
+        printVE(++n_frame_VE, t, world, gs);
       }
       // Si es necesario, guardamos los histos pf_0 y vel_0
       if (gs->freq_perfiles && !(nStep % gs->freq_perfiles)) {
@@ -325,11 +328,11 @@ int main(int argc, char *argv[]) {
       }
       // Si es necesario, guardamos las fuerzas de contacto
       if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
-        saveContacts(world, t, n_frame, gs);
+        saveContacts(world, t, ++n_frame_CF, gs);
       }
       // Si es necesario, guardamos el tensor de estrés
       if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {
-        save_tensors(world, n_frame, gs, &p_min, &p_max, t);
+        save_tensors(world, ++n_frame_ST, gs, &p_min, &p_max, t);
       }
     }
     // Cálculo de descarga y reinyección

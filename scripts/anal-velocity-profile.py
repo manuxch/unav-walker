@@ -69,6 +69,8 @@ def calcular_perfil_velocidad(xr, n_bins=50, y_min=None, y_max=None):
             # Agregar a las listas generales
             todas_posiciones_y.extend(y_filtrado)
             todas_magnitudes_velocidad.extend(magnitud_vel)
+            # for i, y in enumerate(todas_posiciones_y):
+            #     print(i, y, todas_magnitudes_velocidad[i])
             
         except Exception as e:
             print(f"Error al procesar {archivo}: {e}")
@@ -166,9 +168,9 @@ def main():
     """
     # PARÁMETROS A MODIFICAR
     xr = 1.0        # Ancho de la franja en X (-xr, xr)
-    n_bins = 10      # Número de bins para el perfil
-    y_min = 0     # Límite inferior de Y (None = automático)
-    y_max = 10     # Límite superior de Y (None = automático)
+    n_bins = 30      # Número de bins para el perfil
+    y_min = -10     # Límite inferior de Y (None = automático)
+    y_max = 20     # Límite superior de Y (None = automático)
     
     calcular_perfil_velocidad(xr, n_bins, y_min, y_max)
 

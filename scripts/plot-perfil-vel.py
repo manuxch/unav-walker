@@ -3,8 +3,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
-plt.style.use('/home/manuel/granular/unav-walker/utils/figs.mplstyle')
-# plt.style.use('/home/manuel/granular/unav-sliders/unav-walker/utils/figs.mplstyle')
+# plt.style.use('/home/manuel/granular/unav-walker/utils/figs.mplstyle')
+plt.style.use('/home/manuel/granular/unav-sliders/unav-walker/utils/figs.mplstyle')
 
 def leer_datos_histograma(nombre_archivo):
     """
@@ -46,6 +46,7 @@ def calcular_perfil_velocidad(datos, r=2.5):
     # Filtrar datos dentro del rango en x y agrupar por y
     for x, y, velocidad in datos:
         if abs(x) < r and not np.isnan(velocidad):
+            print(x, y, velocidad * 100)
             valores_por_y[y].append(velocidad)
     
     # Calcular promedios para cada y
@@ -90,7 +91,7 @@ def graficar_perfil_velocidad(y_coords, velocidades_promedio, r=2.5):
 def main():
     # Parámetros
     nombre_archivo = 'pressure_histogram_data.txt'
-    r = 1.5  # Radio para filtrar en dirección x
+    r = 1.1  # Radio para filtrar en dirección x
     
     # Leer datos
     print("Leyendo datos del archivo...")

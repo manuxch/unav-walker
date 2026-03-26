@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import glob
 from scipy.stats import linregress
+from math import sqrt
 # plt.style.use('../../utils/figs.mplstyle')
 # plt.style.use('/home/manuel/granular/unav-walker/utils/figs.mplstyle')
 
@@ -18,6 +19,7 @@ x_s_2_e = 0.005 * 100
 v_s_2_e = 0.221359436211787
 t_s_2_e = 0.0225876975726313
 ts = []
+xs = []
 ys = []
 xs = []
 vels = []
@@ -38,11 +40,13 @@ for f in files[15:]:
     for fila in data[2:]:
         fila = fila.split()
         if int(fila[0]) == pid:
-            ys.append(float(fila[3]) * x_s_2_e)
             xs.append(float(fila[2]) * x_s_2_e)
+            ys.append(float(fila[3]) * x_s_2_e)
+            # vels.append(sqrt(float(fila[4])**2 + float(fila[5])**2) * v_s_2_e * 100)
             vels.append(float(fila[5]) * v_s_2_e * 100)
 
 ats = np.array(ts)
+axs = np.array(xs)
 ays = np.array(ys)
 axs = np.array(xs)
 avels = np.array(vels)
