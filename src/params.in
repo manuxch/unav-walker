@@ -95,3 +95,8 @@ n_bin_perfiles: 40
 freq_save_contacts: 0
 save_ve_freq: 0
 #
+# Parámetros de ROI (Region of Interest)
+save_roi_only: F
+x_roi: 2.0
+y_min_roi: -2.0
+y_max_roi: 2.0

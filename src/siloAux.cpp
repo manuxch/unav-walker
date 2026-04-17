@@ -28,6 +28,13 @@ bool isActive(b2World *w) {
   return false;
 }
 
+static bool inROI(b2Vec2 p, const GlobalSetup* gs) {
+  if (!gs->save_roi_only) return true;
+  if (p.x < -gs->x_roi || p.x > gs->x_roi) return false;
+  if (p.y < gs->y_min_roi || p.y > gs->y_max_roi) return false;
+  return true;
+}
+
 void savePart(b2World *w, int file_id, const GlobalSetup *globalSetup) {
   string file_name = "frames_" + globalSetup->dirID + "/particles_info_" +
                      int2str(file_id) + ".dat";
@@ -64,6 +71,7 @@ void saveFrame(b2World *w, int n_frame, int nStep,
     // if (infGr->gID == -110 || infGr->gID == -120)
     // continue;  // no guardo las coordenadas de la tapa.
     if (infGr->isGrain) {
+      if (!inROI(bd->GetPosition(), globalSetup)) continue;
       fileF << infGr->gID << " ";
       if (infGr->nLados > 1) { // Es un polígono
         b2Fixture *f = bd->GetFixtureList();
@@ -187,6 +195,7 @@ void printVE(const int frm_id, const float timeS, b2World *w,
       continue;
     }
     pi = bi->GetPosition();
+    if (!inROI(pi, gs)) continue;
     vi = bi->GetLinearVelocity();
     vim = vi.Length();
     wi = bi->GetAngularVelocity();
@@ -220,6 +229,7 @@ void saveContacts(b2World *w, float ts, int file_id,
     bdgdA = (BodyData *)(bodyA->GetUserData()).pointer;
     bdgdB = (BodyData *)(bodyB->GetUserData()).pointer;
     for (int i = 0; i < numPoints; i++) {
+      if (!inROI(worldManifold.points[i], globalSetup)) continue;
       ff << bdgdA->gID << " " << bdgdB->gID << " " << worldManifold.points[i].x
          << " " << worldManifold.points[i].y << " ";
       norm = (c->GetManifold())->points[i].normalImpulse;
@@ -575,6 +585,7 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
         if (body->GetType() != b2_dynamicBody) continue;
         BodyData *bd = (BodyData *)(body->GetUserData()).pointer;
         if (bd->isGrain) {
+            if (!inROI(body->GetPosition(), globalSetup)) continue;
             stress_tensors[bd->gID] = {0, 0, 0, 0};  // Inicializa en cero
         }
     }
@@ -602,18 +613,24 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
         l_A = c_point - body_A->GetWorldCenter();
         l_B = c_point - body_B->GetWorldCenter();
         if (bd_data_A->isGrain) {
-            Tensor& tensor_A = stress_tensors[bd_data_A->gID];
-            tensor_A.xx += force.x * l_A.x / area_a;
-            tensor_A.xy += force.x * l_A.y / area_a;
-            tensor_A.yx += force.y * l_A.x / area_a;
-            tensor_A.yy += force.y * l_A.y / area_a;
+            auto it = stress_tensors.find(bd_data_A->gID);
+            if (it != stress_tensors.end()) {
+                Tensor& tensor_A = it->second;
+                tensor_A.xx += force.x * l_A.x / area_a;
+                tensor_A.xy += force.x * l_A.y / area_a;
+                tensor_A.yx += force.y * l_A.x / area_a;
+                tensor_A.yy += force.y * l_A.y / area_a;
+            }
         }
         if (bd_data_B->isGrain) {
-            Tensor& tensor_B = stress_tensors[bd_data_B->gID];
-            tensor_B.xx -= force.x * l_B.x / area_b;
-            tensor_B.xy -= force.x * l_B.y / area_b;
-            tensor_B.yx -= force.y * l_B.x / area_b;
-            tensor_B.yy -= force.y * l_B.y / area_b;
+            auto it = stress_tensors.find(bd_data_B->gID);
+            if (it != stress_tensors.end()) {
+                Tensor& tensor_B = it->second;
+                tensor_B.xx -= force.x * l_B.x / area_b;
+                tensor_B.xy -= force.x * l_B.y / area_b;
+                tensor_B.yx -= force.y * l_B.x / area_b;
+                tensor_B.yy -= force.y * l_B.y / area_b;
+            }
         }
       }
     }

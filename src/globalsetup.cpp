@@ -30,6 +30,10 @@ GlobalSetup::~GlobalSetup() {}
 void GlobalSetup::load(string inputFile) {
   // Valores por defecto para parámetros opcionales
   maxGranosDesc = 0;
+  save_roi_only = false;
+  x_roi = 0.0;
+  y_min_roi = 0.0;
+  y_max_roi = 0.0;
   ifstream fin(inputFile.c_str());
   string ident, temp_string;
   if (!fin.is_open()) {
@@ -344,6 +348,27 @@ void GlobalSetup::load(string inputFile) {
         exit(1);
       }
     }
+    if (ident == "save_roi_only:") {
+      fin >> temp_string;
+      if (temp_string == "T" || temp_string == "t") {
+        save_roi_only = true;
+      } else {
+        save_roi_only = false;
+      }
+    }
+    if (ident == "x_roi:") {
+      fin >> x_roi;
+      if (x_roi <= 0) {
+        cout << "ERROR: x_roi debe ser > 0." << endl;
+        exit(1);
+      }
+    }
+    if (ident == "y_min_roi:") {
+      fin >> y_min_roi;
+    }
+    if (ident == "y_max_roi:") {
+      fin >> y_max_roi;
+    }
 
   } // fin bucle de lectura de inputFile
 } // Fin función load()
@@ -431,6 +456,10 @@ void GlobalSetup::printGlobalSetup() {
        << save_ve_freq << endl;
   cout << "# \t Frecuencia de guardado de tensores de estrés: "
        << save_tensors_freq << endl;
+  cout << "# \t Guardar solo partículas en ROI: " << (save_roi_only ? "Si" : "No") << endl;
+  if (save_roi_only) {
+    cout << "# \t ROI: x = [-" << x_roi << ", " << x_roi << "], y = [" << y_min_roi << ", " << y_max_roi << "]" << endl;
+  }
 
   cout << "# Fin lectura de parámetros." << endl;
 }

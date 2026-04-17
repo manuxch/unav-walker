@@ -153,6 +153,12 @@ public:
   int save_contact_freq; /*!< Frecuencia de guardado de fuerzas de contacto */
   int save_tensors_freq; /*!< Frecuencia de guardado de tensores de estrés */
 
+  // Parámetros de ROI (Region of Interest) para guardado de datos
+  bool save_roi_only;
+  double x_roi;
+  double y_min_roi;
+  double y_max_roi;
+
   // Constructor & destructor
   GlobalSetup(string input);
   ~GlobalSetup();
