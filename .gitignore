@@ -2,6 +2,8 @@
 test/
 # Directorio de compilación
 build/
+tools/build/
+
 # Prerequisites
 *.d
 
