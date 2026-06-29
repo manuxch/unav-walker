@@ -214,9 +214,12 @@ void saveContacts(b2World *w, float ts, int file_id,
                      int2str(file_id) + ".dat";
   std::ofstream ff;
   ff.open(file_name.c_str());
-  ff << "# Time:  " << ts << endl;
-  ff << "# gID_A gID_B cp.x cp.y norm tan n_pc " << endl;
+  ff << "# Time: " << ts << endl;
+  // Fn y Ft son fuerzas (impulso / tStep). nx ny: normal del contacto (de A a B).
+  // Tipo: GG = grano-grano, GW = grano-pared.
+  ff << "# gID_A gID_B cp.x cp.y Fn Ft nx ny n_pc tipo" << endl;
   float norm, tang;
+  double inv_dt = 1.0 / globalSetup->tStep;
   for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
     if (!c->IsTouching())
       continue;
@@ -225,20 +228,57 @@ void saveContacts(b2World *w, float ts, int file_id,
     c->GetWorldManifold(&worldManifold);
     b2Body *bodyA = c->GetFixtureA()->GetBody();
     b2Body *bodyB = c->GetFixtureB()->GetBody();
-    BodyData *bdgdA, *bdgdB;
-    bdgdA = (BodyData *)(bodyA->GetUserData()).pointer;
-    bdgdB = (BodyData *)(bodyB->GetUserData()).pointer;
+    BodyData *bdgdA = (BodyData *)(bodyA->GetUserData()).pointer;
+    BodyData *bdgdB = (BodyData *)(bodyB->GetUserData()).pointer;
+    const char *tipo = (bdgdA->isGrain && bdgdB->isGrain) ? "GG" : "GW";
     for (int i = 0; i < numPoints; i++) {
       if (!inROI(worldManifold.points[i], globalSetup)) continue;
-      ff << bdgdA->gID << " " << bdgdB->gID << " " << worldManifold.points[i].x
-         << " " << worldManifold.points[i].y << " ";
       norm = (c->GetManifold())->points[i].normalImpulse;
       tang = (c->GetManifold())->points[i].tangentImpulse;
-      ff << norm / ts << " " << tang / ts << " CP" << numPoints << endl;
+      ff << bdgdA->gID << " " << bdgdB->gID << " "
+         << worldManifold.points[i].x << " " << worldManifold.points[i].y << " "
+         << norm * inv_dt << " " << tang * inv_dt << " "
+         << worldManifold.normal.x << " " << worldManifold.normal.y << " "
+         << "CP" << numPoints << " " << tipo << endl;
     }
   }
   ff << std::flush;
   ff.close();
+}
+
+b2Vec2 compute_wall_force(b2World *w, const GlobalSetup *gs, int wall_gID) {
+  b2Vec2 total(0.0f, 0.0f);
+  double inv_dt = 1.0 / gs->tStep;
+  for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
+    if (!c->IsTouching()) continue;
+    b2Body *bodyA = c->GetFixtureA()->GetBody();
+    b2Body *bodyB = c->GetFixtureB()->GetBody();
+    BodyData *bdA = (BodyData *)(bodyA->GetUserData()).pointer;
+    BodyData *bdB = (BodyData *)(bodyB->GetUserData()).pointer;
+    bool A_is_wall = (bdA->gID == wall_gID);
+    bool B_is_wall = (bdB->gID == wall_gID);
+    if (!A_is_wall && !B_is_wall) continue;
+    b2WorldManifold wm;
+    c->GetWorldManifold(&wm);
+    // La normal apunta de bodyA a bodyB.
+    // Fuerza sobre bodyA = -ni*n - ti*t  (por cada punto de contacto)
+    // Fuerza sobre bodyB = +ni*n + ti*t
+    b2Vec2 n = wm.normal;
+    b2Vec2 tang(-n.y, n.x);
+    int np = c->GetManifold()->pointCount;
+    for (int i = 0; i < np; ++i) {
+      float ni = c->GetManifold()->points[i].normalImpulse * inv_dt;
+      float ti = c->GetManifold()->points[i].tangentImpulse * inv_dt;
+      if (A_is_wall) {
+        total.x -= ni * n.x + ti * tang.x;
+        total.y -= ni * n.y + ti * tang.y;
+      } else {
+        total.x += ni * n.x + ti * tang.x;
+        total.y += ni * n.y + ti * tang.y;
+      }
+    }
+  }
+  return total;
 }
 
 b2Vec2 karnopp(b2Vec2 v, double v_tol, double mu_s, double mu_d, double p) {

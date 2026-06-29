@@ -24,12 +24,16 @@ LDFLAGS = -O3 -Wall -std=c++20 -static $(LIBPATH) $(LIBS)
 SOURCES = $(wildcard *.cpp)
 
 #OBJS = $(SOURCES:%.cpp=%.o)
-OBJS1 = globalsetup.o rng.o siloAux.o silo-vib.o 
+OBJS1 = globalsetup.o rng.o siloAux.o silo-vib.o
+OBJS2 = globalsetup.o rng.o siloAux.o walkers-forceWall.o
 
-all : silo-vib
+all : silo-vib walkers-forceWall
 
 silo-vib : $(OBJS1)
-	$(CXX) -o $@ $^ $(LDFLAGS) 
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+walkers-forceWall : $(OBJS2)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -c $< -o $@

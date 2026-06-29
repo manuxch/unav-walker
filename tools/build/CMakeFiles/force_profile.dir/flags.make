@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/manuel/granular/unav-walker/tools
+CXX_INCLUDES = -I/home/manuel/granular/unav-sliders/unav-walker/tools
 
-CXX_FLAGS = -O3 -DNDEBUG -std=c++20 -Wall -Wextra -O2
+CXX_FLAGS = -std=c++20 -Wall -Wextra -O2
 

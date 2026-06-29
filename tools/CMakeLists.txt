@@ -38,3 +38,10 @@ target_compile_options(vel_profile PRIVATE -Wall -Wextra -O2)
 add_executable(force_profile force_profile.cpp)
 target_link_libraries(force_profile PRIVATE dem_reader Threads::Threads)
 target_compile_options(force_profile PRIVATE -Wall -Wextra -O2)
+
+# -----------------------------------------------------------------------
+# Mapa de fuerza 2D concurrente
+# -----------------------------------------------------------------------
+add_executable(force_map2d force_map2d.cpp)
+target_link_libraries(force_map2d PRIVATE dem_reader Threads::Threads)
+target_compile_options(force_map2d PRIVATE -Wall -Wextra -O2)

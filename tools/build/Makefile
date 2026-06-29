@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/manuel/granular/unav-walker/tools
+CMAKE_SOURCE_DIR = /home/manuel/granular/unav-sliders/unav-walker/tools
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/manuel/granular/unav-walker/tools/build
+CMAKE_BINARY_DIR = /home/manuel/granular/unav-sliders/unav-walker/tools/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -68,7 +68,7 @@ CMAKE_BINARY_DIR = /home/manuel/granular/unav-walker/tools/build
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Running CMake cache editor..."
-	/usr/bin/cmake-gui -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/usr/bin/ccmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -87,9 +87,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/manuel/granular/unav-walker/tools/build/CMakeFiles /home/manuel/granular/unav-walker/tools/build//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/manuel/granular/unav-sliders/unav-walker/tools/build/CMakeFiles /home/manuel/granular/unav-sliders/unav-walker/tools/build//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/manuel/granular/unav-walker/tools/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/manuel/granular/unav-sliders/unav-walker/tools/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -168,6 +168,19 @@ force_profile/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/force_profile.dir/build.make CMakeFiles/force_profile.dir/build
 .PHONY : force_profile/fast
 
+#=============================================================================
+# Target rules for targets named force_map2d
+
+# Build rule for target.
+force_map2d: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 force_map2d
+.PHONY : force_map2d
+
+# fast build rule for target.
+force_map2d/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/force_map2d.dir/build.make CMakeFiles/force_map2d.dir/build
+.PHONY : force_map2d/fast
+
 dem_reader.o: dem_reader.cpp.o
 .PHONY : dem_reader.o
 
@@ -191,6 +204,30 @@ dem_reader.s: dem_reader.cpp.s
 dem_reader.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/dem_reader.dir/build.make CMakeFiles/dem_reader.dir/dem_reader.cpp.s
 .PHONY : dem_reader.cpp.s
+
+force_map2d.o: force_map2d.cpp.o
+.PHONY : force_map2d.o
+
+# target to build an object file
+force_map2d.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/force_map2d.dir/build.make CMakeFiles/force_map2d.dir/force_map2d.cpp.o
+.PHONY : force_map2d.cpp.o
+
+force_map2d.i: force_map2d.cpp.i
+.PHONY : force_map2d.i
+
+# target to preprocess a source file
+force_map2d.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/force_map2d.dir/build.make CMakeFiles/force_map2d.dir/force_map2d.cpp.i
+.PHONY : force_map2d.cpp.i
+
+force_map2d.s: force_map2d.cpp.s
+.PHONY : force_map2d.s
+
+# target to generate assembly for a file
+force_map2d.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/force_map2d.dir/build.make CMakeFiles/force_map2d.dir/force_map2d.cpp.s
+.PHONY : force_map2d.cpp.s
 
 force_profile.o: force_profile.cpp.o
 .PHONY : force_profile.o
@@ -273,12 +310,16 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... dem_reader"
+	@echo "... force_map2d"
 	@echo "... force_profile"
 	@echo "... read_demo"
 	@echo "... vel_profile"
 	@echo "... dem_reader.o"
 	@echo "... dem_reader.i"
 	@echo "... dem_reader.s"
+	@echo "... force_map2d.o"
+	@echo "... force_map2d.i"
+	@echo "... force_map2d.s"
 	@echo "... force_profile.o"
 	@echo "... force_profile.i"
 	@echo "... force_profile.s"

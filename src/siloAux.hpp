@@ -221,9 +221,20 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
  */
 float get_body_area(b2Body* body);
 
-/*! \fn get_local_time 
+/*! \fn get_local_time
  * \brief Función para obtener la hora local como string
  * \param void
  * \return string
- * */ 
+ * */
 std::string get_local_time();
+
+/*! \fn compute_wall_force
+ * \brief Calcula la fuerza total ejercida por los granos sobre un cuerpo de
+ * pared identificado por wall_gID, sumando todos los impulsos de contacto
+ * resueltos en el último paso temporal.
+ * \param b2World* : w mundo
+ * \param GlobalSetup* : gs parámetros de la simulación (se usa tStep)
+ * \param int : wall_gID gID del cuerpo de pared sobre el que se calcula la fuerza
+ * \return b2Vec2 : fuerza total (Fx, Fy) en unidades de fuerza
+ * */
+b2Vec2 compute_wall_force(b2World *w, const GlobalSetup *gs, int wall_gID);
