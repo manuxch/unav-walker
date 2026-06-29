@@ -1,5 +1,7 @@
 # Directorio de pruebas
 test/
+# Directorio de compilación
+build/
 # Prerequisites
 *.d
 
