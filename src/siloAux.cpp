@@ -96,7 +96,7 @@ void saveFrame(b2World *w, int n_frame, int nStep,
       }
       fileF << infGr->tipo << " ";
       fileF << endl;
-    } else if (infGr->gID == -110) { // tapa
+    } else if (infGr->gID == -110 || infGr->gID == -200) { // cuerpos con EdgeShape
       b2Fixture *f = bd->GetFixtureList();
       b2EdgeShape *s = (b2EdgeShape *)f->GetShape();
       b2Vec2 verts[2];
@@ -108,7 +108,7 @@ void saveFrame(b2World *w, int n_frame, int nStep,
       fileF << verts[0].x << " " << verts[0].y << " ";
       verts[1] = bd->GetWorldPoint(verts[1]);
       fileF << verts[1].x << " " << verts[1].y << " ";
-      fileF << (infGr->gID == -110 ? "LID-F" : "LID-W") << endl;
+      fileF << (infGr->gID == -110 ? "LID-F" : "FLOOR") << endl;
     } else { // Es la caja
       for (b2Fixture *f = bd->GetFixtureList(); f; f = f->GetNext()) {
         // fileF << infGr->gID << " ";
@@ -214,6 +214,7 @@ void saveContacts(b2World *w, float ts, int file_id,
                      int2str(file_id) + ".dat";
   std::ofstream ff;
   ff.open(file_name.c_str());
+  ff << std::scientific << std::uppercase << std::setprecision(5);
   ff << "# Time: " << ts << endl;
   // Fn y Ft son fuerzas (impulso / tStep). nx ny: normal del contacto (de A a B).
   // Tipo: GG = grano-grano, GW = grano-pared.
@@ -695,6 +696,7 @@ float get_body_area(b2Body *body) {
   b2Fixture *fixt = body->GetFixtureList();
   b2Shape *shape = fixt->GetShape();
   BodyData *infGr = (BodyData *)(body->GetUserData()).pointer;
+  if (!infGr->isGrain) return 1.0f; // paredes estáticas: área no aplicable
   if (infGr->nLados == 1) {
     float radio = shape->m_radius;
     totalArea = M_PI * radio * radio;
@@ -708,7 +710,6 @@ float get_body_area(b2Body *body) {
     }
     totalArea += std::fabs(area) * 0.5f;
   }
-
   return totalArea;
 }
 

@@ -191,6 +191,7 @@ int main(int argc, char *argv[]) {
   string wf_filename = "frames_" + gs->dirID + "/wall_force_" + gs->preFrameFile + ".dat";
   std::ofstream wallForceFile;
   wallForceFile.open(wf_filename.c_str());
+  wallForceFile << std::scientific << std::uppercase << std::setprecision(5);
   wallForceFile << "# Fuerzas de contacto de granos sobre el fondo (gID=-200)" << endl;
   wallForceFile << "# Fondo: borde horizontal de x=" << -gs->silo.R
                 << " a x=" << gs->silo.R << " en y=0" << endl;
