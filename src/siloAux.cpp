@@ -705,8 +705,9 @@ float get_body_area(b2Body *body) {
     int count = poly->m_count;
     b2Vec2 *verts = (b2Vec2 *)poly->m_vertices;
     float area = 0.0f;
-    for (int i = 0; i < count - 1; ++i) {
-      area += verts[i].x * verts[i + 1].y - verts[i + 1].x * verts[i].y;
+    for (int i = 0; i < count; ++i) {
+      int j = (i + 1) % count;
+      area += verts[i].x * verts[j].y - verts[j].x * verts[i].y;
     }
     totalArea += std::fabs(area) * 0.5f;
   }
