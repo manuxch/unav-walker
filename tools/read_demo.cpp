@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
         std::cerr << "Uso: " << argv[0]
                   << " <directorio> <pre> <frame_id>\n";
         std::cerr << "Ej:  " << argv[0]
-                  << " ../../test/frames_walker 10 2\n";
+                  << " frames_walker frm 2\n";
         return 1;
     }
 

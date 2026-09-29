@@ -38,7 +38,7 @@ for f in files_N:
     y, fn = np.loadtxt(f, unpack=True, comments='#', usecols=(0, 1))
     y = unidades.y_a_cm(y)
     fn = unidades.fuerza_a_N(fn)
-    print(f"D = {d:3d} - max F_N = {fn.max():.3e}")
+    print(f"D = {d:3d} - max F_N = {np.nanmax(fn):.3e}")
     c = cmap(norm(d))
     ax[0].plot(y, fn, '.-', color=c, label=fr"$D = {d/10} \, d$", alpha=alfa)  # vy vs y
 
@@ -47,7 +47,7 @@ for f in files_T:
     y, fn = np.loadtxt(f, unpack=True, comments='#', usecols=(0, 1))
     y = unidades.y_a_cm(y)
     fn = unidades.fuerza_a_N(fn)
-    print(f"D = {d:3d} - max F_N = {fn.max():.3e}")
+    print(f"D = {d:3d} - max F_T = {np.nanmax(fn):.3e}")
     c = cmap(norm(d))
     ax[1].plot(y, fn, '.-', color=c, label=fr"$D = {d/10} \, d$", alpha=alfa)  # vy vs y
 

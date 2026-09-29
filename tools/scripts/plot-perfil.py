@@ -34,7 +34,7 @@ for f in files:
     y, v_y = np.loadtxt(f, unpack=True, comments='#')
     y = unidades.y_a_cm(y)
     v_y = unidades.vy_a_cm_s(v_y)
-    print(f"D = {d:3d} - max vy = {v_y.max():.3f} - vf = {v_y[0]:.3f}")
+    print(f"D = {d:3d} - max vy = {np.nanmax(v_y):.3f} - vf = {v_y[0]:.3f}")
     c = cmap(norm(d))
     plt.plot(y, v_y, '.-', color=c, label=fr"$D = {d/10} \, d$", alpha=alfa)  # vy vs y
 
