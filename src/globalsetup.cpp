@@ -176,8 +176,8 @@ void GlobalSetup::load(string inputFile) {
     string key, val, extra;
     iss >> key >> val;
     if (key.empty() || key.back() != ':' || val.empty() || (iss >> extra))
-      param_error("línea " + std::to_string(n_line) + " mal formada: '" +
-                  line + "'");
+      param_error("línea " + std::to_string(n_line) + " mal formada: '" + line +
+                  "'");
     if (key == "atenuacion_rotacional:")
       param_error("atenuacion_rotacional ya no se usa (línea " +
                   std::to_string(n_line) +
@@ -279,7 +279,8 @@ void GlobalSetup::load(string inputFile) {
   vIter = static_cast<int>(L("vIter:"));
   g = D("g:");
   reinyection = B("do_reinyection:");
-  maxGranosDesc = has("maxGranosDesc:") ? static_cast<int>(L("maxGranosDesc:")) : 0;
+  maxGranosDesc =
+      has("maxGranosDesc:") ? static_cast<int>(L("maxGranosDesc:")) : 0;
   fondo_medicion = has("fondo_medicion:") ? B("fondo_medicion:") : false;
   continuous_physics =
       has("continuous_physics:") ? B("continuous_physics:") : false;
@@ -312,7 +313,8 @@ void GlobalSetup::load(string inputFile) {
   check(saveFrameFreq >= 0, "saveFrameFreq debe ser >= 0.");
   check(fluxFreq >= 0, "fluxFreq debe ser >= 0.");
   if (has("pf_file:")) pf_file = vals.at("pf_file:");
-  if (has("n_bin_perfiles:")) n_bin_perfiles = static_cast<int>(L("n_bin_perfiles:"));
+  if (has("n_bin_perfiles:"))
+    n_bin_perfiles = static_cast<int>(L("n_bin_perfiles:"));
   check(n_bin_perfiles > 0, "n_bin_perfiles debe ser > 0.");
 
   // ROI
@@ -418,9 +420,11 @@ void GlobalSetup::printGlobalSetup() {
        << save_contact_freq << endl;
   cout << "# \t Frecuencia del chequeo de balance de fuerzas: "
        << check_balance_freq << endl;
-  cout << "# \t Guardar solo partículas en ROI: " << (save_roi_only ? "Si" : "No") << endl;
+  cout << "# \t Guardar solo partículas en ROI: "
+       << (save_roi_only ? "Si" : "No") << endl;
   if (save_roi_only) {
-    cout << "# \t ROI: x = [-" << x_roi << ", " << x_roi << "], y = [" << y_min_roi << ", " << y_max_roi << "]" << endl;
+    cout << "# \t ROI: x = [-" << x_roi << ", " << x_roi << "], y = ["
+         << y_min_roi << ", " << y_max_roi << "]" << endl;
   }
 
   cout << "# Fin lectura de parámetros." << endl;

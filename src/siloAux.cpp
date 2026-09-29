@@ -26,14 +26,13 @@ bool isActive(b2World *w) {
   // BodyData* infGr;
   for (b2Body *bd = w->GetBodyList(); bd; bd = bd->GetNext()) {
     // infGr = (BodyData*) (bd->GetUserData()).pointer;
-    if (bd->IsAwake())
-      return true;
+    if (bd->IsAwake()) return true;
     // if (infGr->isGrain && infGr->isIn && bd->IsAwake()) return true;
   }
   return false;
 }
 
-static bool inROI(b2Vec2 p, const GlobalSetup* gs) {
+static bool inROI(b2Vec2 p, const GlobalSetup *gs) {
   if (!gs->save_roi_only) return true;
   if (p.x < -gs->x_roi || p.x > gs->x_roi) return false;
   if (p.y < gs->y_min_roi || p.y > gs->y_max_roi) return false;
@@ -82,8 +81,7 @@ std::string provenance_header(const GlobalSetup *gs, double t, uint32_t nStep,
   std::ostringstream oss;
   oss << std::setprecision(10);
   oss << "# nStep: " << nStep << " n_frame: " << n_frame << " t: " << t
-      << " dt: " << gs->tStep << " fase: " << phase
-      << " (w t mod 2pi, rad)\n";
+      << " dt: " << gs->tStep << " fase: " << phase << " (w t mod 2pi, rad)\n";
   oss << "# git: " << GIT_HASH << " params: " << gs->input_par_file
       << " params_hash: " << gs->params_hash << "\n";
   return oss.str();
@@ -152,7 +150,8 @@ void saveFrame(b2World *w, int n_frame, int nStep,
       }
       fileF << infGr->tipo << " ";
       fileF << endl;
-    } else if (infGr->gID == -110 || infGr->gID == -200) { // cuerpos con EdgeShape
+    } else if (infGr->gID == -110 ||
+               infGr->gID == -200) { // cuerpos con EdgeShape
       b2Fixture *f = bd->GetFixtureList();
       b2EdgeShape *s = (b2EdgeShape *)f->GetShape();
       b2Vec2 verts[2];
@@ -178,11 +177,11 @@ void saveFrame(b2World *w, int n_frame, int nStep,
         // fileF << "LINE" << endl;
         b2ChainShape *s = (b2ChainShape *)f->GetShape();
         b2Vec2 *verts = (b2Vec2 *)s->m_vertices;
-        for (int i = 0; i < s->m_count - 1; ++i) {  // Recorro los segmentos
-            fileF << infGr->gID << " 2 ";
-            fileF << verts[i].x << " " << verts[i].y << " ";
-            fileF << verts[i + 1].x << " " << verts[i + 1].y;
-            fileF << " LINE" << endl;
+        for (int i = 0; i < s->m_count - 1; ++i) { // Recorro los segmentos
+          fileF << infGr->gID << " 2 ";
+          fileF << verts[i].x << " " << verts[i].y << " ";
+          fileF << verts[i + 1].x << " " << verts[i + 1].y;
+          fileF << " LINE" << endl;
         }
       }
     }
@@ -215,8 +214,7 @@ int countDesc(b2World *w, int *st, int paso, std::ofstream &fluxFile,
         pv = b2Vec2(verts[0].x - p.x, verts[0].y - p.y);
         radio = pv.Length();
       }
-      if (p.y > y_min - radio)
-        continue;
+      if (p.y > y_min - radio) continue;
       infGr->isIn = false;
       nGranos++;
       granoDesc++;
@@ -285,8 +283,7 @@ void saveContacts(b2World *w, double t, uint32_t nStep, int n_frame,
   ff << std::scientific << std::uppercase << std::setprecision(6);
   const double inv_dt = 1.0 / globalSetup->tStep;
   for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
-    if (!c->IsTouching())
-      continue;
+    if (!c->IsTouching()) continue;
     b2Body *bodyA = c->GetFixtureA()->GetBody();
     b2Body *bodyB = c->GetFixtureB()->GetBody();
     BodyData *bdgdA = (BodyData *)(bodyA->GetUserData()).pointer;
@@ -304,10 +301,9 @@ void saveContacts(b2World *w, double t, uint32_t nStep, int n_frame,
       b2Vec2 cA = bdgdA->isGrain ? bodyA->GetWorldCenter() : cpf.point;
       b2Vec2 cB = bdgdB->isGrain ? bodyB->GetWorldCenter() : cpf.point;
       ff << bdgdA->gID << " " << bdgdB->gID << " " << cpf.point.x << " "
-         << cpf.point.y << " " << cpf.fn << " " << cpf.ft << " "
-         << cpf.normal.x << " " << cpf.normal.y << " " << cA.x << " " << cA.y
-         << " " << cB.x << " " << cB.y << " " << numPoints << " " << tipo
-         << "\n";
+         << cpf.point.y << " " << cpf.fn << " " << cpf.ft << " " << cpf.normal.x
+         << " " << cpf.normal.y << " " << cA.x << " " << cA.y << " " << cB.x
+         << " " << cB.y << " " << numPoints << " " << tipo << "\n";
     }
   }
   ff << std::flush;
@@ -357,7 +353,8 @@ b2Vec2 karnopp(b2Vec2 v_rel, b2Vec2 F_ext, b2Vec2 a_base, double m, double dt,
   }
   // Deslizamiento
   double k = -mu_d * N / v_norm;
-  return b2Vec2(static_cast<float>(k * v_rel.x), static_cast<float>(k * v_rel.y));
+  return b2Vec2(static_cast<float>(k * v_rel.x),
+                static_cast<float>(k * v_rel.y));
 }
 
 double pivot_friction(double w, double tau_ext, double I, double R, double dt,
@@ -451,9 +448,9 @@ void do_base_force(b2World *w, double bvel, double bacc, double epsilon_v,
     b2Vec2 F_roce = karnopp(vrel, F_ext, base_acc_vec, m, dt, epsilon_v,
                             bdata->fric_s, bdata->fric_d, N);
     double R = b->GetFixtureList()->GetShape()->m_radius;
-    double tau_roce = pivot_friction(b->GetAngularVelocity(), tau_ext,
-                                     b->GetInertia(), R, dt, epsilon_v,
-                                     bdata->fric_s, bdata->fric_d, N);
+    double tau_roce =
+        pivot_friction(b->GetAngularVelocity(), tau_ext, b->GetInertia(), R, dt,
+                       epsilon_v, bdata->fric_s, bdata->fric_d, N);
     bdata->F_base = F_roce;
     bdata->tau_base = static_cast<float>(tau_roce);
     b->ApplyForceToCenter(F_roce, true);
@@ -514,8 +511,10 @@ bool find_free_spot(b2World *w, const b2Body *self, float radius,
   const int max_tries = 100;
   const float gap = 1.02f; // pequeña separación para evitar contactos iniciales
   for (int k = 0; k < max_tries; ++k) {
-    b2Vec2 p(static_cast<float>(rng->get_double(-0.9 * gs->silo.R, 0.9 * gs->silo.R)),
-             static_cast<float>(rng->get_double(0.75 * gs->silo.H, 0.95 * gs->silo.H)));
+    b2Vec2 p(static_cast<float>(
+                 rng->get_double(-0.9 * gs->silo.R, 0.9 * gs->silo.R)),
+             static_cast<float>(
+                 rng->get_double(0.75 * gs->silo.H, 0.95 * gs->silo.H)));
     OverlapQuery q;
     q.probe.m_radius = gap * radius;
     q.xf.Set(p, 0.0f);
@@ -557,7 +556,8 @@ void do_reinyection(b2World *w, GlobalSetup *gs, bool reinyect) {
 
     pos = b->GetPosition();
     if (std::isnan(pos.x) || std::isnan(pos.y)) {
-      cout << "ERROR: Grano " << infGr->gID << " tiene posición inválida (NaN)" << endl;
+      cout << "ERROR: Grano " << infGr->gID << " tiene posición inválida (NaN)"
+           << endl;
       w->DestroyBody(b);
       b = nextBody;
       continue;
@@ -581,15 +581,13 @@ void do_reinyection(b2World *w, GlobalSetup *gs, bool reinyect) {
         cout << "# AVISO: sin lugar libre para reinyectar (fallos acumulados: "
              << n_fail << "); se reintenta en el paso siguiente." << endl;
       }
-    }
-    else {
-        w->DestroyBody(b);
+    } else {
+      w->DestroyBody(b);
     }
     b = nextBody;
   }
   return;
 }
-
 
 void save_pf(b2World *w, GlobalSetup *gs, double t, std::ofstream &fout) {
   b2Vec2 pos, pv;
@@ -615,15 +613,12 @@ void save_pf(b2World *w, GlobalSetup *gs, double t, std::ofstream &fout) {
       pv = b2Vec2(verts[0].x - pos.x, verts[0].y - pos.y);
       radio = pv.Length();
     }
-    if (pos.y - radio > y_sup)
-      continue;                  // Arriba de y_sup
-    if (pos.y + radio > y_inf) { // Entre y_sup + r y y_inf - r
+    if (pos.y - radio > y_sup) continue; // Arriba de y_sup
+    if (pos.y + radio > y_inf) {         // Entre y_sup + r y y_inf - r
       pf_bulk += get_clipped_area(y_inf, y_sup, pos.y, radio);
     }
-    if (abs(pos.x) > gs->silo.r)
-      continue; // Centro afuera del radio de salida
-    if (abs(pos.y) > radio)
-      continue; // Centro lejos de y = 0
+    if (abs(pos.x) > gs->silo.r) continue; // Centro afuera del radio de salida
+    if (abs(pos.y) > radio) continue;      // Centro lejos de y = 0
     pf_out += 2.0 * sqrt(radio * radio - pos.y * pos.y);
   }
   pf_out /= 2.0 * gs->silo.r;
@@ -662,8 +657,7 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
       continue;
     }
     pos = b->GetPosition();
-    if (abs(pos.x) > r_out)
-      continue;
+    if (abs(pos.x) > r_out) continue;
     b2Fixture *fixt = b->GetFixtureList();
     b2Shape *shape = fixt->GetShape();
     infGr = (BodyData *)(b->GetUserData()).pointer;
@@ -675,8 +669,7 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
       pv = b2Vec2(verts[0].x - pos.x, verts[0].y - pos.y);
       radio = pv.Length();
     }
-    if (abs(pos.y) > radio)
-      continue;
+    if (abs(pos.y) > radio) continue;
     tmp = sqrt(radio * radio - pos.y * pos.y);
     x_inf = pos.x - tmp;
     x_sup = pos.x + tmp;
@@ -756,8 +749,10 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
     g.sn[2] += fny * l.x / g.area;
     g.sn[3] += fny * l.y / g.area;
     if (cpf.fn > 0.0) {
-      if (with_wall) ++g.z_gw;
-      else ++g.z_gg;
+      if (with_wall)
+        ++g.z_gw;
+      else
+        ++g.z_gg;
     }
   };
   for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
@@ -782,8 +777,10 @@ void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
     b2Vec2 v = g.body->GetLinearVelocity();
     float r = g.body->GetFixtureList()->GetShape()->m_radius;
     fout << gID;
-    for (double x : g.s) fout << " " << x;
-    for (double x : g.sn) fout << " " << x;
+    for (double x : g.s)
+      fout << " " << x;
+    for (double x : g.sn)
+      fout << " " << x;
     fout << " " << p.x << " " << p.y << " " << r << " " << g.body->GetMass()
          << " " << v.x << " " << v.y << " " << g.body->GetAngularVelocity()
          << " " << g.z_gg << " " << g.z_gw << "\n";
@@ -832,8 +829,10 @@ void check_force_balance(b2World *w, const GlobalSetup *gs, double t,
         double sgn = (c->GetFixtureB()->GetBody() == b) ? 1.0 : -1.0;
         for (int i = 0; i < c->GetManifold()->pointCount; ++i) {
           ContactPointForce cpf = contact_point_force(c, wm, i, 1.0);
-          double jx = sgn * (cpf.fn * cpf.normal.x + tsgn * cpf.ft * cpf.tangent.x);
-          double jy = sgn * (cpf.fn * cpf.normal.y + tsgn * cpf.ft * cpf.tangent.y);
+          double jx =
+              sgn * (cpf.fn * cpf.normal.x + tsgn * cpf.ft * cpf.tangent.x);
+          double jy =
+              sgn * (cpf.fn * cpf.normal.y + tsgn * cpf.ft * cpf.tangent.y);
           b2Vec2 l = cpf.point - center;
           double lz = l.x * jy - l.y * jx;
           Jx += jx;
@@ -900,10 +899,10 @@ float get_body_area(b2Body *body) {
 }
 
 std::string get_local_time() {
-    auto now = std::chrono::system_clock::now();
-    auto now_time = std::chrono::system_clock::to_time_t(now);
-    
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&now_time), "%Y-%m-%d %H:%M:%S");
-    return ss.str();
+  auto now = std::chrono::system_clock::now();
+  auto now_time = std::chrono::system_clock::to_time_t(now);
+
+  std::stringstream ss;
+  ss << std::put_time(std::localtime(&now_time), "%Y-%m-%d %H:%M:%S");
+  return ss.str();
 }

@@ -1,0 +1,8 @@
+# Estilo de formato del código C++ del simulador (clang-format).
+# Uso: clang-format -i *.cpp *.hpp
+BasedOnStyle: LLVM
+IndentWidth: 2
+ColumnLimit: 80
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: false

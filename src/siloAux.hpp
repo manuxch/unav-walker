@@ -8,13 +8,13 @@
 
 #include "globalsetup.hpp"
 #include <box2d/box2d.h>
+#include <chrono>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <chrono>
 using std::acos;
 using std::atan2;
 using std::cos;
@@ -103,7 +103,8 @@ void savePart(b2World *w, int file_id, const GlobalSetup *globalSetup);
 /*! Escribe todas las coordenadas necesarias para generar imágenes
  * y posteriores animaciones
  * \param b2World* w
- * \param int frm_id : identificador de frame, usualmente un contador incremental
+ * \param int frm_id : identificador de frame, usualmente un contador
+ * incremental
  * \param int nStep : paso de la simulación (para calcular tiempo)
  * \param GlobalSetup* parámetros globales
  * \return void
@@ -243,7 +244,6 @@ double pivot_friction(double w, double tau_ext, double I, double R, double dt,
 void do_base_force(b2World *w, double bvel, double bacc, double epsilon_v,
                    double g, double dt);
 
-
 /*! \fn do_reinyection
  * \brief Función que reinyecta los granos que salieron del silo, en una
  * posición al azar sin superposición con otros cuerpos y con velocidad nula.
@@ -307,13 +307,12 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
 void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
                   double *pmin, double *pmax, double tSim, uint32_t nStep);
 
-
 /*! \fn get_body_area
  * \brief Devuelve el área de un cuerpo.
  * \param b2Body* : body cuerpo sobre el que se devuelve el área.
  * \return float : área del cuerpo
  */
-float get_body_area(b2Body* body);
+float get_body_area(b2Body *body);
 
 /*! \fn get_local_time
  * \brief Función para obtener la hora local como string
@@ -328,7 +327,8 @@ std::string get_local_time();
  * resueltos en el último paso temporal.
  * \param b2World* : w mundo
  * \param GlobalSetup* : gs parámetros de la simulación (se usa tStep)
- * \param int : wall_gID gID del cuerpo de pared sobre el que se calcula la fuerza
+ * \param int : wall_gID gID del cuerpo de pared sobre el que se calcula la
+ * fuerza
  * \return b2Vec2 : fuerza total (Fx, Fy) en unidades de fuerza
  * */
 b2Vec2 compute_wall_force(b2World *w, const GlobalSetup *gs, int wall_gID);

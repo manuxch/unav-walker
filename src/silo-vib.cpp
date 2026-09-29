@@ -4,15 +4,15 @@ using std::endl;
 #include "globalsetup.hpp"
 #include "rng.hpp"
 #include "siloAux.hpp"
+#include <algorithm>
 #include <box2d/box2d.h>
 #include <chrono>
 #include <cmath>
 #include <stdexcept>
-#include <algorithm>
 #include <tuple>
 #include <vector>
 
-void comprehensiveCheck(b2World* world, int step);
+void comprehensiveCheck(b2World *world, int step);
 
 GlobalSetup *gs;
 RNG *rng;
@@ -57,9 +57,10 @@ int main(int argc, char *argv[]) {
     wall_poly = {b2Vec2(-gs->silo.R, 0.0f), b2Vec2(-gs->silo.R, gs->silo.H),
                  b2Vec2(gs->silo.R, gs->silo.H), b2Vec2(gs->silo.R, 0.0f)};
   } else {
-    wall_poly = {b2Vec2(-gs->silo.r, 0.0f), b2Vec2(-gs->silo.R, 0.0f),
-                 b2Vec2(-gs->silo.R, gs->silo.H), b2Vec2(gs->silo.R, gs->silo.H),
-                 b2Vec2(gs->silo.R, 0.0f), b2Vec2(gs->silo.r, 0.0f)};
+    wall_poly = {
+        b2Vec2(-gs->silo.r, 0.0f),       b2Vec2(-gs->silo.R, 0.0f),
+        b2Vec2(-gs->silo.R, gs->silo.H), b2Vec2(gs->silo.R, gs->silo.H),
+        b2Vec2(gs->silo.R, 0.0f),        b2Vec2(gs->silo.r, 0.0f)};
   }
   siloD->nLados = static_cast<int>(wall_poly.size()) - 1;
   const int n_wall = static_cast<int>(wall_poly.size());
@@ -88,7 +89,8 @@ int main(int argc, char *argv[]) {
   tapaP->gID = gs->fondo_medicion ? -200 : -110;
   tapa_piso.userData.pointer = uintptr_t(tapaP);
   b2Body *tapa_P = world->CreateBody(&tapa_piso);
-  const float x_tapa = static_cast<float>(gs->fondo_medicion ? gs->silo.R : gs->silo.r);
+  const float x_tapa =
+      static_cast<float>(gs->fondo_medicion ? gs->silo.R : gs->silo.r);
   b2EdgeShape tapa_p_f;
   tapa_p_f.SetTwoSided(b2Vec2(-x_tapa, 0.0f), b2Vec2(x_tapa, 0.0f));
   b2FixtureDef tapa_p_Fix;
@@ -106,8 +108,7 @@ int main(int argc, char *argv[]) {
   float siloInf, siloSup, siloIzq, siloDer, x, y;
   float maxRadio = 0.0f;
   for (int i = 0; i < gs->noTipoGranos; ++i) {
-    if (gs->granos[i]->radio > maxRadio)
-      maxRadio = gs->granos[i]->radio;
+    if (gs->granos[i]->radio > maxRadio) maxRadio = gs->granos[i]->radio;
   }
   siloInf = 2.7f * maxRadio;
   siloSup = gs->silo.H - 2.1f * maxRadio;
@@ -197,7 +198,7 @@ int main(int argc, char *argv[]) {
   bool saveFlux = (gs->fluxFreq > 0 ? true : false);
   bool savePF = (gs->pf_freq > 0 ? true : false);
   int n_frame = 0;
-  std::vector<size_t> pf_0(gs->n_bin_perfiles, 0);  /*!< Histograma de pf */
+  std::vector<size_t> pf_0(gs->n_bin_perfiles, 0);    /*!< Histograma de pf */
   std::vector<double> vel_0(gs->n_bin_perfiles, 0.0); /*!< Histograma de vel. */
   std::vector<size_t> bin_count(gs->n_bin_perfiles, 0); /*!< Bines no nulos */
 
@@ -242,7 +243,8 @@ int main(int argc, char *argv[]) {
                    "#   (dt mu_d g m; por r para el balance angular). n_bad: "
                    "granos con residuo relativo > 1e-2.\n";
     balanceFile << "# t nStep n_grains rel_lin max_rel_lin rel_ang max_rel_ang "
-                   "n_bad rel_lin_flip rel_ang_flip" << endl;
+                   "n_bad rel_lin_flip rel_ang_flip"
+                << endl;
   }
   // Preparo salida de packing fraction
   std::ofstream filePF;
@@ -271,8 +273,8 @@ int main(int argc, char *argv[]) {
   double p_max = -1.0e8; // Presiones mínima y máxima durante la simulación.
   bool stop_by_grains = (gs->maxGranosDesc > 0);
   bool blocked = true;
-  const bool any_output = saveFrm || saveVE || gs->save_contact_freq ||
-                          gs->save_tensors_freq;
+  const bool any_output =
+      saveFrm || saveVE || gs->save_contact_freq || gs->save_tensors_freq;
   while (t < gs->maxT &&
          !(stop_by_grains && nGranosDesc >= (unsigned int)gs->maxGranosDesc)) {
     if (blocked && t >= gs->tBlock) {
@@ -371,27 +373,38 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-
 // Ejemplo de chequeo extensivo
-void comprehensiveCheck(b2World* world, int step) {
-    cout << "=== Check paso " << step << " ===" << endl;
-    
-    for (b2Body* b = world->GetBodyList(); b; b = b->GetNext()) {
-        BodyData* bd = (BodyData*)b->GetUserData().pointer;
-        if (!bd || !bd->isGrain) continue;
-        
-        b2Vec2 pos = b->GetPosition();
-        b2Vec2 vel = b->GetLinearVelocity();
-        
-        bool hasNaN = false;
-        if (std::isnan(pos.x)) { cout << "gID " << bd->gID << ": pos.x NaN" << endl; hasNaN = true; }
-        if (std::isnan(pos.y)) { cout << "gID " << bd->gID << ": pos.y NaN" << endl; hasNaN = true; }
-        if (std::isnan(vel.x)) { cout << "gID " << bd->gID << ": vel.x NaN" << endl; hasNaN = true; }
-        if (std::isnan(vel.y)) { cout << "gID " << bd->gID << ": vel.y NaN" << endl; hasNaN = true; }
-        
-        if (hasNaN) {
-            cout << "  Posición: (" << pos.x << ", " << pos.y << ")" << endl;
-            cout << "  Velocidad: (" << vel.x << ", " << vel.y << ")" << endl;
-        }
+void comprehensiveCheck(b2World *world, int step) {
+  cout << "=== Check paso " << step << " ===" << endl;
+
+  for (b2Body *b = world->GetBodyList(); b; b = b->GetNext()) {
+    BodyData *bd = (BodyData *)b->GetUserData().pointer;
+    if (!bd || !bd->isGrain) continue;
+
+    b2Vec2 pos = b->GetPosition();
+    b2Vec2 vel = b->GetLinearVelocity();
+
+    bool hasNaN = false;
+    if (std::isnan(pos.x)) {
+      cout << "gID " << bd->gID << ": pos.x NaN" << endl;
+      hasNaN = true;
     }
+    if (std::isnan(pos.y)) {
+      cout << "gID " << bd->gID << ": pos.y NaN" << endl;
+      hasNaN = true;
+    }
+    if (std::isnan(vel.x)) {
+      cout << "gID " << bd->gID << ": vel.x NaN" << endl;
+      hasNaN = true;
+    }
+    if (std::isnan(vel.y)) {
+      cout << "gID " << bd->gID << ": vel.y NaN" << endl;
+      hasNaN = true;
+    }
+
+    if (hasNaN) {
+      cout << "  Posición: (" << pos.x << ", " << pos.y << ")" << endl;
+      cout << "  Velocidad: (" << vel.x << ", " << vel.y << ")" << endl;
+    }
+  }
 }
