@@ -3,10 +3,12 @@
  *
  * \verbatim
  * Uso:
- *   ./read_demo <directorio> <case_id> <frame_id>
+ *   ./read_demo <directorio> <pre> <frame_id>
+ *
+ * pre: prefijo de los archivos (preFrameFile), p. ej. frm
  *
  * Ejemplo:
- *   ./read_demo ../../test/frames_walker 10 2
+ *   ./read_demo ../test/frames_walker frm 2
  * \endverbatim
  *
  * \author Manuel Carlevaro
@@ -38,14 +40,14 @@ int main(int argc, char* argv[])
 {
     if (argc != 4) {
         std::cerr << "Uso: " << argv[0]
-                  << " <directorio> <case_id> <frame_id>\n";
+                  << " <directorio> <pre> <frame_id>\n";
         std::cerr << "Ej:  " << argv[0]
                   << " ../../test/frames_walker 10 2\n";
         return 1;
     }
 
     fs::path dir(argv[1]);
-    int case_id  = std::stoi(argv[2]);
+    std::string pre = argv[2];
     int frame_id = std::stoi(argv[3]);
 
     // -----------------------------------------------------------------------
@@ -53,8 +55,8 @@ int main(int argc, char* argv[])
     // -----------------------------------------------------------------------
     sep("Frames disponibles (.xy)");
     try {
-        auto ids = dem::list_frames(dir, case_id, ".xy");
-        std::cout << "  Caso " << case_id << ": "
+        auto ids = dem::list_frames_with_prefix(dir, pre, ".xy");
+        std::cout << "  Prefijo " << pre << ": "
                   << ids.size() << " frames encontrados.\n";
         if (!ids.empty()) {
             std::cout << "  Primeros 5 frame IDs: ";
@@ -71,9 +73,9 @@ int main(int argc, char* argv[])
     // -----------------------------------------------------------------------
     sep("XYFrame  (posiciones)");
     try {
-        auto xf = dem::read_xy(dir, case_id, frame_id);
+        auto xf = dem::read_xy(dem::frame_path(dir, pre, frame_id, ".xy"));
         std::cout << std::fixed << std::setprecision(6);
-        std::cout << "  Archivo  : " << dem::xy_path(dir, case_id, frame_id) << "\n";
+        std::cout << "  Archivo  : " << dem::frame_path(dir, pre, frame_id, ".xy") << "\n";
         std::cout << "  time     : " << xf.time   << "\n";
         std::cout << "  r_out    : " << xf.r_out  << "\n";
         std::cout << "  Círculos : " << xf.circles.size()  << "\n";
@@ -114,8 +116,8 @@ int main(int argc, char* argv[])
     // -----------------------------------------------------------------------
     sep("VEFrame  (velocidades y energías)");
     try {
-        auto vf = dem::read_ve(dir, case_id, frame_id);
-        std::cout << "  Archivo    : " << dem::ve_path(dir, case_id, frame_id) << "\n";
+        auto vf = dem::read_ve(dem::frame_path(dir, pre, frame_id, ".ve"));
+        std::cout << "  Archivo    : " << dem::frame_path(dir, pre, frame_id, ".ve") << "\n";
         std::cout << "  time       : " << vf.time << "\n";
         std::cout << "  Partículas : " << vf.particles.size() << "\n";
 
@@ -152,8 +154,8 @@ int main(int argc, char* argv[])
     // -----------------------------------------------------------------------
     sep("FCFrame  (fuerzas de contacto)");
     try {
-        auto ff = dem::read_fc(dir, case_id, frame_id);
-        std::cout << "  Archivo   : " << dem::fc_path(dir, case_id, frame_id) << "\n";
+        auto ff = dem::read_fc(dem::frame_path(dir, "fc_" + pre, frame_id, ".dat"));
+        std::cout << "  Archivo   : " << dem::frame_path(dir, "fc_" + pre, frame_id, ".dat") << "\n";
         std::cout << "  time      : " << ff.time << "\n";
         std::cout << "  Contactos : " << ff.contacts.size() << "\n";
 

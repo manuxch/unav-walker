@@ -4,13 +4,13 @@
  *
  * \verbatim
  * Uso:
- *   vel_profile <dir> <case_id> <x_m> <n_bins> <y_min> <y_max> <salida>
+ *   vel_profile <dir> <pre> <x_m> <n_bins> <y_min> <y_max> <salida>
  *               [--qty vy vx w speed Eklin Ekrot]
  *               [--threads N]
  *
  * Argumentos posicionales:
  *   dir      Directorio con los archivos .ve
- *   case_id  Entero que identifica el caso de simulación
+ *   pre      Prefijo de los archivos <pre>_*.ve (preFrameFile), p. ej. frm
  *   x_m      Semi-ancho de la franja en x (incluye |x| <= x_m)
  *   n_bins   Número de bins en y
  *   y_min    Límite inferior del rango en y
@@ -141,8 +141,6 @@ struct GlobalAccum {
 
 struct FrameTask {
     fs::path              path;
-    int                   case_id;
-    int                   frame_id;
     double                x_m;
     double                y_min;
     double                bin_width;
@@ -156,8 +154,6 @@ struct FrameTask {
         dem::VEFrame frame;
         try {
             frame = dem::read_ve(path);
-            frame.case_id  = case_id;
-            frame.frame_id = frame_id;
         } catch (const std::exception& e) {
             std::cerr << "[WARN] " << path.filename() << ": " << e.what() << "\n";
             return;
@@ -198,11 +194,11 @@ static void print_usage(const char* prog)
 {
     std::cout <<
         "Uso:\n"
-        "  " << prog << " <dir> <case_id> <x_m> <n_bins> <y_min> <y_max> <salida>\n"
+        "  " << prog << " <dir> <pre> <x_m> <n_bins> <y_min> <y_max> <salida>\n"
         "               [--qty vy vx w speed Eklin Ekrot] [--threads N]\n\n"
         "Argumentos posicionales:\n"
         "  dir      Directorio con archivos .ve\n"
-        "  case_id  Caso de simulación\n"
+        "  pre      Prefijo de los archivos <pre>_*.ve (preFrameFile)\n"
         "  x_m      Semi-ancho de la franja en x  (|x| <= x_m)\n"
         "  n_bins   Número de bins en y\n"
         "  y_min    Límite inferior del rango en y\n"
@@ -218,7 +214,7 @@ static void print_usage(const char* prog)
 
 struct Args {
     fs::path         dir;
-    int              case_id   = -1;
+    std::string      pre;
     double           x_m       = 0.0;
     size_t           n_bins    = 50;
     double           y_min     = 0.0;
@@ -237,7 +233,7 @@ static Args parse_args(int argc, char* argv[])
 
     Args a;
     a.dir     = argv[1];
-    a.case_id = std::stoi(argv[2]);
+    a.pre     = argv[2];
     a.x_m     = std::stod(argv[3]);
     a.n_bins  = static_cast<size_t>(std::stoul(argv[4]));
     a.y_min   = std::stod(argv[5]);
@@ -308,20 +304,19 @@ int main(int argc, char* argv[])
     // Listar frames disponibles
     std::vector<int> frame_ids;
     try {
-        frame_ids = dem::list_frames(a.dir, a.case_id, ".ve");
+        frame_ids = dem::list_frames_with_prefix(a.dir, a.pre, ".ve");
     } catch (const std::exception& e) {
         std::cerr << "Error listando frames: " << e.what() << "\n";
         return 1;
     }
 
     if (frame_ids.empty()) {
-        std::cerr << "No se encontraron archivos .ve para el caso "
-                  << a.case_id << " en " << a.dir << "\n";
+        std::cerr << "No se encontraron archivos " << a.pre << "_*.ve en " << a.dir << "\n";
         return 1;
     }
 
     int n_total = static_cast<int>(frame_ids.size());
-    std::cout << "Caso " << a.case_id << ": " << n_total
+    std::cout << "Prefijo " << a.pre << ": " << n_total
               << " frames encontrados.\n";
     std::cout << "Threads: " << a.n_threads << "\n";
     std::cout << "Cantidades: ";
@@ -343,8 +338,7 @@ int main(int argc, char* argv[])
 
         for (int fid : frame_ids) {
             FrameTask task{
-                dem::ve_path(a.dir, a.case_id, fid),
-                a.case_id, fid,
+                dem::frame_path(a.dir, a.pre, fid, ".ve"),
                 a.x_m, a.y_min, bin_width, a.n_bins,
                 a.qtys,
                 &accum
@@ -370,7 +364,7 @@ int main(int argc, char* argv[])
 
     // Metadatos como comentarios (numpy los ignora con comments='#')
     fout << "# vel_profile"
-         << "  case=" << a.case_id
+         << "  pre=" << a.pre
          << "  x_m=" << a.x_m
          << "  frames=" << frames_ok
          << "  y_min=" << a.y_min

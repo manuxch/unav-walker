@@ -35,7 +35,7 @@ fig, ax = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
 alfa = 0.7
 for f in files_N:
     d = int(f.split('-')[2].split('.')[0])
-    y, fn = np.loadtxt(f, unpack=True, comments='#')
+    y, fn = np.loadtxt(f, unpack=True, comments='#', usecols=(0, 1))
     y = unidades.y_a_cm(y)
     fn = unidades.fuerza_a_N(fn)
     print(f"D = {d:3d} - max F_N = {fn.max():.3e}")
@@ -44,7 +44,7 @@ for f in files_N:
 
 for f in files_T:
     d = int(f.split('-')[2].split('.')[0])
-    y, fn = np.loadtxt(f, unpack=True, comments='#')
+    y, fn = np.loadtxt(f, unpack=True, comments='#', usecols=(0, 1))
     y = unidades.y_a_cm(y)
     fn = unidades.fuerza_a_N(fn)
     print(f"D = {d:3d} - max F_N = {fn.max():.3e}")

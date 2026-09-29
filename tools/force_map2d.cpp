@@ -1,6 +1,18 @@
 /*! \file force_map2d.cpp
- * \brief Calcula el mapa de calor bidimensional de fuerza (normal o tangencial)
- *        promediado sobre todos los frames de contactos de un caso DEM.
+ * \brief Mapa bidimensional de fuerzas de contacto promediado sobre todos
+ *        los frames de contactos (fc_<pre>_*.dat) de una simulación.
+ *
+ * \verbatim
+ * Uso:
+ *   force_map2d <dir> <pre> <n_bins_x> <n_bins_y> <salida>
+ *               [--xmin val] [--xmax val] [--ymin val] [--ymax val]
+ *               [--qty norm tan fmag fx fy] [--no-walls] [--active-only]
+ *               [--threads N]
+ *
+ * pre: prefijo de los archivos (preFrameFile), p. ej. frm o frm-100.
+ * Cantidades y filtros como en force_profile. Cada valor es la media sobre
+ * los puntos de contacto del bin en todos los frames; nan si no hay.
+ * \endverbatim
  *
  * \author Antigravity
  * \date 2026-04-05
@@ -28,11 +40,14 @@ namespace fs = std::filesystem;
 // Cantidades disponibles
 // ============================================================================
 
-enum class Qty { NORM, TAN };
+enum class Qty { NORM, TAN, FMAG, FX, FY };
 
 static const std::vector<std::pair<std::string, Qty>> QTY_MAP = {
     {"norm",    Qty::NORM},
     {"tan",     Qty::TAN},
+    {"fmag",    Qty::FMAG},
+    {"fx",      Qty::FX},
+    {"fy",      Qty::FY},
 };
 
 static std::string qty_name(Qty q)
@@ -44,9 +59,13 @@ static std::string qty_name(Qty q)
 
 static double extract_qty(const dem::Contact& c, Qty q)
 {
+    // Fuerza sobre B: F = Fn (nx, ny) + Ft (ny, -nx)
     switch (q) {
     case Qty::NORM:  return c.norm;
     case Qty::TAN:   return std::abs(c.tan);
+    case Qty::FMAG:  return std::hypot(c.norm, c.tan);
+    case Qty::FX:    return std::abs(c.norm * c.nx + c.tan * c.ny);
+    case Qty::FY:    return std::abs(c.norm * c.ny - c.tan * c.nx);
     }
     return 0.0;
 }
@@ -153,8 +172,6 @@ struct GlobalAccum {
 
 struct FrameTask {
     fs::path              path;
-    int                   case_id;
-    int                   frame_id;
     double                x_min;
     double                x_max;
     double                y_min;
@@ -164,6 +181,8 @@ struct FrameTask {
     double                bin_width_x;
     double                bin_width_y;
     std::vector<Qty>      qtys;
+    bool                  no_walls;
+    bool                  active_only;
     GlobalAccum*          accum;
 
     void operator()() const
@@ -171,8 +190,6 @@ struct FrameTask {
         dem::FCFrame frame;
         try {
             frame = dem::read_fc(path);
-            frame.case_id  = case_id;
-            frame.frame_id = frame_id;
         } catch (const std::exception& e) {
             std::cerr << "[WARN] " << path.filename() << ": " << e.what() << "\n";
             return;
@@ -184,6 +201,8 @@ struct FrameTask {
             local.emplace_back(n_bins_x, n_bins_y);
 
         for (const auto& c : frame.contacts) {
+            if (no_walls && c.wall) continue;
+            if (active_only && c.norm <= 0.0) continue;
             if (c.cp_x < x_min || c.cp_x > x_max) continue;
             if (c.cp_y < y_min || c.cp_y > y_max) continue;
 
@@ -216,12 +235,13 @@ static void print_usage(const char* prog)
 {
     std::cout <<
         "Uso:\n"
-        "  " << prog << " <dir> <case_id> <n_bins_x> <n_bins_y> <salida>\n"
+        "  " << prog << " <dir> <pre> <n_bins_x> <n_bins_y> <salida>\n"
         "               [--xmin val] [--xmax val] [--ymin val] [--ymax val]\n"
-        "               [--qty norm tan] [--threads N]\n\n"
+        "               [--qty norm tan fmag fx fy] [--no-walls] [--active-only]\n"
+        "               [--threads N]\n\n"
         "Argumentos posicionales:\n"
-        "  dir        Directorio con archivos fc_frm_*.dat\n"
-        "  case_id    Caso de simulación\n"
+        "  dir        Directorio con archivos fc_<pre>_*.dat\n"
+        "  pre        Prefijo de los archivos (preFrameFile), p. ej. frm o frm-100\n"
         "  n_bins_x   Número de bins en x\n"
         "  n_bins_y   Número de bins en y\n"
         "  salida     Archivo de salida (.dat)\n\n"
@@ -229,13 +249,15 @@ static void print_usage(const char* prog)
         "  --xmin, --xmax, --ymin, --ymax:\n"
         "             Límites espaciales. Si no se proveen, se calcularán\n"
         "             automáticamente revisando los frames.\n"
-        "  --qty <qty...>  Cantidades: norm tan  (default: norm tan)\n"
+        "  --qty <qty...>  Cantidades: norm tan fmag fx fy  (default: norm tan)\n"
+        "  --no-walls      Excluye los contactos grano-pared\n"
+        "  --active-only   Excluye los contactos con Fn = 0\n"
         "  --threads N     Número de worker threads (default: hardware_concurrency)\n";
 }
 
 struct Args {
     fs::path         dir;
-    int              case_id   = -1;
+    std::string      pre;
     size_t           n_bins_x  = 50;
     size_t           n_bins_y  = 50;
     fs::path         output;
@@ -246,6 +268,8 @@ struct Args {
     double           y_max     = std::numeric_limits<double>::quiet_NaN();
 
     std::vector<Qty> qtys      = {};
+    bool             no_walls  = false;
+    bool             active_only = false;
     size_t           n_threads = std::thread::hardware_concurrency();
 };
 
@@ -258,7 +282,7 @@ static Args parse_args(int argc, char* argv[])
 
     Args a;
     a.dir      = argv[1];
-    a.case_id  = std::stoi(argv[2]);
+    a.pre      = argv[2];
     a.n_bins_x = static_cast<size_t>(std::stoul(argv[3]));
     a.n_bins_y = static_cast<size_t>(std::stoul(argv[4]));
     a.output   = argv[5];
@@ -266,7 +290,11 @@ static Args parse_args(int argc, char* argv[])
     bool has_qty = false;
     for (int i = 6; i < argc; ++i) {
         std::string tok(argv[i]);
-        if (tok == "--threads") {
+        if (tok == "--no-walls") {
+            a.no_walls = true;
+        } else if (tok == "--active-only") {
+            a.active_only = true;
+        } else if (tok == "--threads") {
             if (++i >= argc) { std::cerr << "--threads requiere argumento\n"; std::exit(1); }
             a.n_threads = static_cast<size_t>(std::stoul(argv[i]));
         } else if (tok == "--xmin") {
@@ -332,20 +360,20 @@ int main(int argc, char* argv[])
 
     std::vector<int> frame_ids;
     try {
-        frame_ids = dem::list_frames(a.dir, a.case_id, ".dat");
+        frame_ids = dem::list_frames_with_prefix(a.dir, "fc_" + a.pre, ".dat");
     } catch (const std::exception& e) {
         std::cerr << "Error listando frames: " << e.what() << "\n";
         return 1;
     }
 
     if (frame_ids.empty()) {
-        std::cerr << "No se encontraron archivos .dat para el caso "
-                  << a.case_id << " en " << a.dir << "\n";
+        std::cerr << "No se encontraron archivos fc_"
+                  << a.pre << "_*.dat en " << a.dir << "\n";
         return 1;
     }
 
     int n_total = static_cast<int>(frame_ids.size());
-    std::cout << "Caso " << a.case_id << ": " << n_total << " frames encontrados.\n";
+    std::cout << "Prefijo " << a.pre << ": " << n_total << " frames encontrados.\n";
     std::cout << "Threads: " << a.n_threads << "\n";
 
     // Paso opcional 1: Calcular límites de simulación si no se proveyeron
@@ -358,7 +386,7 @@ int main(int argc, char* argv[])
             std::vector<std::future<void>> futures;
             futures.reserve(n_total);
             for (int fid : frame_ids) {
-                BoundsTask task{ dem::fc_path(a.dir, a.case_id, fid), &bounds };
+                BoundsTask task{ dem::frame_path(a.dir, "fc_" + a.pre, fid, ".dat"), &bounds };
                 futures.push_back(pool.enqueue(std::move(task)));
             }
             for (auto& f : futures) f.get();
@@ -395,12 +423,11 @@ int main(int argc, char* argv[])
 
         for (int fid : frame_ids) {
             FrameTask task{
-                dem::fc_path(a.dir, a.case_id, fid),
-                a.case_id, fid,
+                dem::frame_path(a.dir, "fc_" + a.pre, fid, ".dat"),
                 a.x_min, a.x_max, a.y_min, a.y_max,
                 a.n_bins_x, a.n_bins_y,
                 bin_width_x, bin_width_y,
-                a.qtys, &accum
+                a.qtys, a.no_walls, a.active_only, &accum
             };
             futures.push_back(pool.enqueue(std::move(task)));
         }
@@ -421,7 +448,7 @@ int main(int argc, char* argv[])
     }
 
     fout << "# force_map2d"
-         << "  case=" << a.case_id
+         << "  pre=" << a.pre
          << "  frames=" << frames_ok
          << "  x_min=" << a.x_min
          << "  x_max=" << a.x_max
@@ -429,6 +456,8 @@ int main(int argc, char* argv[])
          << "  y_max=" << a.y_max
          << "  n_bins_x=" << a.n_bins_x
          << "  n_bins_y=" << a.n_bins_y
+         << "  no_walls=" << (a.no_walls ? 1 : 0)
+         << "  active_only=" << (a.active_only ? 1 : 0)
          << "\n";
 
     fout << "# x_center  y_center";

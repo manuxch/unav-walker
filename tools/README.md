@@ -22,17 +22,46 @@ Los ejecutables quedan en `bin/` (raíz del repositorio).
 | `stress_profile` | `.sxy` | Perfil del tensor de estrés en una franja vertical (**recomendado**) |
 | `vel_profile` | `.ve` | Perfil de velocidades en una franja vertical |
 | `read_demo` | `.xy`, `.ve`, `fc_*.dat` | Demostración del lector |
-| `force_profile` | `fc_*.dat` | Media de Fn y \|Ft\| por punto de contacto (ver advertencia) |
-| `force_map2d` | `fc_*.dat` | Mapa 2D de la media de Fn y \|Ft\| por punto de contacto (ver advertencia) |
+| `force_profile` | `fc_*.dat` | Perfil de fuerzas de contacto en una franja vertical |
+| `force_map2d` | `fc_*.dat` | Mapa 2D de fuerzas de contacto |
 
 `dem_reader` (`dem_reader.hpp`, `dem_types.hpp`) lee todos los formatos, con
 la cabecera de procedencia. Rechaza los archivos de contactos y de tensores
 anteriores a la versión 3.0, porque sus fuerzas tienen otra escala.
 
-**Advertencia sobre `force_profile` y `force_map2d`.** Promedian por punto
-de contacto e incluyen los contactos con las paredes y los de fuerza nula.
-Leen el formato nuevo, pero para los perfiles de estrés conviene usar
-`stress_profile`.
+Todas las herramientas reciben el prefijo de los archivos, `<pre>` (el
+`preFrameFile` de la simulación), y leen del directorio los archivos
+`<pre>_<frame>.<ext>`, o `fc_<pre>_<frame>.dat` para los contactos. Por
+ejemplo, `frm` lee `fc_frm_*.dat`. Para las corridas anteriores con
+`preFrameFile: frm-100`, el prefijo es `frm-100`.
+
+## force_profile y force_map2d
+
+```bash
+bin/force_profile <dir> <pre> <x_m> <n_bins> <y_min> <y_max> salida.dat \
+    [--qty norm tan fmag fx fy] [--no-walls] [--active-only] [--threads N]
+bin/force_map2d <dir> <pre> <n_bins_x> <n_bins_y> salida.dat \
+    [--xmin v --xmax v --ymin v --ymax v] [--qty ...] [--no-walls] [--active-only]
+```
+
+- `force_profile` usa los puntos de contacto con `|cp_x| <= x_m`, en
+  `n_bins` bines entre `y_min` e `y_max`.
+- Cada valor es la **media sobre todos los puntos de contacto** del bin en
+  todos los frames; cada contacto pesa lo mismo.
+- Cantidades:
+  - `norm`: Fn;
+  - `tan`: |Ft|;
+  - `fmag`: |F| = sqrt(Fn² + Ft²);
+  - `fx`, `fy`: |F_x| y |F_y|, las componentes cartesianas en valor
+    absoluto, porque su signo depende de cuál cuerpo del contacto se
+    considere.
+- `--no-walls` excluye los contactos grano-pared.
+- `--active-only` excluye los contactos con Fn = 0. Box2D registra como
+  "en contacto" pares que no transmiten fuerza; en una corrida de prueba
+  eran, junto con los de pared, el 23 % de los contactos de la franja.
+- La salida de `force_profile` termina con la columna `n` (contactos en el
+  bin). Los bines vacíos valen `nan`.
+- Las fuerzas se dan en unidades de la simulación.
 
 ## stress_profile
 

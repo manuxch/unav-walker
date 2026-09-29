@@ -38,8 +38,14 @@ def read_metadata(filename):
             parts = first_line.split()[2:] # skip "# force_map2d"
             for p in parts:
                 if '=' in p:
-                    k, v = p.split('=')
-                    meta[k] = float(v) if '.' in v or 'e' in v else int(v)
+                    k, v = p.split('=', 1)
+                    try:
+                        meta[k] = int(v)
+                    except ValueError:
+                        try:
+                            meta[k] = float(v)
+                        except ValueError:
+                            meta[k] = v  # texto, p. ej. pre=frm
     return meta
 
 def main():
