@@ -41,7 +41,23 @@ FORCE:
 %.o: %.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-clean:
-	rm -f *.o *~ silo-vib
+# Pruebas: se enlazan con todos los módulos salvo main.o.
+TEST_BINS = tests/test_friction tests/test_reinjection
+LIB_OBJS = $(filter-out main.o,$(OBJS))
 
-.PHONY: all clean FORCE
+tests/test_%: tests/test_%.cpp $(LIB_OBJS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) -I. $< $(LIB_OBJS) -o $@ $(LDFLAGS)
+
+test: silo-vib $(TEST_BINS)
+	@echo "== Fricción con la base (karnopp, pivot_friction)"
+	@./tests/test_friction
+	@echo "== Reinyección de granos"
+	@./tests/test_reinjection tests/params_test.in > tests/reinjection.log; \
+	  st=$$?; grep -v '^#' tests/reinjection.log; exit $$st
+	@echo "== Lector de parámetros"
+	@bash tests/test_params.sh ./silo-vib
+
+clean:
+	rm -f *.o *~ silo-vib $(TEST_BINS) tests/reinjection.log
+
+.PHONY: all clean test FORCE

@@ -1,0 +1,124 @@
+# Parámetros de prueba (tests/): sistema chico y corto, con todas las salidas
+# activadas. Lo usan test_params.sh, test_reinjection y regression.sh.
+#
+#
+# Semilla del generador de números aleatorios
+rand_seed: 1729
+#
+# Parámetros de Box2D
+# Nota: Box2D utiliza el sistema métrico MKS
+#
+# Parámetros del contenedor
+# [altura_silo]: alto de la silo (dirección y)
+# [base_silo]: ancho de la silo (dirección x=
+# [friccion_silo]: coeficiente de fricción de la silo. Box2D combina
+#     fricciones como sqrt(f_grano * f_silo): con f_silo = f_grano la fricción
+#     grano-pared es igual a la grano-grano.
+# [restitucion_silo]: coeficiente de restitución de la silo. Box2D combina
+#     restituciones con el máximo, así que domina la del grano si es mayor.
+#   Control de la excitación
+# [Amplitud_exitacion]: amplitud de la excitación armónica
+# [Frecuencia_exitacion]: frecuencia de la excitación armónica (Hz)
+# [K_resorte]: constante elástica del resorte
+# [resorte_L0]: longitud del resorte en reposo
+# [Viscosidad_amortiguador]: constante de amortiguación viscosa
+altura_silo: 30
+radio_silo: 10
+radio_out_silo: 2.5
+restitucion_silo: 0.1
+friccion_silo: 0.16
+Amplitud_exitacion_gamma: 1.0
+Frecuencia_exitacion: 0.45175395
+Cero_tol: 0.00001  
+rho: 0.5
+fase_phi: 0.0 
+
+# Granos
+#	[noTipoGranos]: cantidad de tipos de granos diferentes
+#	Por cada tipo de grano:
+#	[noGranos radio nLados dens fric fric_b_s fric_b_d rest ]
+#	(int double int double double double)
+#	Notas:
+#	    [noGranos]: Cantidad de granos de cada tipo
+#		[radio] = m 
+#		[nLados] = 1 es un disco, o 3 <= nLados <= 8
+#       [dens] = kg/m¹
+#		[fric]: Coeficiente de fricción grano-grano 0 <= fric 
+#		[fric_b_s]: Coeficiente de fricción estática del grano con la base 0 <= fric_s 
+#		[fric_b_d]: Coeficiente de fricción dinámica del grano con la base 0 <= fric_d 
+#		[rest]: Coeficiente de restitución grano-grano <= rest <= 1
+noTipoGranos: 1
+250 0.5 1 1.273239545 0.16 0.2 0.15 0.8 
+#50 0.5 1 0.1031324 0.5 0.3 0.08 0.5 
+#50 0.777560 3 0.1031324 0.5 0.3 0.08 0.5 
+# Notas:
+#   - Radio de triángulo con = área que disco de r = 1: 0.777560
+#   - Radio de cuadrado con = área que disco de r = 1:  0.626657
+#
+# Control de la simulación
+# [timeStep]: Paso de integración del movimiento (en s)
+# [tMax]: Máximo tiempo de simulación (en s)
+# [tBlock]: Tiempo de bloqueo de salida
+# [t_Register]: Tiempo de inicio de registro de datos
+# [maxGranosDesc]: Número de granos que salieron y que interrumpen la simulación
+# [pIter]: iteraciones de posicion para la satisfacción de restricciones
+# [vIter]: iteraciones de 1uvelocidad para la satisfacción de restricciones
+# [g]: Magnitud de la aceleración de la gravedad (hacia -y) kg m / s²
+timeStep: 0.005  // período T = 1/0.45175395 = 2.2136 -> 442.7 pasos por período
+tMax: 8.0
+tBlock: 3.0
+t_Register: 2.0
+maxGranosDesc: 0  // 0 = deshabilitado; >0 = detener cuando salgan N granos
+pIter: 60
+vIter: 60
+g: 1.0
+do_reinyection: T
+# [fondo_medicion]: T = silo cerrado con fondo de medición (gID=-200) y sin
+#     descarga; la fuerza sobre el fondo se guarda en cada paso en
+#     frames_<dirID>/wall_force_<preFrameFile>.dat. F = silo con orificio.
+fondo_medicion: F
+# [continuous_physics]: (opcional, por defecto F) T = detección continua de colisiones (TOI) y granos
+#     "bullet". Los impulsos de los subpasos TOI no quedan registrados en los
+#     contactos, así que las fuerzas guardadas quedan incompletas. Con
+#     dt = 0.005 el desplazamiento por paso es ~1e-3 << radio: no hace falta.
+continuous_physics: F
+
+# Parámetros de registro
+# [dirID]: sufijo del nombre del directorio de guardado de frames
+# [preFrameFile]: prefijo del archivo de salida de frames
+# [saveFrameFreq]: Paso de guardado de los frames
+# [fluxFile]: archivo de registro de granos que salen
+# [fluxFreq]: Frecuencia de guardado de caudal
+# [packing_fraction_out_freq]: frecuencia de guardado del packing fraction a la salida y en el bulk
+# [packing_file]: archivo de registro del packing fraction 
+# [freq_perfiles]: frecuencia del cálculo de perfiles de velocidad y pf en el orificio de salida
+# [n_bin_perfiles]: Cantidad de bins de división del oriicio de salida
+# [freq_save_contacts]: Frecuencia de guardado de archivos con fuerzas de contacto.
+# [save_tensors_freq]: Frecuencia de guardado del tensor de estrés por grano (.sxy).
+# [save_ve_freq]: Frecuencia de guardado de velocidades y energías (.ve).
+# [check_balance_freq]: Frecuencia del chequeo de balance de impulso por grano
+#     (frames_<dirID>/balance_<preFrameFile>.dat). 0 = deshabilitado.
+# Todas las frecuencias se expresan en pasos; 0 = deshabilitado. Los archivos
+# de un mismo instante comparten el número de frame (pasos desde t_Register).
+dirID: test
+preFrameFile: frm
+saveFrameFreq: 50
+save_tensors_freq: 50
+fluxFile: flx_test.dat
+fluxFreq: 5
+packing_fraction_out_freq: 50
+pf_file: pf_test.dat
+freq_perfiles: 10
+n_bin_perfiles: 40
+freq_save_contacts: 50
+save_ve_freq: 50
+check_balance_freq: 10
+#
+# Parámetros de ROI (Region of Interest)
+# [save_roi_only]: F = se guarda todo el sistema; T = solo el rectángulo
+#     |x| <= x_roi, y_min_roi <= y <= y_max_roi (centros de los granos; para los
+#     contactos, todos los de los granos cuyo centro está en el ROI).
+save_roi_only: F
+x_roi: 2.0
+y_min_roi: -2.0
+y_max_roi: 2.0
