@@ -1,3 +1,17 @@
+# Versión 3.3
+
+2026.09.29
+
+- Compilación con CMake desde la raíz del repositorio (reemplaza al
+  Makefile): simulador y herramientas de análisis, con los ejecutables en
+  `bin/` (sin seguimiento). Pruebas con `ctest` y documentación con
+  `cmake --build build --target doc`.
+- La versión de git se escribe en `git_version.hpp`, generado en cada
+  compilación (antes, `-DGIT_HASH` del Makefile).
+- Documentación de Doxygen sin advertencias; `Doxyfile.in` en la raíz cubre
+  el simulador y las herramientas.
+- Los resultados son idénticos a los de la versión 3.2.
+
 # Versión 3.2
 
 2026.09.29

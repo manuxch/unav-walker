@@ -2,7 +2,7 @@
  * \brief unav-walkers: descarga de un silo bidimensional de discos apoyados
  * sobre una base vibrada, simulada con Box2D.
  *
- * Uso: unav-walkers <archivo_de_parámetros>
+ * Uso: `unav-walkers archivo_de_parámetros`
  *
  * Secuencia:
  *  1. Lectura de parámetros (GlobalSetup) y construcción del sistema
@@ -24,6 +24,7 @@
 #include "contacts.hpp"
 #include "diagnostics.hpp"
 #include "discharge.hpp"
+#include "git_version.hpp" // GIT_HASH, generado por CMake
 #include "global_setup.hpp"
 #include "output.hpp"
 #include "rng.hpp"
@@ -115,11 +116,9 @@ int main(int argc, char *argv[]) {
          << "Uso: " << argv[0] << " <archivo_de_parámetros>" << endl;
     return 1;
   }
-  cout << "# unav-walkers ver. 3.2" << endl;
+  cout << "# unav-walkers ver. 3.3" << endl;
   cout << "# 2026.09.29" << endl;
-#ifdef GIT_HASH
   cout << "# git: " << GIT_HASH << endl;
-#endif
   const GlobalSetup gs(argv[1]);
   RNG rng(gs.rnd_seed);
   std::error_code ec;

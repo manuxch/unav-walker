@@ -8,6 +8,7 @@
 
 #include "body_data.hpp"
 #include "contacts.hpp"
+#include "git_version.hpp" // GIT_HASH, generado por CMake
 
 #include <chrono>
 #include <cmath>
@@ -18,9 +19,6 @@
 #include <numbers>
 #include <sstream>
 
-#ifndef GIT_HASH
-#define GIT_HASH "desconocido"
-#endif
 
 using std::endl;
 using std::string;
@@ -35,7 +33,7 @@ bool in_roi(b2Vec2 p, const GlobalSetup &gs) {
   return true;
 }
 
-/*! Ruta de un archivo de frame: frames_<dirID>/<prefijo><pre>_<frame><ext>. */
+/*! Ruta de un archivo de frame: `frames_<dirID>/<prefijo><pre>_<frame><ext>`. */
 string frame_path(const GlobalSetup &gs, const string &prefix, int n_frame,
                   const string &ext) {
   return "frames_" + gs.dir_id + "/" + prefix + gs.pre_frame_file + "_" +

@@ -3,6 +3,7 @@
  *        vertical centrada (por ejemplo, del ancho del orificio D), a partir
  *        de los archivos .sxy del simulador (versión >= 3.0).
  *
+ * \verbatim
  * Uso:
  *   stress_profile <dir> <pre> -o <salida> --half-width W --y-max Y
  *                  --freq F [opciones]
@@ -51,6 +52,7 @@
  *
  *   Errores (e_*): desviación estándar de las medias por bloques de un
  *   período, dividida por sqrt(número de bloques).
+ * \endverbatim
  *
  * \author Manuel Carlevaro
  * \date 2026-09-29

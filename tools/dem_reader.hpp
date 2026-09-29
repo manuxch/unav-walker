@@ -1,6 +1,7 @@
 /*! \file dem_reader.hpp
  * \brief Declaración de funciones para leer archivos de simulación DEM.
  *
+ * \verbatim
  * Convenciones de nombres de archivo:
  *   frm-{case_id}_{frame_id}.xy       — posiciones
  *   frm-{case_id}_{frame_id}.ve       — velocidades y energías
@@ -9,6 +10,7 @@
  * (en general <pre>_{frame_id}.<ext>, con <pre> = preFrameFile)
  *
  * donde frame_id se formatea con 6 dígitos con ceros a la izquierda.
+ * \endverbatim
  *
  * \author Manuel Carlevaro
  * \date 2026-02-26
@@ -98,13 +100,13 @@ FCFrame read_fc(const std::filesystem::path& dir, int case_id, int frame_id);
 // para los contactos), con <pre> = preFrameFile del archivo de parámetros.
 // ---------------------------------------------------------------------------
 
-/// Ruta de un archivo <pre>_<frame><ext>, p. ej. frame_path(dir, "frm", 12, ".sxy")
-/// -> dir/frm_000012.sxy.
+/// Ruta de un archivo `<pre>_<frame><ext>`, p. ej.
+/// `frame_path(dir, "frm", 12, ".sxy")` -> `dir/frm_000012.sxy`.
 std::filesystem::path frame_path(const std::filesystem::path& dir,
                                  const std::string& pre, int frame_id,
                                  const std::string& ext);
 
-/// Frames disponibles para los archivos <pre>_<frame><ext>, ordenados.
+/// Frames disponibles para los archivos `<pre>_<frame><ext>`, ordenados.
 /// \throws std::runtime_error si el directorio no existe.
 std::vector<int> list_frames_with_prefix(const std::filesystem::path& dir,
                                          const std::string& pre,

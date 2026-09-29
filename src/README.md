@@ -57,12 +57,20 @@ el fondo se registra en cada paso.
 
 ## Compilación y uso
 
+Desde la raíz del repositorio (compila también las herramientas de
+análisis):
+
 ```bash
-make                  # compila unav-walkers
-make BOX2D=/ruta      # con otra instalación de Box2D 2.4.2
-make test             # pruebas (ver Validación)
-./unav-walkers params.in  # corre la simulación
+cmake -S . -B build                    # configuración (Release por defecto)
+cmake -S . -B build -DBOX2D_ROOT=/ruta # con otra instalación de Box2D 2.4.2
+cmake --build build -j                 # ejecutables en bin/
+ctest --test-dir build                 # pruebas (ver Validación)
+bin/unav-walkers params.in             # corre la simulación
 ```
+
+El ejecutable se enlaza estáticamente, para poder copiarlo al cluster
+(`-DUNAV_STATIC=OFF` para enlace dinámico). La versión (hash de git) se
+actualiza en cada compilación.
 
 La salida estándar reproduce los parámetros leídos y el avance de la
 simulación. Los archivos se escriben en `frames_<dirID>/` (ver Salidas).
@@ -84,7 +92,8 @@ simulación. Los archivos se escriben en `frames_<dirID>/` (ver Salidas).
 | `tests/` | Pruebas y regresión |
 
 Cada encabezado documenta sus funciones en formato Doxygen. Con Doxygen
-instalado, `doxygen Doxyfile` genera la documentación en `doc/html/`.
+instalado, `cmake --build build --target doc` genera la documentación del
+simulador y de las herramientas en `build/doc/html/`.
 
 ## Parámetros
 
@@ -191,7 +200,7 @@ análisis.
 
 ## Validación
 
-- `make test` corre:
+- `ctest --test-dir build` corre:
   - pruebas unitarias de la fricción con la base (Karnopp y pivoteo,
     incluida la independencia respecto de `dt`);
   - una prueba de la reinyección (sin superposiciones y con velocidad nula);

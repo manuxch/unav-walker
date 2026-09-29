@@ -1,0 +1,26 @@
+# Configuración de Doxygen para unav-walker (simulador y herramientas).
+# CMake la completa en <build>/Doxyfile; uso:
+#   cmake --build build --target doc   ->   build/doc/html/index.html
+PROJECT_NAME           = unav-walker
+PROJECT_BRIEF          = "Descarga de un silo 2D de discos sobre una base vibrada"
+OUTPUT_DIRECTORY       = @PROJECT_BINARY_DIR@/doc
+OUTPUT_LANGUAGE        = Spanish
+INPUT                  = @PROJECT_SOURCE_DIR@/README.md \
+                         @PROJECT_SOURCE_DIR@/src/README.md \
+                         @PROJECT_SOURCE_DIR@/src \
+                         @PROJECT_SOURCE_DIR@/src/tests \
+                         @PROJECT_SOURCE_DIR@/tools/README.md \
+                         @PROJECT_SOURCE_DIR@/tools
+FILE_PATTERNS          = *.hpp *.cpp
+RECURSIVE              = NO
+USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/README.md
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+EXTRACT_ANON_NSPACES   = YES
+JAVADOC_AUTOBRIEF      = YES
+SOURCE_BROWSER         = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_LOGFILE           = @PROJECT_BINARY_DIR@/doc/doxygen_warnings.log

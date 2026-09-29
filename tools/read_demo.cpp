@@ -1,11 +1,13 @@
 /*! \file read_demo.cpp
  * \brief Demo de lectura de los tres tipos de archivos DEM.
  *
+ * \verbatim
  * Uso:
  *   ./read_demo <directorio> <case_id> <frame_id>
  *
  * Ejemplo:
  *   ./read_demo ../../test/frames_walker 10 2
+ * \endverbatim
  *
  * \author Manuel Carlevaro
  * \date 2026-02-26

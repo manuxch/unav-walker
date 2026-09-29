@@ -347,3 +347,6 @@ src/doc/
 *_LOCAL_*
 *_REMOTE_*
 *.kate-swp
+
+# Ejecutables compilados con CMake
+/bin/

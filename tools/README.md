@@ -6,12 +6,14 @@ paralelo.
 
 ## Compilación
 
+Desde la raíz del repositorio, junto con el simulador:
+
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build
 cmake --build build -j
 ```
 
-Los ejecutables quedan en `build/bin/`.
+Los ejecutables quedan en `bin/` (raíz del repositorio).
 
 ## Herramientas
 
@@ -35,7 +37,7 @@ Leen el formato nuevo, pero para los perfiles de estrés conviene usar
 ## stress_profile
 
 ```bash
-build/bin/stress_profile <dir> <pre> -o perfil.dat --half-width W --y-max Y --freq F \
+bin/stress_profile <dir> <pre> -o perfil.dat --half-width W --y-max Y --freq F \
     [--y-min 0] [--dy 1] [--phase-bins 20] [--phase-output perfil_fase.dat] \
     [--t-min T0] [--t-max T1] [--x-center 0] [--threads N]
 ```

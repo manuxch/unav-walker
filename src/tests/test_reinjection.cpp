@@ -3,7 +3,7 @@
  * no se superponen con otros cuerpos, quedan con velocidad nula y dentro de
  * la franja de reinyección.
  *
- * Uso: test_reinjection <archivo_de_parámetros> (H = 30, R = 10).
+ * Uso: `test_reinjection archivo_de_parámetros` (H = 30, R = 10).
  */
 
 #include "body_data.hpp"

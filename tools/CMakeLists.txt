@@ -1,11 +1,7 @@
-cmake_minimum_required(VERSION 3.20)
-project(dem_tools CXX)
+# Herramientas de análisis (ver README.md). Se compilan desde el
+# CMakeLists.txt raíz; los ejecutables quedan en bin/.
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+find_package(Threads REQUIRED)
 
 # -----------------------------------------------------------------------
 # Biblioteca estática: dem_reader
@@ -14,41 +10,39 @@ add_library(dem_reader STATIC
     dem_reader.cpp
 )
 target_include_directories(dem_reader PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_options(dem_reader PRIVATE -Wall -Wextra -O2)
+target_compile_options(dem_reader PRIVATE -Wall -Wextra)
 
 # -----------------------------------------------------------------------
 # Ejecutable de demostración / verificación
 # -----------------------------------------------------------------------
 add_executable(read_demo read_demo.cpp)
 target_link_libraries(read_demo PRIVATE dem_reader)
-target_compile_options(read_demo PRIVATE -Wall -Wextra -O2)
+target_compile_options(read_demo PRIVATE -Wall -Wextra)
 
 # -----------------------------------------------------------------------
 # Perfil de velocidad concurrente
 # -----------------------------------------------------------------------
-find_package(Threads REQUIRED)
-
 add_executable(vel_profile vel_profile.cpp)
 target_link_libraries(vel_profile PRIVATE dem_reader Threads::Threads)
-target_compile_options(vel_profile PRIVATE -Wall -Wextra -O2)
+target_compile_options(vel_profile PRIVATE -Wall -Wextra)
 
 # -----------------------------------------------------------------------
 # Perfil de fuerza concurrente
 # -----------------------------------------------------------------------
 add_executable(force_profile force_profile.cpp)
 target_link_libraries(force_profile PRIVATE dem_reader Threads::Threads)
-target_compile_options(force_profile PRIVATE -Wall -Wextra -O2)
+target_compile_options(force_profile PRIVATE -Wall -Wextra)
 
 # -----------------------------------------------------------------------
 # Mapa de fuerza 2D concurrente
 # -----------------------------------------------------------------------
 add_executable(force_map2d force_map2d.cpp)
 target_link_libraries(force_map2d PRIVATE dem_reader Threads::Threads)
-target_compile_options(force_map2d PRIVATE -Wall -Wextra -O2)
+target_compile_options(force_map2d PRIVATE -Wall -Wextra)
 
 # -----------------------------------------------------------------------
 # Perfil del tensor de estrés (archivos .sxy, simulador >= 3.0)
 # -----------------------------------------------------------------------
 add_executable(stress_profile stress_profile.cpp)
 target_link_libraries(stress_profile PRIVATE dem_reader Threads::Threads)
-target_compile_options(stress_profile PRIVATE -Wall -Wextra -O2)
+target_compile_options(stress_profile PRIVATE -Wall -Wextra)

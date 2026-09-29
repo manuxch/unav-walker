@@ -97,8 +97,10 @@ struct VEFrame {
 
 /// Cabecera de procedencia que el simulador (versión >= 3.0) escribe en cada
 /// archivo de salida:
+/// \verbatim
 ///   # nStep: <n> n_frame: <k> t: <t> dt: <dt> fase: <w t mod 2pi> ...
 ///   # git: <hash> params: <archivo> params_hash: <hash>
+/// \endverbatim
 struct Provenance {
     bool        present     = false; ///< true si el archivo tiene la cabecera
     long        n_step      = -1;    ///< Paso de simulación
@@ -164,7 +166,7 @@ struct GrainStress {
     int    z_gw;   ///< Puntos de contacto activos grano-pared
 };
 
-/// Contenido completo de un archivo <pre>_<frame>.sxy.
+/// Contenido completo de un archivo `<pre>_<frame>.sxy`.
 struct SXYFrame {
     double     time = 0.0; ///< Tiempo de simulación (primera línea)
     Provenance prov;       ///< Cabecera de procedencia

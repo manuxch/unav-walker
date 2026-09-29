@@ -2,6 +2,7 @@
  * \brief Calcula el perfil de velocidad (u otras cantidades) promediado
  *        sobre todos los frames de un caso DEM.
  *
+ * \verbatim
  * Uso:
  *   vel_profile <dir> <case_id> <x_m> <n_bins> <y_min> <y_max> <salida>
  *               [--qty vy vx w speed Eklin Ekrot]
@@ -25,6 +26,7 @@
  *   # vel_profile  case=<id>  x_m=<val>  frames=<N>
  *   # y_center  <qty1>  <qty2> ...
  *   <y>  <val1>  <val2> ...
+ * \endverbatim
  *
  * \author Manuel Carlevaro
  * \date 2026-02-26
