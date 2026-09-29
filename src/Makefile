@@ -18,25 +18,29 @@ LIBS = -lbox2d
 # LDFLAGS = -fsanitize=address -g -Wall -std=c++20 $(LIBPATH) $(LIBS)
 # LDFLAGS = -g -Wall -std=c++20 -static $(LIBPATH) $(LIBS)
 # Opciones para correr en producción
-CXXFLAGS = -O3 -std=c++20 $(INCLUDES)
+# Versión del código (hash de git, con sufijo -dirty si hay cambios sin commit)
+GIT_HASH := $(shell git describe --always --dirty 2>/dev/null || echo desconocido)
+CXXFLAGS = -O3 -Wall -Wextra -std=c++20 $(INCLUDES) -DGIT_HASH=\"$(GIT_HASH)\"
 LDFLAGS = -O3 -Wall -std=c++20 -static $(LIBPATH) $(LIBS)
 
 SOURCES = $(wildcard *.cpp)
 
 #OBJS = $(SOURCES:%.cpp=%.o)
 OBJS1 = globalsetup.o rng.o siloAux.o silo-vib.o
-OBJS2 = globalsetup.o rng.o siloAux.o walkers-forceWall.o
 
-all : silo-vib walkers-forceWall
+# El silo cerrado con fondo de medición (antes walkers-forceWall) se obtiene
+# con "fondo_medicion: T" en el archivo de parámetros.
+all : silo-vib
 
 silo-vib : $(OBJS1)
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-walkers-forceWall : $(OBJS2)
-	$(CXX) -o $@ $^ $(LDFLAGS)
+# silo-vib.o y siloAux.o dependen del hash de git: se recompilan siempre
+silo-vib.o siloAux.o : FORCE
+FORCE:
 
-%.o : %.cpp
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -c $< -o $@
+%.o : %.cpp globalsetup.hpp siloAux.hpp rng.hpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	rm -f *.o *~ 

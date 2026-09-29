@@ -8,7 +8,9 @@ using std::endl;
 #include <chrono>
 #include <cmath>
 #include <stdexcept>
+#include <algorithm>
 #include <tuple>
+#include <vector>
 
 void comprehensiveCheck(b2World* world, int step);
 
@@ -20,8 +22,11 @@ int main(int argc, char *argv[]) {
     std::cout << "Error: archivo de parámetros requerido." << std::endl;
     exit(1);
   }
-  cout << "# silo-vib ver. 2.5" << endl;
-  cout << "# 2026.02.24" << endl;
+  cout << "# silo-vib ver. 3.0" << endl;
+  cout << "# 2026.09.29" << endl;
+#ifdef GIT_HASH
+  cout << "# git: " << GIT_HASH << endl;
+#endif
   gs = new GlobalSetup{argv[1]};
   rng = new RNG(gs->rnd_seed);
   string folder_cmd = "mkdir -p frames_" + gs->dirID;
@@ -33,88 +38,69 @@ int main(int argc, char *argv[]) {
   b2Vec2 gravedad;
   gravedad.Set(0.0f, 0.0f);
   b2World *world = new b2World(gravedad);
-  // Definición del contenedor
+  world->SetContinuousPhysics(gs->continuous_physics);
+  // Definición del contenedor.
+  // Silo normal: cadena de 6 vértices con orificio [-r, r] en y = 0, más una
+  // tapa (gID=-110) que se remueve en t = tBlock.
+  // fondo_medicion: cadena en U sin fondo, más un fondo de ancho completo
+  // (gID=-200) que nunca se remueve y sobre el que se mide la fuerza.
   b2BodyDef bd;
   bd.position.Set(0.0f, 0.0f);
   bd.type = b2_staticBody;
   BodyData *siloD = new BodyData;
   siloD->isGrain = false;
-  siloD->nLados = 5;
   siloD->gID = -100;
   bd.userData.pointer = uintptr_t(siloD);
   b2Body *silo = world->CreateBody(&bd);
-  b2Vec2 wall_poly[6];
-  wall_poly[0].Set(-gs->silo.r, 0.0f);
-  wall_poly[1].Set(-gs->silo.R, 0.0f);
-  wall_poly[2].Set(-gs->silo.R, gs->silo.H);
-  wall_poly[3].Set(gs->silo.R, gs->silo.H);
-  wall_poly[4].Set(gs->silo.R, 0.0);
-  wall_poly[5].Set(gs->silo.r, 0.0);
-
-  b2ChainShape siloShape_poly;
-  siloShape_poly.CreateChain(wall_poly, 6, wall_poly[0], wall_poly[5]);
-  b2FixtureDef silo_fix;
-  silo_fix.shape = &siloShape_poly;
-  silo_fix.density = 0.0f;
-  silo_fix.friction = gs->silo.fric;
-  silo->CreateFixture(&silo_fix);
-  b2Vec2 wall_poly_2[6];
-  for (int i = 0; i < 6; ++i)
-    wall_poly_2[i] = wall_poly[5 - i];
-  b2ChainShape siloShape_poly_2;
-  siloShape_poly_2.CreateChain(wall_poly_2, 6, wall_poly_2[0], wall_poly_2[5]);
-  b2FixtureDef silo_fix_2;
-  silo_fix_2.shape = &siloShape_poly_2;
-  silo_fix_2.density = 0.0f;
-  silo_fix_2.friction = gs->silo.fric;
-  silo->CreateFixture(&silo_fix_2);
+  std::vector<b2Vec2> wall_poly;
+  if (gs->fondo_medicion) {
+    wall_poly = {b2Vec2(-gs->silo.R, 0.0f), b2Vec2(-gs->silo.R, gs->silo.H),
+                 b2Vec2(gs->silo.R, gs->silo.H), b2Vec2(gs->silo.R, 0.0f)};
+  } else {
+    wall_poly = {b2Vec2(-gs->silo.r, 0.0f), b2Vec2(-gs->silo.R, 0.0f),
+                 b2Vec2(-gs->silo.R, gs->silo.H), b2Vec2(gs->silo.R, gs->silo.H),
+                 b2Vec2(gs->silo.R, 0.0f), b2Vec2(gs->silo.r, 0.0f)};
+  }
+  siloD->nLados = static_cast<int>(wall_poly.size()) - 1;
+  const int n_wall = static_cast<int>(wall_poly.size());
+  // Las cadenas colisionan de un solo lado: se crean las dos orientaciones.
+  for (int side = 0; side < 2; ++side) {
+    std::vector<b2Vec2> verts(wall_poly);
+    if (side == 1) std::reverse(verts.begin(), verts.end());
+    b2ChainShape chain;
+    chain.CreateChain(verts.data(), n_wall, verts.front(), verts.back());
+    b2FixtureDef silo_fix;
+    silo_fix.shape = &chain;
+    silo_fix.density = 0.0f;
+    silo_fix.friction = gs->silo.fric;
+    silo_fix.restitution = gs->silo.rest;
+    silo->CreateFixture(&silo_fix);
+  }
   cout << "#\t- Silo creado." << endl;
 
-  // Creación de la caja para recojer granos no reinyectados
-  // b2BodyDef bdcaja;
-  // bdcaja.position.Set(0.0f, 0.0f);
-  // bdcaja.type = b2_staticBody;
-  // BodyData *cajaD = new BodyData;
-  // cajaD->isGrain = false;
-  // cajaD->nLados = 3;
-  // cajaD->gID = -200;
-  // bdcaja.userData.pointer = uintptr_t(cajaD);
-  // b2Body *caja = world->CreateBody(&bdcaja);
-  //
-  // b2ChainShape caja_poly;
-  // b2Vec2 caja_vertices[4];
-  // caja_vertices[0].Set(-gs->silo.R, -10.0f);
-  // caja_vertices[1].Set(-gs->silo.R, -10.0f - 1.2f * gs->silo.H);
-  // caja_vertices[2].Set(gs->silo.R, -10.0f - 1.2f * gs->silo.H);
-  // caja_vertices[3].Set(gs->silo.R, -10.0f);
-  // caja_poly.CreateChain(caja_vertices, 4, caja_vertices[0], caja_vertices[3]);
-  // b2FixtureDef caja_fix;
-  // caja_fix.shape = &caja_poly;
-  // caja_fix.density = 0.0f;
-  // caja_fix.friction = gs->silo.fric;
-  // caja->CreateFixture(&caja_fix);
-  // cout << "#\t- Caja fondo creada." << endl;
-
-  // Tapa
+  // Tapa del orificio (gID=-110) o fondo de medición (gID=-200)
   b2BodyDef tapa_piso;
   tapa_piso.position.Set(0.0f, 0.0f);
   tapa_piso.type = b2_staticBody;
   BodyData *tapaP = new BodyData;
   tapaP->isGrain = false;
   tapaP->nLados = 1;
-  tapaP->gID = -110;
+  tapaP->gID = gs->fondo_medicion ? -200 : -110;
   tapa_piso.userData.pointer = uintptr_t(tapaP);
   b2Body *tapa_P = world->CreateBody(&tapa_piso);
-  b2Vec2 v1(-gs->silo.r, 0.0f);
-  b2Vec2 v2(gs->silo.r, 0.0f);
+  const float x_tapa = static_cast<float>(gs->fondo_medicion ? gs->silo.R : gs->silo.r);
   b2EdgeShape tapa_p_f;
-  tapa_p_f.SetTwoSided(v1, v2);
+  tapa_p_f.SetTwoSided(b2Vec2(-x_tapa, 0.0f), b2Vec2(x_tapa, 0.0f));
   b2FixtureDef tapa_p_Fix;
   tapa_p_Fix.shape = &tapa_p_f;
   tapa_p_Fix.density = 0.0f;
   tapa_p_Fix.friction = gs->silo.fric;
+  tapa_p_Fix.restitution = gs->silo.rest;
   tapa_P->CreateFixture(&tapa_p_Fix);
-  cout << "#\t- Tapa oricifio creada." << endl;
+  if (gs->fondo_medicion)
+    cout << "#\t- Fondo de medición creado (gID=-200)." << endl;
+  else
+    cout << "#\t- Tapa del orificio creada (gID=-110)." << endl;
 
   // Generación de granos.
   float siloInf, siloSup, siloIzq, siloDer, x, y;
@@ -155,7 +141,7 @@ int main(int argc, char *argv[]) {
       b2BodyDef bd;
       bd.type = b2_dynamicBody;
       bd.allowSleep = true;
-      bd.bullet = true;
+      bd.bullet = gs->continuous_physics;
       bd.position.Set(x, y);
       bd.angle = rng->get_double(-b2_pi, b2_pi);
       bd.userData.pointer = reinterpret_cast<uintptr_t>(&gInfo[i][j]);
@@ -211,14 +197,9 @@ int main(int argc, char *argv[]) {
   bool saveFlux = (gs->fluxFreq > 0 ? true : false);
   bool savePF = (gs->pf_freq > 0 ? true : false);
   int n_frame = 0;
-  int n_frame_CF = 0; // contador de frames de fuerzas de contacto
-  int n_frame_VE = 0; // Contador de frames de velocidad y energías
-  int n_frame_ST = 0; // Contador de frames del tensor de estrés
-  size_t pf_0[gs->n_bin_perfiles]{0}; /*!< Histograma de acumulación de pf */
-  double vel_0[gs->n_bin_perfiles]{
-      0.0}; /*!< Histograma de acumulación de velocidades */
-  size_t bin_count[gs->n_bin_perfiles]{
-      0}; /*!< Histograma de conteo de bines no nulos */
+  std::vector<size_t> pf_0(gs->n_bin_perfiles, 0);  /*!< Histograma de pf */
+  std::vector<double> vel_0(gs->n_bin_perfiles, 0.0); /*!< Histograma de vel. */
+  std::vector<size_t> bin_count(gs->n_bin_perfiles, 0); /*!< Bines no nulos */
 
   // Preparo salida de flujo
   std::ofstream fileFlux;
@@ -230,6 +211,38 @@ int main(int argc, char *argv[]) {
       fileFlux << "totalType_" << i + 1 << " ";
     }
     fileFlux << " Total" << endl;
+  }
+  // Salida de fuerza sobre el fondo de medición
+  std::ofstream wallForceFile;
+  if (gs->fondo_medicion) {
+    string wf_filename =
+        "frames_" + gs->dirID + "/wall_force_" + gs->preFrameFile + ".dat";
+    wallForceFile.open(wf_filename.c_str());
+    wallForceFile << "# Fuerzas de contacto de granos sobre el fondo (gID=-200)"
+                  << endl;
+    wallForceFile << "# Fondo: borde horizontal de x=" << -gs->silo.R
+                  << " a x=" << gs->silo.R << " en y=0" << endl;
+    wallForceFile << provenance_header(gs, 0.0, 0, 0);
+    wallForceFile << "# t Fx Fy |F|" << endl;
+    wallForceFile << std::scientific << std::uppercase << std::setprecision(5);
+    cout << "# Archivo de fuerzas sobre fondo: " << wf_filename << endl;
+  }
+  // Salida del chequeo de balance de fuerzas
+  std::ofstream balanceFile;
+  if (gs->check_balance_freq) {
+    string bf = "frames_" + gs->dirID + "/balance_" + gs->preFrameFile + ".dat";
+    balanceFile.open(bf.c_str());
+    balanceFile << provenance_header(gs, 0.0, 0, 0);
+    balanceFile << "# Residuos relativos del balance de impulso por grano "
+                   "(sum|res| / sum|ref|).\n"
+                   "# *_flip: mismo cálculo con la tangente invertida "
+                   "(control: debe dar residuos grandes).\n"
+                   "# max_rel_*, n_bad: por grano, con la referencia acotada "
+                   "por abajo por el impulso de fricción con la base\n"
+                   "#   (dt mu_d g m; por r para el balance angular). n_bad: "
+                   "granos con residuo relativo > 1e-2.\n";
+    balanceFile << "# t nStep n_grains rel_lin max_rel_lin rel_ang max_rel_ang "
+                   "n_bad rel_lin_flip rel_ang_flip" << endl;
   }
   // Preparo salida de packing fraction
   std::ofstream filePF;
@@ -247,102 +260,75 @@ int main(int argc, char *argv[]) {
   }
   cout << "# Fin de resolución de overlaps." << endl;
 
-  // Deposición en el fondo
+  // Bucle de simulación. Mientras t < tBlock el orificio está tapado
+  // (deposición); luego se remueve la tapa y comienza la descarga. Con
+  // fondo_medicion el fondo nunca se remueve y no hay descarga.
   auto start_time = std::chrono::high_resolution_clock::now();
   cout << "# Fecha y hora de comienzo: " << get_local_time() << endl;
   cout << "# Iniciando deposición sobre fondo ..." << endl;
-  // int stepCount = 0;
-  while (t < gs->tBlock) {
-    // comprehensiveCheck(world, stepCount++);
-    auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
-    do_base_force(world, bvel, epsilon_v, gs->g);
-    do_rot_friction(world, gs);
-    if (t >= gs->t_register) {
-      if (saveFrm || saveVE || gs->save_contact_freq || gs->save_tensors_freq) {
-          ++n_frame;
-      }
-        // Si es necesario, guardo el frame para graficar
-        if (saveFrm && !(nStep % gs->saveFrameFreq)) {
-        saveFrame(world, ++n_frame, nStep, gs);
-        }
-        // Si es necesario, guardamos las fuerzas de contacto
-        if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
-        saveContacts(world, t, ++n_frame_CF, gs);
-        }
-        // Si es necesario, guardamos el tensor de estrés
-        /*if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {*/
-        /*  save_tensors(world, ++n_frame_ST, gs, t);*/
-        /*}*/
-        // Si es necesario, guardamos el velocidades y energías
-        if (gs->save_ve_freq && !(nStep % gs->save_ve_freq)) {
-        printVE(++n_frame_VE, t, world, gs);
-        }
-    }
-    world->Step(tStep, pIter, vIter);
-    world->ClearForces();
-    t += tStep;
-    nStep++;
-  }
-  cout << "# Fin tiempo de bloqueo del silo." << endl;
-
-  // Eliminación de la tapa
-  world->DestroyBody(tapa_P);
-  tapa_P = NULL;
-  cout << "# Tapa removida, inicio de la descarga." << endl;
-
-  // Bucle de simulación
-  // t = 0.0;   // <-- necesario si reiniciamos el tiempo al remover la tapa
   size_t n_reg = 0;
   double p_min = 1.0e8;
-  double p_max = -1.0e8; // Presiones mínima y maxima durante la simulación.
+  double p_max = -1.0e8; // Presiones mínima y máxima durante la simulación.
   bool stop_by_grains = (gs->maxGranosDesc > 0);
-  cout << "# Inicio de la simulación ... " << endl;
+  bool blocked = true;
+  const bool any_output = saveFrm || saveVE || gs->save_contact_freq ||
+                          gs->save_tensors_freq;
   while (t < gs->maxT &&
          !(stop_by_grains && nGranosDesc >= (unsigned int)gs->maxGranosDesc)) {
-    // comprehensiveCheck(world, stepCount++);
-    auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
-    do_base_force(world, bvel, epsilon_v, gs->g);
-    do_rot_friction(world, gs);
-    if (t >= gs->t_register) { // Guardamos a partir de t_register
-      // Si es necesario, guardo el frame para graficar
-      if (saveFrm || saveVE || gs->save_contact_freq || gs->save_tensors_freq) {
-          ++n_frame;
+    if (blocked && t >= gs->tBlock) {
+      blocked = false;
+      if (!gs->fondo_medicion) {
+        world->DestroyBody(tapa_P);
+        tapa_P = nullptr;
+        cout << "# Tapa removida, inicio de la descarga." << endl;
+      } else {
+        cout << "# Fin de la deposición; el fondo de medición permanece."
+             << endl;
       }
+    }
+    auto [bpos, bvel, bac] = exitacion_mm(t, gamma, w, gs);
+    do_base_force(world, bvel, bac, epsilon_v, gs->g, tStep);
+    if (t >= gs->t_register) { // Guardamos a partir de t_register
+      // n_frame cuenta pasos desde t_register: todos los archivos de un mismo
+      // instante comparten el mismo número de frame.
+      if (any_output) ++n_frame;
       if (saveFrm && !(nStep % gs->saveFrameFreq)) {
         saveFrame(world, n_frame, nStep, gs);
       }
-      // Si es necesario, guardamos el pack_fraction
       if (savePF && !(nStep % gs->pf_freq)) {
         save_pf(world, gs, t, filePF);
       }
-
-      // Si es necesario, guardamos el velocidades y energías
       if (saveVE && !(nStep % gs->save_ve_freq)) {
-        printVE(++n_frame_VE, t, world, gs);
+        printVE(n_frame, t, nStep, world, gs);
       }
-      // Si es necesario, guardamos los histos pf_0 y vel_0
       if (gs->freq_perfiles && !(nStep % gs->freq_perfiles)) {
-        update_pf_vx(world, vel_0, pf_0, bin_count, gs->n_bin_perfiles,
-                     gs->silo.r);
+        update_pf_vx(world, vel_0.data(), pf_0.data(), bin_count.data(),
+                     gs->n_bin_perfiles, gs->silo.r);
         n_reg++;
       }
-      // Si es necesario, guardamos las fuerzas de contacto
       if (gs->save_contact_freq && !(nStep % gs->save_contact_freq)) {
-        saveContacts(world, t, ++n_frame_CF, gs);
+        saveContacts(world, t, nStep, n_frame, gs);
       }
-      // Si es necesario, guardamos el tensor de estrés
       if (gs->save_tensors_freq && !(nStep % gs->save_tensors_freq)) {
-        save_tensors(world, ++n_frame_ST, gs, &p_min, &p_max, t);
+        save_tensors(world, n_frame, gs, &p_min, &p_max, t, nStep);
       }
     }
     // Cálculo de descarga y reinyección
-    deltaG = countDesc(world, sumaTipo, nStep, fileFlux, gs);
-    nGranosDesc += deltaG;
-    if (gs->reinyection)
-        do_reinyection(world, gs, true);
-    else
-        do_reinyection(world, gs, false);
+    if (!blocked && !gs->fondo_medicion) {
+      deltaG = countDesc(world, sumaTipo, nStep, fileFlux, gs);
+      nGranosDesc += deltaG;
+      do_reinyection(world, gs, gs->reinyection);
+    }
+    const bool check_now =
+        gs->check_balance_freq && !(nStep % gs->check_balance_freq);
+    if (check_now) record_pre_step(world);
     world->Step(tStep, pIter, vIter);
+    if (check_now) check_force_balance(world, gs, t, nStep, balanceFile);
+    if (gs->fondo_medicion) {
+      b2Vec2 wf = compute_wall_force(world, gs, -200);
+      wallForceFile << t << " " << wf.x << " " << wf.y << " " << wf.Length()
+                    << "\n";
+    }
     world->ClearForces();
     t += tStep;
     nStep++;
@@ -366,6 +352,8 @@ int main(int argc, char *argv[]) {
   }
   filePF.close();
   fileFlux.close();
+  wallForceFile.close();
+  balanceFile.close();
   cout << "# Simulación finalizada." << endl;
   auto end_time = std::chrono::high_resolution_clock::now();
   auto elapsed_time =

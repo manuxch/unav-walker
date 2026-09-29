@@ -62,7 +62,6 @@ struct Contenedor {
   double r;        /*!< Radio del orificio de salida del contenedor */
   double rest;     /*!< Coeficiente de restitución del contenedor */
   double fric;     /*!< Coeficiente de fricción del contenedor */
-  double at_rotac; /*!< Coeficiente de atenuación de velocidad angular */
   double frec;     /*!< Frecuencia de vibración de la base */
   double Gamma;    /*!< Amplitud de la excitación armónica reducida */
   double zero_tol; /*!< Tolerancia para comparación de velocidad con cero */
@@ -94,13 +93,20 @@ struct tipoGrano {
  * \brief Estructura que almacena datos asociados a cada grano.
  * */
 struct BodyData {
-  int tipo;      /*!< Tipo de grano (en el orden en que aparecen en el .in */
-  bool isGrain;  /*!< Variable lógica que identifica granos */
-  bool isIn;     /*!< Variable lógica que identifica granos dentro del siloº */
-  int gID;       /*!< Identificador del grano */
-  int nLados;    /*!< Número de lados del grano (1 -> disco) */
-  double fric_d; /*!< Fricción con la base, dinámica */
-  double fric_s; /*!< Fricción con la base, estática */
+  int tipo = 0;        /*!< Tipo de grano (en el orden en que aparecen en el .in */
+  bool isGrain = false; /*!< Variable lógica que identifica granos */
+  bool isIn = false;   /*!< Variable lógica que identifica granos dentro del silo */
+  int gID = 0;         /*!< Identificador del grano */
+  int nLados = 0;      /*!< Número de lados del grano (1 -> disco) */
+  double fric_d = 0.0; /*!< Fricción con la base, dinámica */
+  double fric_s = 0.0; /*!< Fricción con la base, estática */
+  // Estado auxiliar para el chequeo de balance de fuerzas (ver
+  // check_force_balance): fuerza y torque de la base aplicados y velocidades
+  // previas al Step.
+  b2Vec2 F_base = b2Vec2(0.0f, 0.0f);
+  float tau_base = 0.0f;
+  b2Vec2 v_prev = b2Vec2(0.0f, 0.0f);
+  float w_prev = 0.0f;
 };
 
 /*! \class GlobalSetup
@@ -110,54 +116,55 @@ struct BodyData {
 class GlobalSetup {
 public:
   // Parámetros de objetos del modelo Box2D
-  Contenedor silo;    /*!< Recinto de contención */
-  int noTipoGranos;   /*!< Cantidad de tipos de granos distintos en la
-                        simulación */
-  tipoGrano **granos; /*!< Array que contiene los distintos tipos de granos */
-
-  // Parámetros de la excitación externa
-  double ex_amp;  /*!< Amplitud de la excitación */
-  double ex_freq; /*!< Frecuencia de la excitación */
+  Contenedor silo{};  /*!< Recinto de contención */
+  int noTipoGranos = 0; /*!< Cantidad de tipos de granos distintos */
+  tipoGrano **granos = nullptr; /*!< Array con los distintos tipos de granos */
 
   // Parámetros de control de la simulación
-  double tStep;      /*!< Paso temporal de integración */
-  double tBlock;     /*!< Tiempo de simulación con salida bloqueada */
-  double maxT;       /*!< Límite temporal de la simulación - en períodos de
-                              la excitación */
-  int pIter;         /*!< Iteraciones para la satisfacción de restricciones de
-                       posición */
-  int vIter;         /*!< Iteraciones para la satisfacción de restricciones de
-                       velocidad */
-  bool reinyection; /*!< True si se realiza reinyección de granos por arriba */
-  double g;          /*!< Aceleración de la gravedad */
-  double t_register; /*!< Tiempo de inicio de registros */
-  int maxGranosDesc; /*!< Máx. número de granos descargados para detener la
-                       simulación. 0 o negativo = condición deshabilitada. */
+  double tStep = 0.0;      /*!< Paso temporal de integración */
+  double tBlock = 0.0;     /*!< Tiempo de simulación con salida bloqueada */
+  double maxT = 0.0;       /*!< Tiempo máximo de simulación */
+  int pIter = 0;           /*!< Iteraciones de restricciones de posición */
+  int vIter = 0;           /*!< Iteraciones de restricciones de velocidad */
+  bool reinyection = false; /*!< True si se reinyectan granos por arriba */
+  double g = 0.0;          /*!< Aceleración de la gravedad (carga normal sobre
+                              la base para la fricción de Karnopp) */
+  double t_register = 0.0; /*!< Tiempo de inicio de registros */
+  int maxGranosDesc = 0;   /*!< Máx. granos descargados para detener la
+                              simulación. 0 = condición deshabilitada. */
+  bool continuous_physics = false; /*!< True: detección continua de colisiones
+                                    (TOI) y granos "bullet". Los impulsos de
+                                    los subpasos TOI no quedan registrados en
+                                    los manifolds de contacto. */
+  bool fondo_medicion = false; /*!< True: silo cerrado con fondo de medición
+                                  (gID=-200), sin orificio ni descarga */
 
   // Parámetros de estadísticas y control
-  string dirID; /*!< Identificador del directorio de archivos de frames de modo
-                      que no se pisen. */
-  int saveFrameFreq;   /*!< Frecuencia de guardado de frames */
-  int fluxFreq;        /*!< Frecuencia de observación del flujo */
-  string fluxFile;     /*!< Prefijo del nombre del archivo de salida de flujo */
-  string preFrameFile; /*!< Prefijo del nombre del archivo de salida de
-                         frame/trayectoria */
-  uint32_t rnd_seed;   /*!< Semilla del generador de números aleatorios */
-  int pf_freq; /*!< Frecuencia de guardado del packing fraction en la salida */
-  string pf_file;     /*!< Archivo de guardado del pf en la salida */
-  int freq_perfiles;  /*!< Frecuencia de actualización de perfiles de pf y
-                        velocidad  en la salida */
-  int n_bin_perfiles; /*!< Cantidad de bines en los perfiles de pf y velocidad
-                      en la salida */
-  int save_ve_freq;   /*!< Frecuencia de guardado de velocidades y energías */
-  int save_contact_freq; /*!< Frecuencia de guardado de fuerzas de contacto */
-  int save_tensors_freq; /*!< Frecuencia de guardado de tensores de estrés */
+  string dirID;         /*!< Identificador del directorio de frames */
+  int saveFrameFreq = 0; /*!< Frecuencia de guardado de frames */
+  int fluxFreq = 0;      /*!< Frecuencia de observación del flujo */
+  string fluxFile;       /*!< Nombre del archivo de salida de flujo */
+  string preFrameFile;   /*!< Prefijo de los archivos de frames */
+  uint32_t rnd_seed = 0; /*!< Semilla del generador de números aleatorios */
+  int pf_freq = 0;       /*!< Frecuencia de guardado del packing fraction */
+  string pf_file = "pf_out.dat"; /*!< Archivo de guardado del pf */
+  int freq_perfiles = 0;  /*!< Frecuencia de actualización de perfiles pf-v */
+  int n_bin_perfiles = 1; /*!< Cantidad de bines en los perfiles pf-v */
+  int save_ve_freq = 0;   /*!< Frecuencia de guardado de velocidades */
+  int save_contact_freq = 0; /*!< Frecuencia de guardado de contactos */
+  int save_tensors_freq = 0; /*!< Frecuencia de guardado de tensores */
+  int check_balance_freq = 0; /*!< Frecuencia del chequeo de balance de
+                                 fuerzas (0 = deshabilitado) */
 
   // Parámetros de ROI (Region of Interest) para guardado de datos
-  bool save_roi_only;
-  double x_roi;
-  double y_min_roi;
-  double y_max_roi;
+  bool save_roi_only = false;
+  double x_roi = 0.0;
+  double y_min_roi = 0.0;
+  double y_max_roi = 0.0;
+
+  // Procedencia
+  string params_hash; /*!< Hash FNV-1a (hex) del contenido del archivo de
+                         parámetros */
 
   // Constructor & destructor
   GlobalSetup(string input);

@@ -16,6 +16,6 @@ double RNG::get_double(double min, double max) {
 bool RNG::flip(double p) {
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
     double x = distribution(generator);
-    return (x >= 0.0 ? true : false);
+    return x < p;
 }
 

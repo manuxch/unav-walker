@@ -9,7 +9,12 @@
  */
 
 #include "siloAux.hpp"
+#include <algorithm>
 #include <map>
+
+#ifndef GIT_HASH
+#define GIT_HASH "desconocido"
+#endif
 
 std::string int2str(int num) {
   std::ostringstream oss;
@@ -33,6 +38,55 @@ static bool inROI(b2Vec2 p, const GlobalSetup* gs) {
   if (p.x < -gs->x_roi || p.x > gs->x_roi) return false;
   if (p.y < gs->y_min_roi || p.y > gs->y_max_roi) return false;
   return true;
+}
+
+ContactPointForce contact_point_force(b2Contact *c, const b2WorldManifold &wm,
+                                      int i, double inv_dt) {
+  const b2ManifoldPoint &mp = c->GetManifold()->points[i];
+  ContactPointForce f;
+  f.point = wm.points[i];
+  f.normal = wm.normal;
+  f.tangent = b2Cross(wm.normal, 1.0f); // (n.y, -n.x), como b2ContactSolver
+  f.fn = mp.normalImpulse * inv_dt;
+  f.ft = mp.tangentImpulse * inv_dt;
+  f.fx = f.fn * f.normal.x + f.ft * f.tangent.x;
+  f.fy = f.fn * f.normal.y + f.ft * f.tangent.y;
+  return f;
+}
+
+void body_contact_wrench(b2Body *b, double inv_dt, b2Vec2 *F, double *tau) {
+  double fx = 0.0, fy = 0.0, tz = 0.0;
+  const b2Vec2 center = b->GetWorldCenter();
+  for (b2ContactEdge *ce = b->GetContactList(); ce; ce = ce->next) {
+    b2Contact *c = ce->contact;
+    if (!c->IsTouching()) continue;
+    b2WorldManifold wm;
+    c->GetWorldManifold(&wm);
+    double sgn = (c->GetFixtureB()->GetBody() == b) ? 1.0 : -1.0;
+    for (int i = 0; i < c->GetManifold()->pointCount; ++i) {
+      ContactPointForce cpf = contact_point_force(c, wm, i, inv_dt);
+      b2Vec2 l = cpf.point - center;
+      fx += sgn * cpf.fx;
+      fy += sgn * cpf.fy;
+      tz += sgn * (l.x * cpf.fy - l.y * cpf.fx);
+    }
+  }
+  *F = b2Vec2(static_cast<float>(fx), static_cast<float>(fy));
+  *tau = tz;
+}
+
+std::string provenance_header(const GlobalSetup *gs, double t, uint32_t nStep,
+                              int n_frame) {
+  const double omega = 2.0 * PI * gs->silo.frec;
+  double phase = std::fmod(omega * t, 2.0 * PI);
+  std::ostringstream oss;
+  oss << std::setprecision(10);
+  oss << "# nStep: " << nStep << " n_frame: " << n_frame << " t: " << t
+      << " dt: " << gs->tStep << " fase: " << phase
+      << " (w t mod 2pi, rad)\n";
+  oss << "# git: " << GIT_HASH << " params: " << gs->input_par_file
+      << " params_hash: " << gs->params_hash << "\n";
+  return oss.str();
 }
 
 void savePart(b2World *w, int file_id, const GlobalSetup *globalSetup) {
@@ -66,6 +120,8 @@ void saveFrame(b2World *w, int n_frame, int nStep,
   fileF << "# time: " << nStep * globalSetup->tStep << " ";
   fileF << "# r_out: " << globalSetup->silo.r << " ";
   fileF << endl;
+  fileF << provenance_header(globalSetup, nStep * globalSetup->tStep,
+                             static_cast<uint32_t>(nStep), n_frame);
   for (b2Body *bd = w->GetBodyList(); bd; bd = bd->GetNext()) {
     BodyData *infGr = (BodyData *)(bd->GetUserData()).pointer;
     // if (infGr->gID == -110 || infGr->gID == -120)
@@ -178,7 +234,7 @@ int countDesc(b2World *w, int *st, int paso, std::ofstream &fluxFile,
   return nGranos;
 }
 
-void printVE(const int frm_id, const float timeS, b2World *w,
+void printVE(const int frm_id, const double timeS, uint32_t nStep, b2World *w,
              const GlobalSetup *gs) {
   b2Vec2 pi, vi;
   float wi, mi, Ii, vim;
@@ -188,7 +244,8 @@ void printVE(const int frm_id, const float timeS, b2World *w,
   std::ofstream fileF;
   fileF.open(file_name.c_str());
   fileF << " ## sim_time: " << timeS << endl;
-  fileF << "# gID type x y vx vy w E_kin_lin E_kin_rot\n ";
+  fileF << provenance_header(gs, timeS, nStep, frm_id);
+  fileF << "# gID type x y vx vy w E_kin_lin E_kin_rot" << endl;
   for (b2Body *bi = w->GetBodyList(); bi; bi = bi->GetNext()) {
     BodyData *igi = (BodyData *)(bi->GetUserData()).pointer;
     if (!igi->isGrain) {
@@ -208,39 +265,49 @@ void printVE(const int frm_id, const float timeS, b2World *w,
   fileF.close();
 }
 
-void saveContacts(b2World *w, float ts, int file_id,
+void saveContacts(b2World *w, double t, uint32_t nStep, int n_frame,
                   const GlobalSetup *globalSetup) {
-  string file_name = "frames_" + globalSetup->dirID + "/fc_" + globalSetup->preFrameFile + "_" +
-                     int2str(file_id) + ".dat";
+  string file_name = "frames_" + globalSetup->dirID + "/fc_" +
+                     globalSetup->preFrameFile + "_" + int2str(n_frame) +
+                     ".dat";
   std::ofstream ff;
   ff.open(file_name.c_str());
-  ff << std::scientific << std::uppercase << std::setprecision(5);
-  ff << "# Time: " << ts << endl;
-  // Fn y Ft son fuerzas (impulso / tStep). nx ny: normal del contacto (de A a B).
-  // Tipo: GG = grano-grano, GW = grano-pared.
-  ff << "# gID_A gID_B cp.x cp.y Fn Ft nx ny n_pc tipo" << endl;
-  float norm, tang;
-  double inv_dt = 1.0 / globalSetup->tStep;
+  ff << "# Time: " << std::setprecision(10) << t << endl;
+  ff << provenance_header(globalSetup, t, nStep, n_frame);
+  ff << "# Fn, Ft: componentes normal y tangencial (impulso / dt) de la fuerza "
+        "sobre B.\n"
+        "# Fuerza sobre B = Fn (nx, ny) + Ft (ny, -nx); sobre A, la opuesta. "
+        "La normal apunta de A a B.\n"
+        "# (xA, yA), (xB, yB): centros de masa de A y B; para una pared se "
+        "escribe el punto de contacto.\n"
+        "# n_pc: puntos del manifold. tipo: GG grano-grano, GW grano-pared.\n";
+  ff << "# gID_A gID_B cp.x cp.y Fn Ft nx ny xA yA xB yB n_pc tipo" << endl;
+  ff << std::scientific << std::uppercase << std::setprecision(6);
+  const double inv_dt = 1.0 / globalSetup->tStep;
   for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
     if (!c->IsTouching())
       continue;
-    int numPoints = c->GetManifold()->pointCount;
-    b2WorldManifold worldManifold;
-    c->GetWorldManifold(&worldManifold);
     b2Body *bodyA = c->GetFixtureA()->GetBody();
     b2Body *bodyB = c->GetFixtureB()->GetBody();
     BodyData *bdgdA = (BodyData *)(bodyA->GetUserData()).pointer;
     BodyData *bdgdB = (BodyData *)(bodyB->GetUserData()).pointer;
+    // Se guardan todos los contactos de los granos cuyo centro está en el ROI
+    bool selA = bdgdA->isGrain && inROI(bodyA->GetPosition(), globalSetup);
+    bool selB = bdgdB->isGrain && inROI(bodyB->GetPosition(), globalSetup);
+    if (!selA && !selB) continue;
     const char *tipo = (bdgdA->isGrain && bdgdB->isGrain) ? "GG" : "GW";
+    int numPoints = c->GetManifold()->pointCount;
+    b2WorldManifold wm;
+    c->GetWorldManifold(&wm);
     for (int i = 0; i < numPoints; i++) {
-      if (!inROI(worldManifold.points[i], globalSetup)) continue;
-      norm = (c->GetManifold())->points[i].normalImpulse;
-      tang = (c->GetManifold())->points[i].tangentImpulse;
-      ff << bdgdA->gID << " " << bdgdB->gID << " "
-         << worldManifold.points[i].x << " " << worldManifold.points[i].y << " "
-         << norm * inv_dt << " " << tang * inv_dt << " "
-         << worldManifold.normal.x << " " << worldManifold.normal.y << " "
-         << "CP" << numPoints << " " << tipo << endl;
+      ContactPointForce cpf = contact_point_force(c, wm, i, inv_dt);
+      b2Vec2 cA = bdgdA->isGrain ? bodyA->GetWorldCenter() : cpf.point;
+      b2Vec2 cB = bdgdB->isGrain ? bodyB->GetWorldCenter() : cpf.point;
+      ff << bdgdA->gID << " " << bdgdB->gID << " " << cpf.point.x << " "
+         << cpf.point.y << " " << cpf.fn << " " << cpf.ft << " "
+         << cpf.normal.x << " " << cpf.normal.y << " " << cA.x << " " << cA.y
+         << " " << cB.x << " " << cB.y << " " << numPoints << " " << tipo
+         << "\n";
     }
   }
   ff << std::flush;
@@ -248,8 +315,8 @@ void saveContacts(b2World *w, float ts, int file_id,
 }
 
 b2Vec2 compute_wall_force(b2World *w, const GlobalSetup *gs, int wall_gID) {
-  b2Vec2 total(0.0f, 0.0f);
-  double inv_dt = 1.0 / gs->tStep;
+  double fx = 0.0, fy = 0.0;
+  const double inv_dt = 1.0 / gs->tStep;
   for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
     if (!c->IsTouching()) continue;
     b2Body *bodyA = c->GetFixtureA()->GetBody();
@@ -261,46 +328,51 @@ b2Vec2 compute_wall_force(b2World *w, const GlobalSetup *gs, int wall_gID) {
     if (!A_is_wall && !B_is_wall) continue;
     b2WorldManifold wm;
     c->GetWorldManifold(&wm);
-    // La normal apunta de bodyA a bodyB.
-    // Fuerza sobre bodyA = -ni*n - ti*t  (por cada punto de contacto)
-    // Fuerza sobre bodyB = +ni*n + ti*t
-    b2Vec2 n = wm.normal;
-    b2Vec2 tang(-n.y, n.x);
-    int np = c->GetManifold()->pointCount;
-    for (int i = 0; i < np; ++i) {
-      float ni = c->GetManifold()->points[i].normalImpulse * inv_dt;
-      float ti = c->GetManifold()->points[i].tangentImpulse * inv_dt;
-      if (A_is_wall) {
-        total.x -= ni * n.x + ti * tang.x;
-        total.y -= ni * n.y + ti * tang.y;
-      } else {
-        total.x += ni * n.x + ti * tang.x;
-        total.y += ni * n.y + ti * tang.y;
-      }
+    // contact_point_force da la fuerza sobre B; sobre A es la opuesta.
+    double sgn = A_is_wall ? -1.0 : 1.0;
+    for (int i = 0; i < c->GetManifold()->pointCount; ++i) {
+      ContactPointForce cpf = contact_point_force(c, wm, i, inv_dt);
+      fx += sgn * cpf.fx;
+      fy += sgn * cpf.fy;
     }
   }
-  return total;
+  return b2Vec2(static_cast<float>(fx), static_cast<float>(fy));
 }
 
-b2Vec2 karnopp(b2Vec2 v, double v_tol, double mu_s, double mu_d, double p) {
-  double v_norm = v.Length();
-  double fr_norm = 0.0f;
-  if (v_norm < v_tol) {
-    try {
-      fr_norm = mu_s * p / v_norm;
-    } catch (const ::std::overflow_error &e) {
-      std::cerr << "Error de overflow: " << e.what() << std::endl;
-    } catch (const ::std::domain_error &e) {
-      std::cerr << "Error de division por cero: " << e.what() << std::endl;
-    } catch (const std::exception &e) {
-      std::cerr << "Error desconocido: " << e.what() << endl;
-      exit(1);
+b2Vec2 karnopp(b2Vec2 v_rel, b2Vec2 F_ext, b2Vec2 a_base, double m, double dt,
+               double v_tol, double mu_s, double mu_d, double N) {
+  const double v_norm = v_rel.Length();
+  const double v_stick = std::max(v_tol, mu_d * N * dt / m);
+  if (v_norm < v_stick) {
+    // Adherencia: fuerza para que v_rel = 0 al final del paso
+    double fx = m * a_base.x - F_ext.x - m * v_rel.x / dt;
+    double fy = m * a_base.y - F_ext.y - m * v_rel.y / dt;
+    double f_norm = std::sqrt(fx * fx + fy * fy);
+    double f_max = mu_s * N;
+    if (f_norm > f_max) { // Ruptura: se satura en mu_s N
+      fx *= f_max / f_norm;
+      fy *= f_max / f_norm;
     }
-    fr_norm = 0.0f;
-  } else {
-    fr_norm = mu_d * p / v_norm;
+    return b2Vec2(static_cast<float>(fx), static_cast<float>(fy));
   }
-  return -fr_norm * v;
+  // Deslizamiento
+  double k = -mu_d * N / v_norm;
+  return b2Vec2(static_cast<float>(k * v_rel.x), static_cast<float>(k * v_rel.y));
+}
+
+double pivot_friction(double w, double tau_ext, double I, double R, double dt,
+                      double v_tol, double mu_s, double mu_d, double N) {
+  const double arm = 2.0 / 3.0 * R; // brazo efectivo con presión uniforme
+  const double tau_d = mu_d * N * arm;
+  const double w_stick = std::max(v_tol / R, tau_d * dt / I);
+  if (std::fabs(w) < w_stick) {
+    // Adherencia: torque para que w = 0 al final del paso
+    double tau = -tau_ext - I * w / dt;
+    double tau_max = mu_s * N * arm;
+    if (std::fabs(tau) > tau_max) tau = std::copysign(tau_max, tau);
+    return tau;
+  }
+  return -std::copysign(tau_d, w); // Deslizamiento
 }
 
 b2Vec2 smooth_coulomb(b2Vec2 v, double v_d, double mu_d, double p) {
@@ -357,41 +429,35 @@ Mov_Base exitacion_mm(double t, double gamma, double w, const GlobalSetup *gs) {
   return {y, vy, ay};
 }
 
-void do_base_force(b2World *w, double bvel, double epsilon_v, double g) {
-  double mu_ss, mu_dd, peso_grano;
+void do_base_force(b2World *w, double bvel, double bacc, double epsilon_v,
+                   double g, double dt) {
   BodyData *bdata;
-  b2Vec2 vel_movil, vrel, F_roce;
-  b2Vec2 base_vel_vec(0.0f, -bvel);
+  // La base se mueve en -y con la velocidad y aceleración de exitacion_mm.
+  const b2Vec2 base_vel_vec(0.0f, static_cast<float>(-bvel));
+  const b2Vec2 base_acc_vec(0.0f, static_cast<float>(-bacc));
+  const double inv_dt = 1.0 / dt;
   for (b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
     if (b->GetType() != b2_dynamicBody) {
       continue;
     }
-    vel_movil = b->GetLinearVelocity();
-    peso_grano = g * b->GetMass();
+    double m = b->GetMass();
+    double N = g * m;
     bdata = reinterpret_cast<BodyData *>(b->GetUserData().pointer);
-    mu_ss = bdata->fric_s;
-    mu_dd = bdata->fric_d;
-    vrel = vel_movil - base_vel_vec;
-    F_roce = karnopp(vrel, epsilon_v, mu_ss, mu_dd, peso_grano);
+    b2Vec2 vrel = b->GetLinearVelocity() - base_vel_vec;
+    // Resto de las fuerzas y torques sobre el grano: contactos del último Step
+    b2Vec2 F_ext;
+    double tau_ext;
+    body_contact_wrench(b, inv_dt, &F_ext, &tau_ext);
+    b2Vec2 F_roce = karnopp(vrel, F_ext, base_acc_vec, m, dt, epsilon_v,
+                            bdata->fric_s, bdata->fric_d, N);
+    double R = b->GetFixtureList()->GetShape()->m_radius;
+    double tau_roce = pivot_friction(b->GetAngularVelocity(), tau_ext,
+                                     b->GetInertia(), R, dt, epsilon_v,
+                                     bdata->fric_s, bdata->fric_d, N);
+    bdata->F_base = F_roce;
+    bdata->tau_base = static_cast<float>(tau_roce);
     b->ApplyForceToCenter(F_roce, true);
-  }
-  return;
-}
-
-void do_rot_friction(b2World *w, const GlobalSetup *gs) {
-  double fw = gs->silo.at_rotac;
-  double w_vel;
-  for (b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
-    if (b->GetType() != b2_dynamicBody) {
-      continue;
-    }
-    w_vel = b->GetAngularVelocity();
-    if (abs(w_vel) < gs->silo.zero_tol) {
-      /*b->SetAngularVelocity(0.0f);*/
-      continue;
-    } else {
-      b->SetAngularVelocity(fw * w_vel);
-    }
+    b->ApplyTorque(static_cast<float>(tau_roce), true);
   }
   return;
 }
@@ -422,33 +488,76 @@ void do_rot_friction(b2World *w, const GlobalSetup *gs) {
 //   return;
 // }
 
+namespace {
+// Detecta si un disco de prueba se superpone con algún fixture del mundo.
+class OverlapQuery : public b2QueryCallback {
+public:
+  b2CircleShape probe;
+  b2Transform xf;
+  const b2Body *self = nullptr;
+  bool hit = false;
+  bool ReportFixture(b2Fixture *f) override {
+    if (f->GetBody() == self) return true;
+    const b2Shape *s = f->GetShape();
+    for (int32 ch = 0; ch < s->GetChildCount(); ++ch) {
+      if (b2TestOverlap(&probe, 0, s, ch, xf, f->GetBody()->GetTransform())) {
+        hit = true;
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
+bool find_free_spot(b2World *w, const b2Body *self, float radius,
+                    const GlobalSetup *gs, b2Vec2 *pos) {
+  const int max_tries = 100;
+  const float gap = 1.02f; // pequeña separación para evitar contactos iniciales
+  for (int k = 0; k < max_tries; ++k) {
+    b2Vec2 p(static_cast<float>(rng->get_double(-0.9 * gs->silo.R, 0.9 * gs->silo.R)),
+             static_cast<float>(rng->get_double(0.75 * gs->silo.H, 0.95 * gs->silo.H)));
+    OverlapQuery q;
+    q.probe.m_radius = gap * radius;
+    q.xf.Set(p, 0.0f);
+    q.self = self;
+    b2AABB aabb;
+    aabb.lowerBound = p - b2Vec2(gap * radius, gap * radius);
+    aabb.upperBound = p + b2Vec2(gap * radius, gap * radius);
+    w->QueryAABB(&q, aabb);
+    if (!q.hit) {
+      *pos = p;
+      return true;
+    }
+  }
+  return false;
+}
+} // namespace
+
 void do_reinyection(b2World *w, GlobalSetup *gs, bool reinyect) {
   b2Vec2 pos;
   BodyData *infGr;
-  // double r_elim = -gs->silo.R;
   double r_elim = -10.0;
-  double x_new, y_new, angle;
-  
+  static unsigned long n_fail = 0;
+
   b2Body *b = w->GetBodyList();
   while (b) {
     // Guardar el siguiente cuerpo ANTES de cualquier posible eliminación
     b2Body *nextBody = b->GetNext();
-    
+
     if (b->GetType() != b2_dynamicBody) {
       b = nextBody;
       continue;
     }
-    
+
     infGr = (BodyData *)(b->GetUserData()).pointer;
     if (infGr->isIn) {
       b = nextBody;
       continue;
     }
-    
+
     pos = b->GetPosition();
     if (std::isnan(pos.x) || std::isnan(pos.y)) {
       cout << "ERROR: Grano " << infGr->gID << " tiene posición inválida (NaN)" << endl;
-      // Decidir qué hacer: eliminar o intentar recuperar
       w->DestroyBody(b);
       b = nextBody;
       continue;
@@ -458,23 +567,24 @@ void do_reinyection(b2World *w, GlobalSetup *gs, bool reinyect) {
       b = nextBody;
       continue;
     }
-    
+
     if (reinyect) {
-      angle = b->GetAngle();
-      x_new = rng->get_double(-0.9 * gs->silo.R, 0.9 * gs->silo.R);
-      y_new = rng->get_double(0.75 * gs->silo.H, 0.95 * gs->silo.H);
-      b2Vec2 new_pos(x_new, y_new);
-      b->SetTransform(new_pos, angle);
-      infGr->isIn = true;
+      b2Vec2 new_pos;
+      float radius = b->GetFixtureList()->GetShape()->m_radius;
+      if (find_free_spot(w, b, radius, gs, &new_pos)) {
+        b->SetTransform(new_pos, b->GetAngle());
+        b->SetLinearVelocity(b2Vec2(0.0f, 0.0f));
+        b->SetAngularVelocity(0.0f);
+        b->SetAwake(true);
+        infGr->isIn = true;
+      } else if (++n_fail % 1000 == 1) {
+        cout << "# AVISO: sin lugar libre para reinyectar (fallos acumulados: "
+             << n_fail << "); se reintenta en el paso siguiente." << endl;
+      }
     }
     else {
-        // Eliminar el cuerpo
-        // cout << "gID: " << infGr->gID << " isIn? " << infGr->isIn << endl;
-        // cout << "Elim! " << pos.x << " " << pos.y << endl;
         w->DestroyBody(b);
-        b = nullptr;  // Asignar nullptr para evitar referencia colgante
     }
-    // Avanzar al siguiente cuerpo que ya guardamos
     b = nextBody;
   }
   return;
@@ -572,13 +682,9 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
     x_sup = pos.x + tmp;
     i_inf = floor((x_inf + r_out) / delta_r);
     i_sup = floor((x_sup + r_out) / delta_r);
-    if ((i_inf < 0) || (i_sup >= n_bins)) {
-      cout << "ERROR: Fuera de límites en perfiles! " << endl;
-      cout << "i_inf: " << i_inf << " " << x_inf << endl;
-      cout << "i_sup: " << i_sup << " " << x_sup << endl;
-      cout << pos.x << " " << pos.y << endl;
-      exit(1);
-    }
+    // Un grano superpuesto con el borde del orificio puede exceder el rango
+    i_inf = std::max(i_inf, 0);
+    i_sup = std::min(i_sup, n_bins - 1);
     // if (i_sup > 20) {
     // cout << "i_sup: " << i_sup << " " << x_sup << endl;
     // cout << pos.x << " " << pos.y << endl;
@@ -596,99 +702,178 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
 }
 
 void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
-                  double *pmin, double *pmax, double tSim) {
+                  double *pmin, double *pmax, double tSim, uint32_t nStep) {
   string file_name = "frames_" + globalSetup->dirID + "/" +
                      globalSetup->preFrameFile + "_" + int2str(n_frame) +
                      ".sxy";
   std::ofstream fout;
   fout.open(file_name.c_str());
-  fout << "# tSim: " << tSim << endl;
-  fout << "# gID stres.xx stres.xy stres.yx stres.yy " << endl;
-  b2Body *body_A, *body_B;
-  BodyData *bd_data_A, *bd_data_B;
-  // unsigned int n_grains = 0;
-  b2Vec2 l_A, l_B, force_N, force_T, force, c_point;
-  float normal_impulse, tangential_impulse, area_a, area_b;
-  // for (b2Body *body = w->GetBodyList(); body; body = body->GetNext()) {
-  //   if (body->GetType() != b2_dynamicBody) {
-  //     continue;
-  //   }
-  //   bd_data_A = (BodyData *)(body->GetUserData()).pointer;
-  //   if (bd_data_A->isGrain)
-  //     n_grains++;
-  // }
-  // std::vector<Tensor> stress_tensors;
-  // stress_tensors.resize(n_grains, {0, 0, 0, 0});
-  std::map<uint32_t, Tensor> stress_tensors;
-  
-  // Recorrer cuerpos para inicializar
-    for (b2Body *body = w->GetBodyList(); body; body = body->GetNext()) {
-        if (body->GetType() != b2_dynamicBody) continue;
-        BodyData *bd = (BodyData *)(body->GetUserData()).pointer;
-        if (bd->isGrain) {
-            if (!inROI(body->GetPosition(), globalSetup)) continue;
-            stress_tensors[bd->gID] = {0, 0, 0, 0};  // Inicializa en cero
-        }
-    }
-  for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
-    if (c->IsTouching()) {
-      b2WorldManifold world_manifold;
-      c->GetWorldManifold(&world_manifold);
-      body_A = c->GetFixtureA()->GetBody();
-      body_B = c->GetFixtureB()->GetBody();
-      bd_data_A = (BodyData *)(body_A->GetUserData()).pointer;
-      bd_data_B = (BodyData *)(body_B->GetUserData()).pointer;
-      area_a = get_body_area(body_A);
-      area_b = get_body_area(body_B);
+  fout << "# tSim: " << std::setprecision(10) << tSim << endl;
+  fout << provenance_header(globalSetup, tSim, nStep, n_frame);
+  fout << "# s_ij = (1/A_grano) sum_c f_i l_j, f: fuerza de contacto sobre el "
+          "grano, l: punto de contacto - centro. Compresión < 0.\n"
+          "# sn_ij: parte debida solo a las fuerzas normales (la tangencial es "
+          "s - sn). Incluye contactos con paredes.\n"
+          "# z_gg, z_gw: puntos de contacto activos (Fn > 0) grano-grano y "
+          "grano-pared. m: masa, w: velocidad angular.\n";
+  fout << "# gID sxx sxy syx syy snxx snxy snyx snyy x y r m vx vy w z_gg z_gw"
+       << endl;
 
-      for (int32 i = 0; i < c->GetManifold()->pointCount; ++i) {
-        c_point = world_manifold.points[i];
-        normal_impulse = c->GetManifold()->points[i].normalImpulse;
-        tangential_impulse = c->GetManifold()->points[i].tangentImpulse;
-        // Normal apunta del body_A al body_B
-        force_N = -normal_impulse * world_manifold.normal;
-        force_T = -tangential_impulse *
-                  b2Vec2(-world_manifold.normal.y, world_manifold.normal.x);
-        force = (1.0 / globalSetup->tStep) *
-                (force_N + force_T); // impulso -> fuerza
-        l_A = c_point - body_A->GetWorldCenter();
-        l_B = c_point - body_B->GetWorldCenter();
-        if (bd_data_A->isGrain) {
-            auto it = stress_tensors.find(bd_data_A->gID);
-            if (it != stress_tensors.end()) {
-                Tensor& tensor_A = it->second;
-                tensor_A.xx += force.x * l_A.x / area_a;
-                tensor_A.xy += force.x * l_A.y / area_a;
-                tensor_A.yx += force.y * l_A.x / area_a;
-                tensor_A.yy += force.y * l_A.y / area_a;
-            }
-        }
-        if (bd_data_B->isGrain) {
-            auto it = stress_tensors.find(bd_data_B->gID);
-            if (it != stress_tensors.end()) {
-                Tensor& tensor_B = it->second;
-                tensor_B.xx -= force.x * l_B.x / area_b;
-                tensor_B.xy -= force.x * l_B.y / area_b;
-                tensor_B.yx -= force.y * l_B.x / area_b;
-                tensor_B.yy -= force.y * l_B.y / area_b;
-            }
-        }
-      }
+  struct GrainStress {
+    b2Body *body = nullptr;
+    double area = 1.0;
+    double s[4] = {0.0, 0.0, 0.0, 0.0};  // xx, xy, yx, yy
+    double sn[4] = {0.0, 0.0, 0.0, 0.0}; // parte normal
+    int z_gg = 0, z_gw = 0;
+  };
+  std::map<int, GrainStress> stress;
+  for (b2Body *body = w->GetBodyList(); body; body = body->GetNext()) {
+    if (body->GetType() != b2_dynamicBody) continue;
+    BodyData *bd = (BodyData *)(body->GetUserData()).pointer;
+    if (!bd->isGrain || !inROI(body->GetPosition(), globalSetup)) continue;
+    GrainStress gsr;
+    gsr.body = body;
+    gsr.area = get_body_area(body);
+    stress[bd->gID] = gsr;
+  }
+
+  const double inv_dt = 1.0 / globalSetup->tStep;
+  auto add = [&](b2Body *body, BodyData *bd, const ContactPointForce &cpf,
+                 double sgn, bool with_wall) {
+    if (!bd->isGrain) return;
+    auto it = stress.find(bd->gID);
+    if (it == stress.end()) return;
+    GrainStress &g = it->second;
+    b2Vec2 l = cpf.point - body->GetWorldCenter();
+    double fx = sgn * cpf.fx, fy = sgn * cpf.fy;
+    double fnx = sgn * cpf.fn * cpf.normal.x, fny = sgn * cpf.fn * cpf.normal.y;
+    g.s[0] += fx * l.x / g.area;
+    g.s[1] += fx * l.y / g.area;
+    g.s[2] += fy * l.x / g.area;
+    g.s[3] += fy * l.y / g.area;
+    g.sn[0] += fnx * l.x / g.area;
+    g.sn[1] += fnx * l.y / g.area;
+    g.sn[2] += fny * l.x / g.area;
+    g.sn[3] += fny * l.y / g.area;
+    if (cpf.fn > 0.0) {
+      if (with_wall) ++g.z_gw;
+      else ++g.z_gg;
+    }
+  };
+  for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
+    if (!c->IsTouching()) continue;
+    b2WorldManifold wm;
+    c->GetWorldManifold(&wm);
+    b2Body *body_A = c->GetFixtureA()->GetBody();
+    b2Body *body_B = c->GetFixtureB()->GetBody();
+    BodyData *bd_A = (BodyData *)(body_A->GetUserData()).pointer;
+    BodyData *bd_B = (BodyData *)(body_B->GetUserData()).pointer;
+    bool with_wall = !(bd_A->isGrain && bd_B->isGrain);
+    for (int32 i = 0; i < c->GetManifold()->pointCount; ++i) {
+      ContactPointForce cpf = contact_point_force(c, wm, i, inv_dt);
+      add(body_A, bd_A, cpf, -1.0, with_wall); // sobre A: -F
+      add(body_B, bd_B, cpf, 1.0, with_wall);  // sobre B: +F
     }
   }
-  // Escribir resultados (solo granos que tienen contactos)
-  double pressure;
-  for (const auto& [gID, tensor] : stress_tensors) {
-    fout << gID << " " << tensor.xx << " " << tensor.xy
-         << " " << tensor.yx << " " << tensor.yy << " " << endl;
-    
-    pressure = -0.5 * (tensor.xx + tensor.yy);
+
+  fout << std::scientific << std::setprecision(6);
+  for (const auto &[gID, g] : stress) {
+    b2Vec2 p = g.body->GetWorldCenter();
+    b2Vec2 v = g.body->GetLinearVelocity();
+    float r = g.body->GetFixtureList()->GetShape()->m_radius;
+    fout << gID;
+    for (double x : g.s) fout << " " << x;
+    for (double x : g.sn) fout << " " << x;
+    fout << " " << p.x << " " << p.y << " " << r << " " << g.body->GetMass()
+         << " " << v.x << " " << v.y << " " << g.body->GetAngularVelocity()
+         << " " << g.z_gg << " " << g.z_gw << "\n";
+    double pressure = -0.5 * (g.s[0] + g.s[3]);
     if (pressure < *pmin) *pmin = pressure;
     if (pressure > *pmax) *pmax = pressure;
   }
-  
   fout << std::flush;
   fout.close();
+}
+
+void record_pre_step(b2World *w) {
+  for (b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
+    if (b->GetType() != b2_dynamicBody) continue;
+    BodyData *bd = (BodyData *)(b->GetUserData()).pointer;
+    bd->v_prev = b->GetLinearVelocity();
+    bd->w_prev = b->GetAngularVelocity();
+  }
+}
+
+void check_force_balance(b2World *w, const GlobalSetup *gs, double t,
+                         uint32_t nStep, std::ofstream &fout) {
+  const double dt = gs->tStep;
+  // Acumuladores: [0] tangente de Box2D, [1] tangente invertida (control)
+  double res_lin[2] = {0, 0}, ref_lin[2] = {0, 0};
+  double res_ang[2] = {0, 0}, ref_ang[2] = {0, 0};
+  double max_rel_lin = 0.0, max_rel_ang = 0.0;
+  int n_grains = 0, n_bad = 0;
+  for (b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
+    if (b->GetType() != b2_dynamicBody) continue;
+    BodyData *bd = (BodyData *)(b->GetUserData()).pointer;
+    if (!bd->isGrain) continue;
+    const double m = b->GetMass();
+    const double I = b->GetInertia();
+    const b2Vec2 center = b->GetWorldCenter();
+    const b2Vec2 dv = b->GetLinearVelocity() - bd->v_prev;
+    const double dw = b->GetAngularVelocity() - bd->w_prev;
+    for (int k = 0; k < 2; ++k) {
+      const double tsgn = (k == 0) ? 1.0 : -1.0;
+      double Jx = 0.0, Jy = 0.0, Lz = 0.0, sumJ = 0.0, sumL = 0.0;
+      for (b2ContactEdge *ce = b->GetContactList(); ce; ce = ce->next) {
+        b2Contact *c = ce->contact;
+        if (!c->IsTouching()) continue;
+        b2WorldManifold wm;
+        c->GetWorldManifold(&wm);
+        double sgn = (c->GetFixtureB()->GetBody() == b) ? 1.0 : -1.0;
+        for (int i = 0; i < c->GetManifold()->pointCount; ++i) {
+          ContactPointForce cpf = contact_point_force(c, wm, i, 1.0);
+          double jx = sgn * (cpf.fn * cpf.normal.x + tsgn * cpf.ft * cpf.tangent.x);
+          double jy = sgn * (cpf.fn * cpf.normal.y + tsgn * cpf.ft * cpf.tangent.y);
+          b2Vec2 l = cpf.point - center;
+          double lz = l.x * jy - l.y * jx;
+          Jx += jx;
+          Jy += jy;
+          Lz += lz;
+          sumJ += std::sqrt(jx * jx + jy * jy);
+          sumL += std::fabs(lz);
+        }
+      }
+      double rx = m * dv.x - dt * bd->F_base.x - Jx;
+      double ry = m * dv.y - dt * bd->F_base.y - Jy;
+      double rl = std::sqrt(rx * rx + ry * ry);
+      double refl = m * dv.Length() + dt * bd->F_base.Length() + sumJ;
+      double ra = std::fabs(I * dw - dt * bd->tau_base - Lz);
+      double refa = std::fabs(I * dw) + dt * std::fabs(bd->tau_base) + sumL;
+      res_lin[k] += rl;
+      ref_lin[k] += refl;
+      res_ang[k] += ra;
+      ref_ang[k] += refa;
+      if (k == 0) {
+        // Piso de la referencia: impulso típico de la fricción con la base
+        // (evita residuos relativos espurios en granos casi sin fuerzas).
+        const double r = b->GetFixtureList()->GetShape()->m_radius;
+        const double j0 = dt * bd->fric_d * gs->g * m;
+        double rel_l = rl / std::max(refl, j0);
+        double rel_a = ra / std::max(refa, r * j0);
+        max_rel_lin = std::max(max_rel_lin, rel_l);
+        max_rel_ang = std::max(max_rel_ang, rel_a);
+        if (rel_l > 1e-2 || rel_a > 1e-2) ++n_bad;
+      }
+    }
+    ++n_grains;
+  }
+  auto ratio = [](double a, double b) { return (b > 0) ? a / b : 0.0; };
+  fout << std::setprecision(10) << t << " " << nStep << " " << n_grains
+       << std::scientific << std::setprecision(4) << " "
+       << ratio(res_lin[0], ref_lin[0]) << " " << max_rel_lin << " "
+       << ratio(res_ang[0], ref_ang[0]) << " " << max_rel_ang << " " << n_bad
+       << " " << ratio(res_lin[1], ref_lin[1]) << " "
+       << ratio(res_ang[1], ref_ang[1]) << std::defaultfloat << "\n";
 }
 
 float get_body_area(b2Body *body) {

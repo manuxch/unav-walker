@@ -30,6 +30,55 @@ struct Tensor {
   float xx, xy, yx, yy;
 };
 
+/*! \struct ContactPointForce
+ * \brief Fuerza en un punto de contacto, en la convención de Box2D.
+ *
+ * La normal n apunta del cuerpo A al cuerpo B y la tangente es
+ * t = b2Cross(n, 1) = (n.y, -n.x), la misma que usa b2ContactSolver.
+ * La fuerza sobre B es F = fn * n + ft * t; sobre A es -F.
+ * */
+struct ContactPointForce {
+  b2Vec2 point;   /*!< Punto de contacto (coordenadas del mundo) */
+  b2Vec2 normal;  /*!< Normal unitaria, de A hacia B */
+  b2Vec2 tangent; /*!< Tangente unitaria, (n.y, -n.x) */
+  double fn;      /*!< Componente normal (impulso normal * inv_dt) */
+  double ft;      /*!< Componente tangencial (impulso tangencial * inv_dt) */
+  double fx;      /*!< Componente x de la fuerza sobre B */
+  double fy;      /*!< Componente y de la fuerza sobre B */
+};
+
+/*! \fn contact_point_force
+ * \brief Fuerza sobre el cuerpo B en el punto i de un contacto. Con
+ * inv_dt = 1 devuelve impulsos en lugar de fuerzas.
+ * \param b2Contact* : contacto
+ * \param b2WorldManifold& : manifold en coordenadas del mundo del contacto
+ * \param int : índice del punto del manifold
+ * \param double : inv_dt inverso del paso temporal
+ * \return ContactPointForce
+ * */
+ContactPointForce contact_point_force(b2Contact *c, const b2WorldManifold &wm,
+                                      int i, double inv_dt);
+
+/*! \fn body_contact_wrench
+ * \brief Fuerza y torque netos de contacto sobre un cuerpo (torque respecto
+ * de su centro de masa), resueltos en el último Step.
+ * \param b2Body* : cuerpo
+ * \param double : inv_dt inverso del paso temporal
+ * \param b2Vec2* : fuerza neta (salida)
+ * \param double* : torque neto (salida)
+ * \return void
+ * */
+void body_contact_wrench(b2Body *b, double inv_dt, b2Vec2 *F, double *tau);
+
+/*! \fn provenance_header
+ * \brief Líneas de comentario con la procedencia de un archivo de salida:
+ * paso, tiempo, fase de la excitación, dt, versión del código y hash del
+ * archivo de parámetros.
+ * \return std::string (líneas que empiezan con '#', terminadas en '\n')
+ * */
+std::string provenance_header(const GlobalSetup *gs, double t, uint32_t nStep,
+                              int n_frame);
+
 /*! Convierte un número en una string de ancho fijo
  * y rellena de ceros, para enumerar frames secuencialmente
  * \param int num
@@ -81,29 +130,45 @@ int countDesc(b2World *w, int *st, int paso, std::ofstream &fluxFile,
  * \param GlobalSetup* parámetros globales
  * \return void
  */
-void printVE(const int frm_id, const float timeS, b2World *w,
+void printVE(const int frm_id, const double timeS, uint32_t nStep, b2World *w,
              const GlobalSetup *gs);
 
 /*! \fn saveContacts
- * \brief Guarda las fuerzas de contacto normal y tangencial
+ * \brief Guarda las fuerzas de contacto normal y tangencial, con la normal y
+ * los centros de los cuerpos en contacto. Con save_roi_only se guardan todos
+ * los contactos de los granos cuyo centro está en el ROI.
  * \param b2World* : mundo
- * \param float : time step
- * \param int : file ID
+ * \param double : tiempo de simulación
+ * \param uint32_t : paso de simulación
+ * \param int : identificador de frame (nombre de archivo)
  * \param GlobalSetup* parámetros globales
  * */
-void saveContacts(b2World *w, float ts, int file_id,
+void saveContacts(b2World *w, double t, uint32_t nStep, int n_frame,
                   const GlobalSetup *globalSetup);
 
 /*! \fn karnopp
- * \brief Devuelve el modelo de fricción de Karnopp como fuerza de contacto.
- * \param b2Vec2 : v - velocidad relativa
+ * \brief Fricción grano-base con el modelo de Karnopp.
+ *
+ * Adherencia: si |v_rel| < v_stick, la fuerza es la necesaria para que el
+ * grano se mueva con la base al final del paso,
+ *   F_stick = m a_base - F_ext - m v_rel / dt,
+ * limitada en módulo a mu_s N. Deslizamiento: F = -mu_d N v_rel / |v_rel|.
+ * La banda de adherencia es v_stick = max(v_tol, mu_d N dt / m): en un paso,
+ * la fricción dinámica cambia la velocidad en mu_d N dt / m, así que una banda
+ * más angosta nunca se alcanzaría y el grano oscilaría alrededor de v_rel = 0.
+ * \param b2Vec2 : v_rel - velocidad relativa grano-base
+ * \param b2Vec2 : F_ext - resto de las fuerzas sobre el grano (contactos)
+ * \param b2Vec2 : a_base - aceleración de la base
+ * \param double : m - masa del grano
+ * \param double : dt - paso temporal
  * \param double : v_tol - umbral de velocidad para fricción estática
  * \param double : mu_s - coeficiente de fricción estática
  * \param double : mu_d - coeficiente de fricción dinámica (o cinética)
- * \param double : p - peso del cuerpo apoyado sobre la superficie
- * \return b2Vec2 : fuerza de fricción de contacto
+ * \param double : N - carga normal sobre la base (m g)
+ * \return b2Vec2 : fuerza de fricción de la base sobre el grano
  * */
-b2Vec2 karnopp(b2Vec2 v, double v_tol, double mu_s, double mu_d, double p);
+b2Vec2 karnopp(b2Vec2 v_rel, b2Vec2 F_ext, b2Vec2 a_base, double m, double dt,
+               double v_tol, double mu_s, double mu_d, double N);
 
 /*! \fn smooth_coulomb
  * \brief Devuelve el modelo de fricción de Smooth Coulomb como fuerza de
@@ -139,26 +204,50 @@ b2Vec2 smooth_coulomb_2(b2Vec2 v, double v_d, double v_s, double mu_d,
  * */
 Mov_Base exitacion_mm(double t, double gamma, double w, const GlobalSetup *gs);
 
-/*! \fn do_base_force
- * \brief Función que aplica la fuerza de fricción de la base sobre cada grano.
- * \param b2World* : w mundo
- * \param double : bvel - velocidad de la base (en x)
- * \param double : epsilon_v - velocidad umbral para el modelo de Karnopp (en y)
- * \param GlobalSetup* : gs parámetros de simulación
- * \return velocidad
+/*! \fn pivot_friction
+ * \brief Torque de fricción de pivoteo de un disco apoyado sobre la base.
+ *
+ * Con presión de contacto uniforme sobre la cara del disco de radio R, el
+ * torque de Coulomb que se opone al giro es (2/3) mu N R. Como en karnopp:
+ * adherencia si |w| < w_stick, con el torque necesario para que w = 0 al
+ * final del paso, tau = -tau_ext - I w / dt, limitado a (2/3) mu_s N R;
+ * deslizamiento: tau = -(2/3) mu_d N R sign(w). La banda de adherencia es
+ * w_stick = max(v_tol / R, (2/3) mu_d N R dt / I).
+ * La base no rota, así que w es la velocidad angular relativa.
+ * \param double : w - velocidad angular del grano
+ * \param double : tau_ext - resto de los torques (contactos)
+ * \param double : I - momento de inercia respecto del centro
+ * \param double : R - radio del disco
+ * \param double : dt - paso temporal
+ * \param double : v_tol - umbral de velocidad (del borde, w R)
+ * \param double : mu_s - coeficiente de fricción estática
+ * \param double : mu_d - coeficiente de fricción dinámica
+ * \param double : N - carga normal sobre la base (m g)
+ * \return double : torque de fricción de la base sobre el grano
  * */
-void do_base_force(b2World *w, double bvel, double epsilon_v, double g);
+double pivot_friction(double w, double tau_ext, double I, double R, double dt,
+                      double v_tol, double mu_s, double mu_d, double N);
 
-/*! \fn do_rot_friction
- * \brief Función que aplica una atenuación a la velocidad angular.
+/*! \fn do_base_force
+ * \brief Función que aplica la fricción de la base sobre cada grano: fuerza
+ * (karnopp) y torque de pivoteo (pivot_friction). La fuerza y el torque
+ * aplicados quedan guardados en BodyData::F_base y BodyData::tau_base.
  * \param b2World* : w mundo
- * \param GlobalSetup* : gs parámetros de simulación
+ * \param double : bvel - velocidad de la base (exitacion_mm)
+ * \param double : bacc - aceleración de la base (exitacion_mm)
+ * \param double : epsilon_v - velocidad umbral para el modelo de Karnopp
+ * \param double : g - aceleración de la gravedad (carga normal)
+ * \param double : dt - paso temporal
  * \return void
  * */
-void do_rot_friction(b2World *w, const GlobalSetup *gs);
+void do_base_force(b2World *w, double bvel, double bacc, double epsilon_v,
+                   double g, double dt);
+
 
 /*! \fn do_reinyection
- * \brief Función que reinyecta los granos que salieron del silo.
+ * \brief Función que reinyecta los granos que salieron del silo, en una
+ * posición al azar sin superposición con otros cuerpos y con velocidad nula.
+ * Si no encuentra lugar, reintenta en el paso siguiente.
  * \param b2World* : w mundo
  * \param GlobalSetup* : gs parámetros de simulación
  * \param bool : reinyect Reinyecta si true, elimina si false
@@ -201,17 +290,22 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
                   int n_bins, double r_out);
 
 /*! \fn save_tensors
- * \brief Función que guarda los tensores fabric y stress de cada grano.
+ * \brief Guarda el tensor de estrés de contacto de cada grano,
+ *   sigma_ij = (1 / A_grano) sum_c f_i l_j,
+ * con f la fuerza sobre el grano y l = punto de contacto - centro del grano,
+ * junto con la parte debida solo a las fuerzas normales, la posición, la
+ * velocidad y el número de contactos activos.
  * \param b2World* : w mundo
- * \param int : frm_id identificador de frame para nombre de archivo
+ * \param int : n_frame identificador de frame para nombre de archivo
  * \param GlobalSetup* : gs parámetros de la simulación
  * \param double* : pmin mínima presión del frame
  * \param double* : pmax máxima presión del frame
  * \param double tSim : tiempo de simulación
+ * \param uint32_t nStep : paso de simulación
  * \return void
  * */
 void save_tensors(b2World *w, int n_frame, const GlobalSetup *globalSetup,
-                  double *pmin, double *pmax, double tSim);
+                  double *pmin, double *pmax, double tSim, uint32_t nStep);
 
 
 /*! \fn get_body_area
@@ -238,3 +332,29 @@ std::string get_local_time();
  * \return b2Vec2 : fuerza total (Fx, Fy) en unidades de fuerza
  * */
 b2Vec2 compute_wall_force(b2World *w, const GlobalSetup *gs, int wall_gID);
+
+/*! \fn record_pre_step
+ * \brief Guarda en BodyData la velocidad lineal y angular de cada grano
+ * justo antes del Step (para check_force_balance).
+ * \param b2World* : w mundo
+ * \return void
+ * */
+void record_pre_step(b2World *w);
+
+/*! \fn check_force_balance
+ * \brief Verifica, después del Step, el balance de impulso lineal y angular
+ * de cada grano:
+ *   m (v - v_prev) = dt F_base + sum_c J_c,
+ *   I (w - w_prev) = dt tau_base + sum_c l_c x J_c,
+ * con J_c los impulsos de contacto reconstruidos con contact_point_force.
+ * Escribe los residuos relativos y, como control, los que se obtienen con
+ * la tangente invertida (-t).
+ * \param b2World* : w mundo
+ * \param GlobalSetup* : gs parámetros de la simulación
+ * \param double : t tiempo al inicio del Step
+ * \param uint32_t : nStep paso de simulación
+ * \param ofstream& : archivo de salida
+ * \return void
+ * */
+void check_force_balance(b2World *w, const GlobalSetup *gs, double t,
+                         uint32_t nStep, std::ofstream &fout);

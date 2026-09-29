@@ -13,7 +13,7 @@ rand_seed: 1729
 # [base_silo]: ancho de la silo (dirección x=
 # [friccion_silo]: coeficiente de fricción de la silo
 # [restitucion_silo]: coeficiente de restitución del silo
-# [atenuacion_rotacional]: coeficiente de atenuación de la velocidad de rotación de los granos
+# La rotación de los granos se amortigua por fricción de pivoteo con la base (fric_b_s, fric_b_d).
 #   Control de la excitación
 # [Amplitud_exitacion]: amplitud de la excitación armónica
 # [Frecuencia_exitacion]: frecuencia de la excitación armónica (Hz)
@@ -24,7 +24,7 @@ altura_silo: 40
 radio_silo: 7
 radio_out_silo: __rOut__
 restitucion_silo: 0.1
-atenuacion_rotacional: 0.95
+friccion_silo: 0.16  // = fricción grano-grano
 Amplitud_exitacion_gamma: 1.0
 Frecuencia_exitacion: 1.10656667
 Cero_tol: 0.0001  
@@ -62,9 +62,17 @@ noTipoGranos: 1
 timeStep: 0.005 
 tMax: 5000.0
 tBlock: 500.0
+t_Register: 4990.96  // tMax - 10 T, T = 1/1.10656667
 pIter: 30
 vIter: 30
 g: 1.0
+do_reinyection: T
+fondo_medicion: F
+# [continuous_physics]: (opcional, por defecto F) T = detección continua de colisiones (TOI) y granos
+#     "bullet". Los impulsos de los subpasos TOI no quedan registrados en los
+#     contactos, así que las fuerzas guardadas quedan incompletas. Con
+#     dt = 0.005 el desplazamiento por paso es ~1e-3 << radio: no hace falta.
+continuous_physics: F
 
 # Parámetros de registro
 # [dirID]: sufijo del nombre del directorio de guardado de frames
@@ -75,4 +83,10 @@ preFrameFile: frm
 saveFrameFreq: 0
 fluxFile: flx-__C__.dat
 fluxFreq: 5
+# Registros de fuerzas y tensores (frecuencias en pasos; 0 = deshabilitado)
+freq_save_contacts: 0
+save_tensors_freq: 0
+save_ve_freq: 0
+check_balance_freq: 0
+save_roi_only: F
 #
