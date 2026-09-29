@@ -266,7 +266,6 @@ void GlobalSetup::load(string inputFile) {
           id + "debe cumplirse fric_b_s >= fric_b_d.");
     check(gr->rest >= 0 && gr->rest <= 1,
           id + "la restitución debe estar en [0, 1].");
-    gr->vertices = nullptr;
     granos[i] = gr;
   }
 
@@ -369,17 +368,7 @@ void GlobalSetup::printGlobalSetup() {
     cout << "# \t   Coeficiente de fricción = " << granos[i]->fric << endl;
     cout << "# \t   Coeficiente de restitución = " << granos[i]->rest << endl;
     cout << "# \t   Geometría: ";
-    if (granos[i]->nLados == 1)
-      cout << "Disco." << endl;
-    else {
-      cout << "# Polígono de " << granos[i]->nLados << " lados." << endl;
-      cout << "# \tVértices: " << endl;
-      for (int j = 0; j < granos[i]->nLados; j++) {
-        cout << "# \t\t(" << fixed << setw(4) << granos[i]->vertices[j][0]
-             << ", " << fixed << setw(4) << granos[i]->vertices[j][1] << "), "
-             << endl;
-      }
-    }
+    cout << "Disco." << endl;
   }
   cout << "# Parámetros de control de la simulación:" << endl;
   cout << "# \t Paso de integración: " << tStep << " s." << endl;

@@ -22,16 +22,6 @@ std::string int2str(int num) {
   return oss.str();
 }
 
-bool isActive(b2World *w) {
-  // BodyData* infGr;
-  for (b2Body *bd = w->GetBodyList(); bd; bd = bd->GetNext()) {
-    // infGr = (BodyData*) (bd->GetUserData()).pointer;
-    if (bd->IsAwake()) return true;
-    // if (infGr->isGrain && infGr->isIn && bd->IsAwake()) return true;
-  }
-  return false;
-}
-
 static bool inROI(b2Vec2 p, const GlobalSetup *gs) {
   if (!gs->save_roi_only) return true;
   if (p.x < -gs->x_roi || p.x > gs->x_roi) return false;
@@ -87,30 +77,8 @@ std::string provenance_header(const GlobalSetup *gs, double t, uint32_t nStep,
   return oss.str();
 }
 
-void savePart(b2World *w, int file_id, const GlobalSetup *globalSetup) {
-  string file_name = "frames_" + globalSetup->dirID + "/particles_info_" +
-                     int2str(file_id) + ".dat";
-  std::ofstream ff;
-  ff.open(file_name.c_str());
-  BodyData *infGr;
-  b2Vec2 p;
-  float angle;
-  for (b2Body *bd = w->GetBodyList(); bd; bd = bd->GetNext()) {
-    infGr = (BodyData *)(bd->GetUserData()).pointer;
-    if (infGr->isGrain) {
-      p = bd->GetPosition();
-      angle = bd->GetAngle();
-      ff << infGr->gID << " " << p.x << " " << p.y << " " << angle << " "
-         << endl;
-    }
-  }
-  ff << std::flush;
-  ff.close();
-}
-
 void saveFrame(b2World *w, int n_frame, int nStep,
                const GlobalSetup *globalSetup) {
-  float xtmp, ytmp;
   string file_name = "frames_" + globalSetup->dirID + "/" +
                      globalSetup->preFrameFile + "_" + int2str(n_frame) + ".xy";
   std::ofstream fileF;
@@ -122,32 +90,14 @@ void saveFrame(b2World *w, int n_frame, int nStep,
                              static_cast<uint32_t>(nStep), n_frame);
   for (b2Body *bd = w->GetBodyList(); bd; bd = bd->GetNext()) {
     BodyData *infGr = (BodyData *)(bd->GetUserData()).pointer;
-    // if (infGr->gID == -110 || infGr->gID == -120)
-    // continue;  // no guardo las coordenadas de la tapa.
     if (infGr->isGrain) {
       if (!inROI(bd->GetPosition(), globalSetup)) continue;
       fileF << infGr->gID << " ";
-      if (infGr->nLados > 1) { // Es un polígono
-        b2Fixture *f = bd->GetFixtureList();
-        b2Shape *shape = f->GetShape();
-        b2PolygonShape *poly = (b2PolygonShape *)shape;
-        int count = poly->m_count;
-        fileF << count << " ";
-        b2Vec2 *verts = (b2Vec2 *)poly->m_vertices;
-        for (int i = 0; i < count; ++i) {
-          xtmp = bd->GetWorldPoint(verts[i]).x;
-          ytmp = bd->GetWorldPoint(verts[i]).y;
-          fileF << xtmp << " " << ytmp << " ";
-        }
-      }
-      if (infGr->nLados == 1) { // Es un círculo
-        fileF << "1 ";
-        b2Vec2 pos = bd->GetPosition();
-        b2Fixture *f = bd->GetFixtureList();
-        b2Shape *bs = (b2Shape *)f->GetShape();
-        float radio = bs->m_radius;
-        fileF << pos.x << " " << pos.y << " " << radio << " ";
-      }
+      // Disco: "1 x y radio"
+      fileF << "1 ";
+      b2Vec2 pos = bd->GetPosition();
+      float radio = bd->GetFixtureList()->GetShape()->m_radius;
+      fileF << pos.x << " " << pos.y << " " << radio << " ";
       fileF << infGr->tipo << " ";
       fileF << endl;
     } else if (infGr->gID == -110 ||
@@ -164,17 +114,8 @@ void saveFrame(b2World *w, int n_frame, int nStep,
       verts[1] = bd->GetWorldPoint(verts[1]);
       fileF << verts[1].x << " " << verts[1].y << " ";
       fileF << (infGr->gID == -110 ? "LID-F" : "FLOOR") << endl;
-    } else { // Es la caja
+    } else { // Paredes del silo (cadenas)
       for (b2Fixture *f = bd->GetFixtureList(); f; f = f->GetNext()) {
-        // fileF << infGr->gID << " ";
-        // b2ChainShape *s = (b2ChainShape *)f->GetShape();
-        // b2Vec2 *verts = (b2Vec2 *)s->m_vertices;
-        // fileF << s->m_count << " ";
-        // for (int i = 0; i < s->m_count; ++i) {
-        //   verts[i] = bd->GetWorldPoint(verts[i]);
-        //   fileF << verts[i].x << " " << verts[i].y << " ";
-        // }
-        // fileF << "LINE" << endl;
         b2ChainShape *s = (b2ChainShape *)f->GetShape();
         b2Vec2 *verts = (b2Vec2 *)s->m_vertices;
         for (int i = 0; i < s->m_count - 1; ++i) { // Recorro los segmentos
@@ -196,24 +137,14 @@ int countDesc(b2World *w, int *st, int paso, std::ofstream &fluxFile,
   for (int i = 0; i < gs->noTipoGranos; ++i)
     granoDesc += st[i];
   BodyData *infGr;
-  b2Vec2 p, pv;
+  b2Vec2 p;
   double y_min = 0.0, radio;
   int nGranos = 0; // granos descargados en este check
-  // int sumaTotal = 0;
   for (b2Body *bd = w->GetBodyList(); bd; bd = bd->GetNext()) {
     infGr = (BodyData *)(bd->GetUserData()).pointer;
     if (infGr->isGrain && infGr->isIn) {
       p = bd->GetPosition();
-      b2Fixture *fixt = bd->GetFixtureList();
-      b2Shape *shape = fixt->GetShape();
-      if (infGr->nLados == 1) {
-        radio = shape->m_radius;
-      } else {
-        b2PolygonShape *poly = (b2PolygonShape *)shape;
-        b2Vec2 *verts = (b2Vec2 *)poly->m_vertices;
-        pv = b2Vec2(verts[0].x - p.x, verts[0].y - p.y);
-        radio = pv.Length();
-      }
+      radio = bd->GetFixtureList()->GetShape()->m_radius;
       if (p.y > y_min - radio) continue;
       infGr->isIn = false;
       nGranos++;
@@ -222,7 +153,6 @@ int countDesc(b2World *w, int *st, int paso, std::ofstream &fluxFile,
       fluxFile << granoDesc << " " << infGr->tipo << " ";
       fluxFile << std::setprecision(8) << paso * tStep << " ";
       for (int i = 0; i < gs->noTipoGranos; ++i) {
-        // sumaTotal += st[i];
         fluxFile << st[i] << " ";
       }
       fluxFile << granoDesc << endl;
@@ -372,45 +302,6 @@ double pivot_friction(double w, double tau_ext, double I, double R, double dt,
   return -std::copysign(tau_d, w); // Deslizamiento
 }
 
-b2Vec2 smooth_coulomb(b2Vec2 v, double v_d, double mu_d, double p) {
-  double v_norm = v.Length();
-  double fr_norm = 0.0f;
-  try {
-    fr_norm = mu_d * p * std::tanh(v_norm / v_d) / v_norm;
-  } catch (const ::std::overflow_error &e) {
-    std::cerr << "Error de overflow: " << e.what() << std::endl;
-    fr_norm = 0.0f;
-  } catch (const ::std::domain_error &e) {
-    std::cerr << "Error de division por cero: " << e.what() << std::endl;
-    fr_norm = 0.0f;
-  } catch (const std::exception &e) {
-    std::cerr << "Error desconocido: " << e.what() << endl;
-    exit(1);
-  }
-  return -fr_norm * v;
-}
-
-b2Vec2 smooth_coulomb_2(b2Vec2 v, double v_d, double v_s, double mu_d,
-                        double mu_s, double p) {
-  double v_norm = v.Length();
-  double fr_norm = 0.0f;
-  try {
-    fr_norm = mu_d * p * std::tanh(v_norm / v_d) / v_norm +
-              (mu_s - mu_d) * v_norm / v_s *
-                  std::exp(-(v_norm / v_s) * (v_norm / v_s));
-  } catch (const ::std::overflow_error &e) {
-    std::cerr << "Error de overflow: " << e.what() << std::endl;
-    fr_norm = 0.0f;
-  } catch (const ::std::domain_error &e) {
-    std::cerr << "Error de division por cero: " << e.what() << std::endl;
-    fr_norm = 0.0f;
-  } catch (const std::exception &e) {
-    std::cerr << "Error desconocido: " << e.what() << endl;
-    exit(1);
-  }
-  return -fr_norm * v;
-}
-
 // Función que produce una exitación bi-armónica (desde aceleración como en el
 // paper MM)
 Mov_Base exitacion_mm(double t, double gamma, double w, const GlobalSetup *gs) {
@@ -458,32 +349,6 @@ void do_base_force(b2World *w, double bvel, double bacc, double epsilon_v,
   }
   return;
 }
-
-// void do_reinyection(b2World *w, GlobalSetup *gs) {
-//   b2Vec2 pos;
-//   BodyData *infGr;
-//   // double r_elim = -gs->silo.R;
-//   double r_elim = -10.0;
-//   double x_new, y_new, angle;
-//   for (b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
-//     if (b->GetType() != b2_dynamicBody) {
-//       continue;
-//     }
-//     infGr = (BodyData *)(b->GetUserData()).pointer;
-//     if (infGr->isIn)
-//       continue;
-//     pos = b->GetPosition();
-//     if (pos.y > r_elim)
-//       continue;
-//     angle = b->GetAngle();
-//     x_new = rng->get_double(-0.9 * gs->silo.R, 0.9 * gs->silo.R);
-//     y_new = rng->get_double(0.75 * gs->silo.H, 0.95 * gs->silo.H);
-//     b2Vec2 new_pos(x_new, y_new);
-//     b->SetTransform(new_pos, angle);
-//     infGr->isIn = true;
-//   }
-//   return;
-// }
 
 namespace {
 // Detecta si un disco de prueba se superpone con algún fixture del mundo.
@@ -590,8 +455,7 @@ void do_reinyection(b2World *w, GlobalSetup *gs, bool reinyect) {
 }
 
 void save_pf(b2World *w, GlobalSetup *gs, double t, std::ofstream &fout) {
-  b2Vec2 pos, pv;
-  BodyData *infGr;
+  b2Vec2 pos;
   double y_inf = gs->silo.R;
   double y_sup = 2 * gs->silo.R;
   double radio;
@@ -602,17 +466,7 @@ void save_pf(b2World *w, GlobalSetup *gs, double t, std::ofstream &fout) {
       continue;
     }
     pos = b->GetPosition();
-    b2Fixture *fixt = b->GetFixtureList();
-    b2Shape *shape = fixt->GetShape();
-    infGr = (BodyData *)(b->GetUserData()).pointer;
-    if (infGr->nLados == 1) {
-      radio = shape->m_radius;
-    } else {
-      b2PolygonShape *poly = (b2PolygonShape *)shape;
-      b2Vec2 *verts = (b2Vec2 *)poly->m_vertices;
-      pv = b2Vec2(verts[0].x - pos.x, verts[0].y - pos.y);
-      radio = pv.Length();
-    }
+    radio = b->GetFixtureList()->GetShape()->m_radius;
     if (pos.y - radio > y_sup) continue; // Arriba de y_sup
     if (pos.y + radio > y_inf) {         // Entre y_sup + r y y_inf - r
       pf_bulk += get_clipped_area(y_inf, y_sup, pos.y, radio);
@@ -646,8 +500,7 @@ double get_clipped_area(double y_inf, double y_sup, double y, double r) {
 
 void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
                   int n_bins, double r_out) {
-  b2Vec2 pos, vel, pv;
-  BodyData *infGr;
+  b2Vec2 pos, vel;
   double x_inf, x_sup, tmp;
   int i_inf, i_sup;
   double radio;
@@ -658,17 +511,7 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
     }
     pos = b->GetPosition();
     if (abs(pos.x) > r_out) continue;
-    b2Fixture *fixt = b->GetFixtureList();
-    b2Shape *shape = fixt->GetShape();
-    infGr = (BodyData *)(b->GetUserData()).pointer;
-    if (infGr->nLados == 1) {
-      radio = shape->m_radius;
-    } else {
-      b2PolygonShape *poly = (b2PolygonShape *)shape;
-      b2Vec2 *verts = (b2Vec2 *)poly->m_vertices;
-      pv = b2Vec2(verts[0].x - pos.x, verts[0].y - pos.y);
-      radio = pv.Length();
-    }
+    radio = b->GetFixtureList()->GetShape()->m_radius;
     if (abs(pos.y) > radio) continue;
     tmp = sqrt(radio * radio - pos.y * pos.y);
     x_inf = pos.x - tmp;
@@ -678,17 +521,11 @@ void update_pf_vx(b2World *w, double *vel_0, size_t *pf_0, size_t *bin_count,
     // Un grano superpuesto con el borde del orificio puede exceder el rango
     i_inf = std::max(i_inf, 0);
     i_sup = std::min(i_sup, n_bins - 1);
-    // if (i_sup > 20) {
-    // cout << "i_sup: " << i_sup << " " << x_sup << endl;
-    // cout << pos.x << " " << pos.y << endl;
-    //}
     vel = b->GetLinearVelocity();
     for (int i = i_inf; i <= i_sup; ++i) {
-      vel_0[i] += vel.y; // \TODO Verficar si debo hacer la suma
+      vel_0[i] += vel.y;
       pf_0[i] += 1;
       bin_count[i] += 1;
-      //    vel_0[i] += vel.y;
-      //    pf_0[i] += 1;
     }
   }
   return;
@@ -876,25 +713,10 @@ void check_force_balance(b2World *w, const GlobalSetup *gs, double t,
 }
 
 float get_body_area(b2Body *body) {
-  float totalArea = 0.0f;
-  b2Fixture *fixt = body->GetFixtureList();
-  b2Shape *shape = fixt->GetShape();
   BodyData *infGr = (BodyData *)(body->GetUserData()).pointer;
   if (!infGr->isGrain) return 1.0f; // paredes estáticas: área no aplicable
-  if (infGr->nLados == 1) {
-    float radio = shape->m_radius;
-    totalArea = M_PI * radio * radio;
-  } else {
-    b2PolygonShape *poly = (b2PolygonShape *)shape;
-    int count = poly->m_count;
-    b2Vec2 *verts = (b2Vec2 *)poly->m_vertices;
-    float area = 0.0f;
-    for (int i = 0; i < count; ++i) {
-      int j = (i + 1) % count;
-      area += verts[i].x * verts[j].y - verts[j].x * verts[i].y;
-    }
-    totalArea += std::fabs(area) * 0.5f;
-  }
+  float radio = body->GetFixtureList()->GetShape()->m_radius;
+  float totalArea = M_PI * radio * radio;
   return totalArea;
 }
 

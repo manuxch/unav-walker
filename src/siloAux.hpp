@@ -23,12 +23,7 @@ using std::sqrt;
 // #include <gsl/gsl_sf_legendre.h>
 #include <iostream>
 
-extern GlobalSetup *globalSetup;
 extern RNG *rng;
-
-struct Tensor {
-  float xx, xy, yx, yy;
-};
 
 /*! \struct ContactPointForce
  * \brief Fuerza en un punto de contacto, en la convención de Box2D.
@@ -85,20 +80,6 @@ std::string provenance_header(const GlobalSetup *gs, double t, uint32_t nStep,
  * \return std::string
  */
 std::string int2str(int num);
-
-/*! Detecta si el sistema está activo
- * \param b2World* w
- * \return bool
- */
-bool isActive(b2World *w);
-
-/*! Escribe en el archivo de salida las coordenadas de las partículas
- * \param b2Word* w
- * \param int file_ID
- * \param GlobalSetup* parámetros globales
- * \return void
- */
-void savePart(b2World *w, int file_id, const GlobalSetup *globalSetup);
 
 /*! Escribe todas las coordenadas necesarias para generar imágenes
  * y posteriores animaciones
@@ -170,31 +151,6 @@ void saveContacts(b2World *w, double t, uint32_t nStep, int n_frame,
  * */
 b2Vec2 karnopp(b2Vec2 v_rel, b2Vec2 F_ext, b2Vec2 a_base, double m, double dt,
                double v_tol, double mu_s, double mu_d, double N);
-
-/*! \fn smooth_coulomb
- * \brief Devuelve el modelo de fricción de Smooth Coulomb como fuerza de
- * contacto.
- * \param b2Vec2 : v - velocidad relativa
- * \param double : v_d - velocidad de tolerancia
- * \param double : mu_d - coeficiente de fricción dinámica (o cinética)
- * \param double : p - peso del cuerpo apoyado sobre la superficie
- * \return b2Vec2 : fuerza de fricción de contacto
- * */
-b2Vec2 smooth_coulomb(b2Vec2 v, double v_d, double mu_d, double p);
-
-/*! \fn smooth_coulomb_2
- * \brief Devuelve el modelo de fricción de Smooth Coulomb como fuerza de
- * contacto.
- * \param b2Vec2 : v - velocidad relativa
- * \param double : v_d - velocidad de tolerancia
- * \param double : v_d - velocidad de Stribeck
- * \param double : mu_s - coeficiente de fricción estática
- * \param double : mu_d - coeficiente de fricción dinámica (o cinética)
- * \param double : p - peso del cuerpo apoyado sobre la superficie
- * \return b2Vec2 : fuerza de fricción de contacto
- * */
-b2Vec2 smooth_coulomb_2(b2Vec2 v, double v_d, double v_s, double mu_d,
-                        double mu_s, double p);
 
 /*! \fn exitacion_mm
  * \brief Función que produce una exitación bi-armónica como en el paper de MM.

@@ -32,9 +32,6 @@ using std::setw;
 #include <sstream>
 
 #define PI 3.141592653589793
-#define INFO(msg)                                                              \
-  fprintf(stderr, "info: %s:%d: ", __FILE__, __LINE__);                        \
-  fprintf(stderr, "%s\n", msg);
 
 /** \struct Mov_Base
  * \brief Estructura que contiene la cinética de la base vibrada en una
@@ -77,16 +74,14 @@ struct Contenedor {
  * \li datos geométricos
  * \li información sobre el material que lo compone */
 struct tipoGrano {
-  int noGranos;      /*!< Cantidad de granos de este tipo */
-  double radio;      /*!< Radio */
-  int nLados;        /*!< Número de lados */
-  double **vertices; /*!< Array con coordenadas de los vértices
-                       (double x, double y) */
-  double dens;       /*!< Densidad de los granos */
-  double fric;       /*!< Coeficiente de rozamiento de los granos */
-  double fric_s;     /*!< Coeficiente de fricción estática con la base */
-  double fric_d;     /*!< Coeficiente de fricción dinámica con la base  */
-  double rest;       /*!< Coeficiente de restitución de los granos */
+  int noGranos;  /*!< Cantidad de granos de este tipo */
+  double radio;  /*!< Radio */
+  int nLados;    /*!< Número de lados */
+  double dens;   /*!< Densidad de los granos */
+  double fric;   /*!< Coeficiente de rozamiento de los granos */
+  double fric_s; /*!< Coeficiente de fricción estática con la base */
+  double fric_d; /*!< Coeficiente de fricción dinámica con la base  */
+  double rest;   /*!< Coeficiente de restitución de los granos */
 };
 
 /** \struct bodyData

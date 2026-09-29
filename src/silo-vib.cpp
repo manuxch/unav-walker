@@ -12,8 +12,6 @@ using std::endl;
 #include <tuple>
 #include <vector>
 
-void comprehensiveCheck(b2World *world, int step);
-
 GlobalSetup *gs;
 RNG *rng;
 
@@ -127,11 +125,8 @@ int main(int argc, char *argv[]) {
     for (int j = 0; j < gs->granos[i]->noGranos; j++) { // Loop
       // sobre el número de granos de cada tipo.
       x = rng->get_double(siloIzq, siloDer);
-      // Insersión de granos uniforme para todos los tipos
+      // Inserción de granos uniforme para todos los tipos
       y = rng->get_double(siloInf, siloSup);
-      // Segregación inicial de granos
-      // y = i * rng->get_double(siloInf, 0.9 * gs->silo.H / 2.0)
-      //+ (1 - i) * rng->get_double(1.1 * gs->silo.H / 2.0, siloSup);
       gInfo[i][j].tipo = i;
       gInfo[i][j].isGrain = true;
       gInfo[i][j].isIn = true;
@@ -147,32 +142,15 @@ int main(int argc, char *argv[]) {
       bd.angle = rng->get_double(-b2_pi, b2_pi);
       bd.userData.pointer = reinterpret_cast<uintptr_t>(&gInfo[i][j]);
       b2Body *grain = world->CreateBody(&bd);
-      if (gs->granos[i]->nLados == 1) {
-        b2CircleShape circle;
-        circle.m_radius = gs->granos[i]->radio;
-        b2FixtureDef fixDef;
-        fixDef.shape = &circle;
-        fixDef.density = gs->granos[i]->dens;
-        fixDef.friction = gs->granos[i]->fric;
-        fixDef.restitution = gs->granos[i]->rest;
-        grain->CreateFixture(&fixDef);
-        total_grain_mass += grain->GetMass();
-      } else {
-        b2PolygonShape poly;
-        int32 vertexCount = gs->granos[i]->nLados;
-        b2Vec2 vertices[8];
-        for (int k = 0; k < gs->granos[i]->nLados; k++)
-          vertices[k].Set(gs->granos[i]->vertices[k][0],
-                          gs->granos[i]->vertices[k][1]);
-        poly.Set(vertices, vertexCount);
-        b2FixtureDef fixDef;
-        fixDef.shape = &poly;
-        fixDef.density = gs->granos[i]->dens;
-        fixDef.friction = gs->granos[i]->fric;
-        fixDef.restitution = gs->granos[i]->rest;
-        grain->CreateFixture(&fixDef);
-        total_grain_mass += grain->GetMass();
-      }
+      b2CircleShape circle;
+      circle.m_radius = gs->granos[i]->radio;
+      b2FixtureDef fixDef;
+      fixDef.shape = &circle;
+      fixDef.density = gs->granos[i]->dens;
+      fixDef.friction = gs->granos[i]->fric;
+      fixDef.restitution = gs->granos[i]->rest;
+      grain->CreateFixture(&fixDef);
+      total_grain_mass += grain->GetMass();
       if (j == 0) {
         cout << "#\t- Grano de tipo " << i << " creado con masa "
              << grain->GetMass() << " kg." << endl;
@@ -371,40 +349,4 @@ int main(int argc, char *argv[]) {
     cout << "# Presión máxima registrada: " << p_max << endl;
   }
   return 0;
-}
-
-// Ejemplo de chequeo extensivo
-void comprehensiveCheck(b2World *world, int step) {
-  cout << "=== Check paso " << step << " ===" << endl;
-
-  for (b2Body *b = world->GetBodyList(); b; b = b->GetNext()) {
-    BodyData *bd = (BodyData *)b->GetUserData().pointer;
-    if (!bd || !bd->isGrain) continue;
-
-    b2Vec2 pos = b->GetPosition();
-    b2Vec2 vel = b->GetLinearVelocity();
-
-    bool hasNaN = false;
-    if (std::isnan(pos.x)) {
-      cout << "gID " << bd->gID << ": pos.x NaN" << endl;
-      hasNaN = true;
-    }
-    if (std::isnan(pos.y)) {
-      cout << "gID " << bd->gID << ": pos.y NaN" << endl;
-      hasNaN = true;
-    }
-    if (std::isnan(vel.x)) {
-      cout << "gID " << bd->gID << ": vel.x NaN" << endl;
-      hasNaN = true;
-    }
-    if (std::isnan(vel.y)) {
-      cout << "gID " << bd->gID << ": vel.y NaN" << endl;
-      hasNaN = true;
-    }
-
-    if (hasNaN) {
-      cout << "  Posición: (" << pos.x << ", " << pos.y << ")" << endl;
-      cout << "  Velocidad: (" << vel.x << ", " << vel.y << ")" << endl;
-    }
-  }
 }
