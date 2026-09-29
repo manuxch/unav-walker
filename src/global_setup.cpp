@@ -1,48 +1,45 @@
-/** \file globalSetup.cpp
- * \brief Archivo de implementación para la clase GlobalSetup.
+/*! \file global_setup.cpp
+ * \brief Lectura, validación e impresión de los parámetros de la simulación.
  *
- * \author Manuel Carlevaro <manuel@iflysib.unlp.edu.ar>
- * \date 2023.12.05
- * \version 0.1
- */
-
-#include "globalsetup.hpp"
-#include <map>
-
-/*! \fn GlobalSetup::GlobalSetup(string iFile)
- *  Constructor de la clase GlobalSetup
- *  \param string Nombre del archivo de lectura de los parámetros de control.
- */
-GlobalSetup::GlobalSetup(string iFile) : input_par_file(iFile) {
-  load(input_par_file);
-  printGlobalSetup();
-}
-
-/*! \fn ~GlobalSetup::GlobalSetup()
-    Destructor de la clase GlobalSetup
-    */
-GlobalSetup::~GlobalSetup() {}
-
-/*! \fn GlobalSetup::load(string inputFile)
- * Función que lee el archivo de parámetros de control.
- *
- * Formato: una línea "clave: valor" por parámetro. Los comentarios empiezan
- * con '#' o '//' y pueden ir al final de una línea. La clave "noTipoGranos: N"
- * debe estar seguida de N líneas con los datos de cada tipo de grano.
+ * Formato del archivo: una línea "clave: valor" por parámetro. Los
+ * comentarios empiezan con '#' o '//' y pueden ir al final de una línea. La
+ * clave "noTipoGranos: N" debe estar seguida de N líneas con los datos de
+ * cada tipo de grano.
  *
  * La lectura es estricta: una clave desconocida, repetida o mal formada, la
  * ausencia de un parámetro obligatorio o un valor fuera de rango terminan el
  * programa con un mensaje de error.
- * \param string inputFile
- * \return void
+ *
+ * \author Manuel Carlevaro <manuel@iflysib.unlp.edu.ar>
  */
+
+#include "global_setup.hpp"
+
+#include <cstdlib>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <sstream>
+
+using std::cout;
+using std::endl;
+using std::string;
+
+GlobalSetup::GlobalSetup(const string &params_file_name)
+    : params_file(params_file_name) {
+  load(params_file);
+  print();
+}
+
 namespace {
 
 [[noreturn]] void param_error(const string &msg) {
   cout << "ERROR (parámetros): " << msg << endl;
-  exit(1);
+  std::exit(1);
 }
 
+/*! Quita los comentarios ('#' o '//') y los espacios en los extremos. */
 string strip_comment(const string &line) {
   size_t cut = line.size();
   size_t p = line.find('#');
@@ -89,6 +86,7 @@ bool to_bool(const string &key, const string &val) {
               "' (use T o F)");
 }
 
+/*! Hash FNV-1a de 64 bits, en hexadecimal (identifica el archivo). */
 string fnv1a_hex(const string &data) {
   uint64_t h = 1469598103934665603ULL;
   for (unsigned char c : data) {
@@ -102,11 +100,11 @@ string fnv1a_hex(const string &data) {
 
 } // namespace
 
-void GlobalSetup::load(string inputFile) {
-  ifstream fin(inputFile.c_str());
+void GlobalSetup::load(const string &input_file) {
+  std::ifstream fin(input_file);
   if (!fin.is_open()) {
-    cout << "ERROR: No se puede abrir el archivo " << inputFile << endl;
-    exit(1);
+    cout << "ERROR: No se puede abrir el archivo " << input_file << endl;
+    std::exit(1);
   }
   std::stringstream buffer;
   buffer << fin.rdbuf();
@@ -158,7 +156,7 @@ void GlobalSetup::load(string inputFile) {
   };
 
   std::map<string, string> vals;
-  vector<string> grain_lines;
+  std::vector<string> grain_lines;
   int pending_grains = 0;
   std::istringstream lines(content);
   string raw;
@@ -222,7 +220,7 @@ void GlobalSetup::load(string inputFile) {
   silo.r = D("radio_out_silo:");
   silo.rest = D("restitucion_silo:");
   silo.fric = D("friccion_silo:");
-  silo.Gamma = D("Amplitud_exitacion_gamma:");
+  silo.gamma = D("Amplitud_exitacion_gamma:");
   silo.frec = D("Frecuencia_exitacion:");
   silo.zero_tol = D("Cero_tol:");
   silo.rho = D("rho:");
@@ -234,70 +232,68 @@ void GlobalSetup::load(string inputFile) {
   check(silo.rest >= 0 && silo.rest <= 1,
         "restitucion_silo debe estar en [0, 1].");
   check(silo.fric >= 0, "friccion_silo debe ser >= 0.");
-  check(silo.Gamma > 0, "Amplitud_exitacion_gamma debe ser > 0.");
+  check(silo.gamma > 0, "Amplitud_exitacion_gamma debe ser > 0.");
   check(silo.frec > 0, "Frecuencia_exitacion debe ser > 0.");
   check(silo.zero_tol > 0, "Cero_tol debe ser > 0.");
   check(silo.rho > 0 && silo.rho < 1, "rho debe cumplir 0 < rho < 1.");
 
   // Granos: noGranos radio nLados dens fric fric_b_s fric_b_d rest
-  noTipoGranos = static_cast<int>(L("noTipoGranos:"));
-  granos = new tipoGrano *[noTipoGranos];
-  for (int i = 0; i < noTipoGranos; i++) {
+  const int n_tipos = static_cast<int>(L("noTipoGranos:"));
+  granos.resize(n_tipos);
+  for (int i = 0; i < n_tipos; i++) {
     std::istringstream iss(grain_lines[i]);
-    tipoGrano *gr = new tipoGrano{};
+    TipoGrano &gr = granos[i];
+    int n_lados = 0;
     string extra;
-    if (!(iss >> gr->noGranos >> gr->radio >> gr->nLados >> gr->dens >>
-          gr->fric >> gr->fric_s >> gr->fric_d >> gr->rest) ||
+    if (!(iss >> gr.n_granos >> gr.radio >> n_lados >> gr.dens >> gr.fric >>
+          gr.fric_s >> gr.fric_d >> gr.rest) ||
         (iss >> extra))
       param_error("línea de tipo de grano " + std::to_string(i + 1) +
                   " mal formada: '" + grain_lines[i] +
                   "' (se esperan 8 valores: noGranos radio nLados dens fric "
                   "fric_b_s fric_b_d rest)");
     const string id = "grano tipo " + std::to_string(i + 1) + ": ";
-    check(gr->noGranos >= 0, id + "el número de granos debe ser >= 0.");
-    check(gr->radio >= 0.01, id + "el radio debe ser >= 0.01.");
-    check(gr->nLados == 1,
-          id + "por ahora solo se admiten discos (nLados = 1).");
-    check(gr->dens > 0, id + "la densidad debe ser > 0.");
-    check(gr->fric >= 0, id + "el coeficiente de rozamiento debe ser >= 0.");
-    check(gr->fric_s >= 0 && gr->fric_d >= 0,
+    check(gr.n_granos >= 0, id + "el número de granos debe ser >= 0.");
+    check(gr.radio >= 0.01, id + "el radio debe ser >= 0.01.");
+    check(n_lados == 1, id + "por ahora solo se admiten discos (nLados = 1).");
+    check(gr.dens > 0, id + "la densidad debe ser > 0.");
+    check(gr.fric >= 0, id + "el coeficiente de rozamiento debe ser >= 0.");
+    check(gr.fric_s >= 0 && gr.fric_d >= 0,
           id + "los coeficientes de fricción con la base deben ser >= 0.");
-    check(gr->fric_s >= gr->fric_d,
-          id + "debe cumplirse fric_b_s >= fric_b_d.");
-    check(gr->rest >= 0 && gr->rest <= 1,
+    check(gr.fric_s >= gr.fric_d, id + "debe cumplirse fric_b_s >= fric_b_d.");
+    check(gr.rest >= 0 && gr.rest <= 1,
           id + "la restitución debe estar en [0, 1].");
-    granos[i] = gr;
   }
 
   // Control de la simulación
-  tStep = D("timeStep:");
-  maxT = D("tMax:");
-  tBlock = D("tBlock:");
+  dt = D("timeStep:");
+  t_max = D("tMax:");
+  t_block = D("tBlock:");
   t_register = D("t_Register:");
-  pIter = static_cast<int>(L("pIter:"));
-  vIter = static_cast<int>(L("vIter:"));
+  p_iter = static_cast<int>(L("pIter:"));
+  v_iter = static_cast<int>(L("vIter:"));
   g = D("g:");
-  reinyection = B("do_reinyection:");
-  maxGranosDesc =
+  reinyeccion = B("do_reinyection:");
+  max_granos_desc =
       has("maxGranosDesc:") ? static_cast<int>(L("maxGranosDesc:")) : 0;
   fondo_medicion = has("fondo_medicion:") ? B("fondo_medicion:") : false;
   continuous_physics =
       has("continuous_physics:") ? B("continuous_physics:") : false;
-  check(tStep > 0, "timeStep debe ser > 0.");
-  check(maxT > 0, "tMax debe ser > 0.");
-  check(tBlock >= 0 && tBlock <= maxT, "tBlock debe estar en [0, tMax].");
-  check(t_register >= 0 && t_register <= maxT,
+  check(dt > 0, "timeStep debe ser > 0.");
+  check(t_max > 0, "tMax debe ser > 0.");
+  check(t_block >= 0 && t_block <= t_max, "tBlock debe estar en [0, tMax].");
+  check(t_register >= 0 && t_register <= t_max,
         "t_Register debe estar en [0, tMax].");
-  check(pIter > 0 && vIter > 0, "pIter y vIter deben ser > 0.");
+  check(p_iter > 0 && v_iter > 0, "pIter y vIter deben ser > 0.");
   check(g >= 0, "g debe ser >= 0.");
-  check(maxGranosDesc >= 0, "maxGranosDesc debe ser >= 0.");
+  check(max_granos_desc >= 0, "maxGranosDesc debe ser >= 0.");
 
   // Salidas
-  dirID = vals.at("dirID:");
-  preFrameFile = vals.at("preFrameFile:");
-  fluxFile = vals.at("fluxFile:");
-  saveFrameFreq = static_cast<int>(L("saveFrameFreq:"));
-  fluxFreq = static_cast<int>(L("fluxFreq:"));
+  dir_id = vals.at("dirID:");
+  pre_frame_file = vals.at("preFrameFile:");
+  flux_file = vals.at("fluxFile:");
+  save_frame_freq = static_cast<int>(L("saveFrameFreq:"));
+  flux_freq = static_cast<int>(L("fluxFreq:"));
   auto opt_freq = [&](const string &k) {
     int f = has(k) ? static_cast<int>(L(k)) : 0;
     check(f >= 0, k + " debe ser >= 0.");
@@ -309,8 +305,8 @@ void GlobalSetup::load(string inputFile) {
   save_contact_freq = opt_freq("freq_save_contacts:");
   save_tensors_freq = opt_freq("save_tensors_freq:");
   check_balance_freq = opt_freq("check_balance_freq:");
-  check(saveFrameFreq >= 0, "saveFrameFreq debe ser >= 0.");
-  check(fluxFreq >= 0, "fluxFreq debe ser >= 0.");
+  check(save_frame_freq >= 0, "saveFrameFreq debe ser >= 0.");
+  check(flux_freq >= 0, "fluxFreq debe ser >= 0.");
   if (has("pf_file:")) pf_file = vals.at("pf_file:");
   if (has("n_bin_perfiles:"))
     n_bin_perfiles = static_cast<int>(L("n_bin_perfiles:"));
@@ -327,13 +323,10 @@ void GlobalSetup::load(string inputFile) {
     check(x_roi > 0, "x_roi debe ser > 0.");
     check(y_max_roi > y_min_roi, "y_max_roi debe ser > y_min_roi.");
   }
-} // Fin función load()
+}
 
-/*! \fn GlobalSetup::printGlobalSetup()
-    Función que imprime las variables contenidas en GlobalSetup
-    */
-void GlobalSetup::printGlobalSetup() {
-  cout << "# Archivo de parámetros: " << input_par_file << endl;
+void GlobalSetup::print() const {
+  cout << "# Archivo de parámetros: " << params_file << endl;
   cout << "#\tHash FNV-1a del archivo de parámetros: " << params_hash << endl;
   cout << "#\tValor de la semilla del generador de números aleatorios: "
        << rnd_seed << endl;
@@ -347,54 +340,56 @@ void GlobalSetup::printGlobalSetup() {
   cout << "#\tFrecuencia de la excitación armónica: " << silo.frec << " Hz."
        << endl;
   cout << "#\tAmplitud de la excitación armónica (reducida - Gamma): "
-       << silo.Gamma << endl;
+       << silo.gamma << endl;
   cout << "#\tTolerancia para comparación con cero de velocidad: "
        << silo.zero_tol << endl;
   cout << "#\tProporción de amplitudes entre armónicos (rho): " << silo.rho
        << endl;
   cout << "#\tDiferencia de fase phi entre armónicos: " << silo.phi << endl;
   cout << "# Granos: " << endl;
-  cout << "# \tNúmero de tipos de granos: " << noTipoGranos << endl;
-  for (int i = 0; i < noTipoGranos; i++) {
+  cout << "# \tNúmero de tipos de granos: " << granos.size() << endl;
+  for (size_t i = 0; i < granos.size(); i++) {
+    const TipoGrano &gr = granos[i];
     cout << "# \tGrano tipo " << i + 1 << ":" << endl;
-    cout << "# \t   Número de granos: " << granos[i]->noGranos << endl;
-    cout << "# \t   Radio = " << granos[i]->radio << " [m]" << endl;
-    cout << "# \t   Densidad = " << granos[i]->dens << " [kg/m²]" << endl;
-    cout << "# \t   Coeficiente de fricción = " << granos[i]->fric << endl;
-    cout << "# \t   Coeficiente de fricción estática c/base = "
-         << granos[i]->fric_s << endl;
-    cout << "# \t   Coeficiente de fricción dinámica c/base = "
-         << granos[i]->fric_d << endl;
-    cout << "# \t   Coeficiente de fricción = " << granos[i]->fric << endl;
-    cout << "# \t   Coeficiente de restitución = " << granos[i]->rest << endl;
+    cout << "# \t   Número de granos: " << gr.n_granos << endl;
+    cout << "# \t   Radio = " << gr.radio << " [m]" << endl;
+    cout << "# \t   Densidad = " << gr.dens << " [kg/m²]" << endl;
+    cout << "# \t   Coeficiente de fricción = " << gr.fric << endl;
+    cout << "# \t   Coeficiente de fricción estática c/base = " << gr.fric_s
+         << endl;
+    cout << "# \t   Coeficiente de fricción dinámica c/base = " << gr.fric_d
+         << endl;
+    cout << "# \t   Coeficiente de fricción = " << gr.fric << endl;
+    cout << "# \t   Coeficiente de restitución = " << gr.rest << endl;
     cout << "# \t   Geometría: ";
     cout << "Disco." << endl;
   }
   cout << "# Parámetros de control de la simulación:" << endl;
-  cout << "# \t Paso de integración: " << tStep << " s." << endl;
-  cout << "# \t Tiempo de simulación con salida bloqueada: " << tBlock << " s."
+  cout << "# \t Paso de integración: " << dt << " s." << endl;
+  cout << "# \t Tiempo de simulación con salida bloqueada: " << t_block << " s."
        << endl;
-  cout << "# \t Tiempo máximo de simulación: " << maxT << " s." << endl;
+  cout << "# \t Tiempo máximo de simulación: " << t_max << " s." << endl;
   cout << "# \t Máx. granos descargados para parar: ";
-  if (maxGranosDesc > 0)
-    cout << maxGranosDesc << endl;
+  if (max_granos_desc > 0)
+    cout << max_granos_desc << endl;
   else
     cout << "(deshabilitado)" << endl;
-  cout << "# \t Iteraciones para restricciones de posición: " << pIter << endl;
-  cout << "# \t Iteraciones para restricciones de velocidad: " << vIter << endl;
+  cout << "# \t Iteraciones para restricciones de posición: " << p_iter << endl;
+  cout << "# \t Iteraciones para restricciones de velocidad: " << v_iter
+       << endl;
   cout << "# \t Magnitud de g (hacia -y):" << g << endl;
   cout << "# \t Se realiza reinyección de granos? ";
-  cout << (reinyection ? "Si." : "No.") << endl;
+  cout << (reinyeccion ? "Si." : "No.") << endl;
   cout << "# \t Detección continua de colisiones (TOI, bullets)? "
        << (continuous_physics ? "Si." : "No.") << endl;
   cout << "# \t Silo cerrado con fondo de medición (gID=-200)? "
        << (fondo_medicion ? "Si." : "No.") << endl;
 
   cout << "# Parámetros de estadísticas y registros:" << endl;
-  cout << "# \t Identificador de carpeta y archivos: " << dirID << endl;
+  cout << "# \t Identificador de carpeta y archivos: " << dir_id << endl;
   cout << "# \t Tiempo de inicio de registros: " << t_register << endl;
-  cout << "# \t Prefijo de archivos de frames: " << preFrameFile << endl;
-  cout << "# \t Frecuencia de guardado de frames: " << saveFrameFreq << endl;
+  cout << "# \t Prefijo de archivos de frames: " << pre_frame_file << endl;
+  cout << "# \t Frecuencia de guardado de frames: " << save_frame_freq << endl;
   cout << "# \t Frecuencia de guardado del packing fraction en la salida: "
        << pf_freq << endl;
   cout << "# \t Archivo de guardado del packing fraction: " << pf_file << endl;

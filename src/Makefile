@@ -1,47 +1,47 @@
-#!/usr/bin/bash
-# \file  Makefile
-# \brief Makefile
-# \author Manuel Carlevaro <manuel@iflysib.unlp.edu.ar> 
-# \versión 0.1 
-# \date 2023.12.05
-# \note Ver: http://makepp.sourceforge.net/1.19/makepp_tutorial.html
+# Makefile del simulador silo-vib.
+#
+#   make          compila silo-vib
+#   make test     compila y corre las pruebas (tests/)
+#   make clean    borra objetos y ejecutables
+#
+# La ruta de Box2D 2.4.2 se puede cambiar sin editar el archivo:
+#   make BOX2D=/ruta/a/box2d
+#
+# Autor: Manuel Carlevaro <manuel@iflysib.unlp.edu.ar>
 
-
-#CXX = clang
 CXX = g++
-BOX2D = /home/manuel/Tools/box2d/2-4-2
+BOX2D ?= /home/manuel/Tools/box2d/2-4-2
 LIBPATH = -L$(BOX2D)/build/bin
 INCLUDES = -I$(BOX2D)/include/
-LIBS = -lbox2d 
-# Opciones para debuggear 
-# CXXFLAGS = -fsanitize=address -g -std=c++20 $(INCLUDES)
-# LDFLAGS = -fsanitize=address -g -Wall -std=c++20 $(LIBPATH) $(LIBS)
-# LDFLAGS = -g -Wall -std=c++20 -static $(LIBPATH) $(LIBS)
-# Opciones para correr en producción
-# Versión del código (hash de git, con sufijo -dirty si hay cambios sin commit)
+LIBS = -lbox2d
+
+# Versión del código (hash de git, con sufijo -dirty si hay cambios sin
+# commit). Se escribe en la salida estándar y en la cabecera de los archivos.
 GIT_HASH := $(shell git describe --always --dirty 2>/dev/null || echo desconocido)
+
+# Producción. Para depurar: CXXFLAGS = -g -O0 -fsanitize=address ... y
+# LDFLAGS = -fsanitize=address (sin -static).
 CXXFLAGS = -O3 -Wall -Wextra -std=c++20 $(INCLUDES) -DGIT_HASH=\"$(GIT_HASH)\"
-LDFLAGS = -O3 -Wall -std=c++20 -static $(LIBPATH) $(LIBS)
+LDFLAGS = -O3 -static $(LIBPATH) $(LIBS)
 
-SOURCES = $(wildcard *.cpp)
+SOURCES = base_friction.cpp contacts.cpp diagnostics.cpp discharge.cpp \
+          global_setup.cpp output.cpp rng.cpp silo_builder.cpp main.cpp
+OBJS = $(SOURCES:.cpp=.o)
+HEADERS = $(wildcard *.hpp)
 
-#OBJS = $(SOURCES:%.cpp=%.o)
-OBJS1 = globalsetup.o rng.o siloAux.o silo-vib.o
+all: silo-vib
 
-# El silo cerrado con fondo de medición (antes walkers-forceWall) se obtiene
-# con "fondo_medicion: T" en el archivo de parámetros.
-all : silo-vib
-
-silo-vib : $(OBJS1)
+silo-vib: $(OBJS)
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-# silo-vib.o y siloAux.o dependen del hash de git: se recompilan siempre
-silo-vib.o siloAux.o : FORCE
+# main.o y output.o incluyen el hash de git: se recompilan siempre.
+main.o output.o: FORCE
 FORCE:
 
-%.o : %.cpp globalsetup.hpp siloAux.hpp rng.hpp
+%.o: %.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f *.o *~ 
- 
+	rm -f *.o *~ silo-vib
+
+.PHONY: all clean FORCE
