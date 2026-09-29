@@ -335,3 +335,6 @@ __pycache__/
 # Pruebas del simulador (se compilan con make test en src/)
 src/tests/test_friction
 src/tests/test_reinjection
+
+# Documentación generada por Doxygen
+src/doc/

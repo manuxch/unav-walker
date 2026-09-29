@@ -1,3 +1,19 @@
+# Versión 3.1
+
+2026.09.29
+
+Reorganización del código, sin cambios en los resultados (las salidas son
+idénticas byte a byte a las de la versión 3.0):
+
+- Formato con clang-format (`src/.clang-format`).
+- Eliminación de código muerto (funciones sin uso, ramas de polígonos).
+- `siloAux.cpp` se divide en módulos por tema; nombres uniformes (tipos en
+  PascalCase, funciones y variables en snake_case), sin variables globales.
+  La tabla de cambios de nombre está en el mensaje del commit a73e700.
+- Pruebas (`make test`) y prueba de regresión (`tests/regression.sh`).
+- Documentación: `src/README.md` (modelo, parámetros, salidas, convenciones,
+  validación y estilo), comentarios Doxygen y `src/Doxyfile`.
+
 # Versión 3.0
 
 2026.09.29

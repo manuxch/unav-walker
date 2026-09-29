@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
     cout << "Error: archivo de parámetros requerido." << endl;
     return 1;
   }
-  cout << "# silo-vib ver. 3.0" << endl;
+  cout << "# silo-vib ver. 3.1" << endl;
   cout << "# 2026.09.29" << endl;
 #ifdef GIT_HASH
   cout << "# git: " << GIT_HASH << endl;
