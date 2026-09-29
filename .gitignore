@@ -325,6 +325,7 @@ TSWLatexianTemp*
 */*.ipynb_checkpoints*
 
 # Ejecutables del simulador (se compilan con make en src/)
+src/unav-walkers
 src/silo-vib
 src/walkers-forceWall
 

@@ -1,6 +1,6 @@
-# Makefile del simulador silo-vib.
+# Makefile del simulador unav-walkers.
 #
-#   make          compila silo-vib
+#   make          compila unav-walkers
 #   make test     compila y corre las pruebas (tests/)
 #   make clean    borra objetos y ejecutables
 #
@@ -29,9 +29,9 @@ SOURCES = base_friction.cpp contacts.cpp diagnostics.cpp discharge.cpp \
 OBJS = $(SOURCES:.cpp=.o)
 HEADERS = $(wildcard *.hpp)
 
-all: silo-vib
+all: unav-walkers
 
-silo-vib: $(OBJS)
+unav-walkers: $(OBJS)
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 # main.o y output.o incluyen el hash de git: se recompilan siempre.
@@ -48,16 +48,16 @@ LIB_OBJS = $(filter-out main.o,$(OBJS))
 tests/test_%: tests/test_%.cpp $(LIB_OBJS) $(HEADERS)
 	$(CXX) $(CXXFLAGS) -I. $< $(LIB_OBJS) -o $@ $(LDFLAGS)
 
-test: silo-vib $(TEST_BINS)
+test: unav-walkers $(TEST_BINS)
 	@echo "== Fricción con la base (karnopp, pivot_friction)"
 	@./tests/test_friction
 	@echo "== Reinyección de granos"
 	@./tests/test_reinjection tests/params_test.in > tests/reinjection.log; \
 	  st=$$?; grep -v '^#' tests/reinjection.log; exit $$st
 	@echo "== Lector de parámetros"
-	@bash tests/test_params.sh ./silo-vib
+	@bash tests/test_params.sh ./unav-walkers
 
 clean:
-	rm -f *.o *~ silo-vib $(TEST_BINS) tests/reinjection.log
+	rm -f *.o *~ unav-walkers $(TEST_BINS) tests/reinjection.log
 
 .PHONY: all clean test FORCE

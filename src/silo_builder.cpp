@@ -125,12 +125,12 @@ void create_grains(b2World *world, const GlobalSetup &gs, RNG &rng,
       bodies.total_grain_mass += grain->GetMass();
       if (j == 0) {
         cout << "#\t- Grano de tipo " << i << " creado con masa "
-             << grain->GetMass() << " kg." << endl;
+             << grain->GetMass() << "." << endl;
       }
     }
   }
-  cout << "#\t- Insersión de granos finalizada." << endl;
-  cout << "#\t- Masa total de granos = " << bodies.total_grain_mass << " kg."
+  cout << "#\t- Inserción de granos finalizada." << endl;
+  cout << "#\t- Masa total de granos = " << bodies.total_grain_mass << "."
        << endl;
 }
 

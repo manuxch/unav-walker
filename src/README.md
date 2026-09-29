@@ -1,4 +1,4 @@
-# silo-vib
+# unav-walkers
 
 Simulación con [Box2D](https://box2d.org) 2.4.2 de la descarga de un silo
 bidimensional de discos apoyados sobre una base vibrada.
@@ -58,10 +58,10 @@ el fondo se registra en cada paso.
 ## Compilación y uso
 
 ```bash
-make                  # compila silo-vib
+make                  # compila unav-walkers
 make BOX2D=/ruta      # con otra instalación de Box2D 2.4.2
 make test             # pruebas (ver Validación)
-./silo-vib params.in  # corre la simulación
+./unav-walkers params.in  # corre la simulación
 ```
 
 La salida estándar reproduce los parámetros leídos y el avance de la

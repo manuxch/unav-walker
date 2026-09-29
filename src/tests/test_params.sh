@@ -1,7 +1,7 @@
 #!/bin/bash
 # Pruebas del lector de parámetros (global_setup.cpp).
 #
-# Uso: tests/test_params.sh <silo-vib>
+# Uso: tests/test_params.sh <unav-walkers>
 #
 # Cada caso modifica tests/params_test.in y verifica que el programa termine
 # con el mensaje de error esperado. El último caso verifica que el archivo

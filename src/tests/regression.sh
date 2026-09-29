@@ -1,7 +1,7 @@
 #!/bin/bash
 # Prueba de regresión: compara las salidas de dos versiones del simulador.
 #
-# Uso: tests/regression.sh <silo-vib_referencia> <silo-vib_nuevo>
+# Uso: tests/regression.sh <binario_referencia> <binario_nuevo>
 #
 # Corre ambos binarios con tres configuraciones basadas en
 # tests/params_test.in (silo con orificio, fondo de medición y ROI) y compara
@@ -37,7 +37,7 @@ run() { # <binario> <directorio>
   done
   wait
   find . -type f -exec sed -i -E \
-    's/git: [^ ]+/git: X/; s/^# Fecha y hora.*//; s/^# Tiempo transcurrido.*//; s/^# silo-vib ver.*//; s/^# 20[0-9][0-9]\.[0-9.]+$//' {} +
+    's/git: [^ ]+/git: X/; s/^# Fecha y hora.*//; s/^# Tiempo transcurrido.*//; s/^# (silo-vib|unav-walkers) ver.*//; s/^# 20[0-9][0-9]\.[0-9.]+$//' {} +
 }
 
 (run "$REF" "$TMP/ref")

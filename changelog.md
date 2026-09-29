@@ -1,3 +1,15 @@
+# Versión 3.2
+
+2026.09.29
+
+- El ejecutable pasa a llamarse `unav-walkers` (antes `silo-vib`); se
+  actualizan el Makefile, las pruebas, la documentación y `scripts/submit.tpl`.
+- Correcciones en los mensajes de la salida estándar: "Inserción", signos de
+  interrogación y tildes ("¿...? Sí."), línea de fricción grano-grano que se
+  imprimía dos veces, descripción de g (carga normal sobre la base) y
+  eliminación de unidades MKS (la simulación usa unidades reducidas).
+- Los archivos de salida no cambian (idénticos a la versión 3.1).
+
 # Versión 3.1
 
 2026.09.29

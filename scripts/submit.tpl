@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#SBATCH --job-name=silo-vib
+#SBATCH --job-name=unav-walkers
 #SBATCH --output=flx_%A_%a.out
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=128mb
@@ -11,5 +11,5 @@ echo "SLURM_JOBID: " $SLURM_JOBID
 echo "SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
 echo "SLURM_ARRAY_JOB_ID: " $SLURM_ARRAY_JOB_ID
 
-./silo-vib p-$SLURM_ARRAY_TASK_ID.in
+./unav-walkers p-$SLURM_ARRAY_TASK_ID.in
 

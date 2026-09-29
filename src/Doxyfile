@@ -1,6 +1,6 @@
-# Configuración mínima de Doxygen para silo-vib.
+# Configuración mínima de Doxygen para unav-walkers.
 # Uso (en src/): doxygen Doxyfile   ->   doc/html/index.html
-PROJECT_NAME           = silo-vib
+PROJECT_NAME           = unav-walkers
 PROJECT_BRIEF          = "Descarga de un silo 2D de discos sobre una base vibrada"
 OUTPUT_DIRECTORY       = doc
 OUTPUT_LANGUAGE        = Spanish

@@ -1,8 +1,8 @@
 /*! \file main.cpp
- * \brief silo-vib: descarga de un silo bidimensional de discos apoyados
+ * \brief unav-walkers: descarga de un silo bidimensional de discos apoyados
  * sobre una base vibrada, simulada con Box2D.
  *
- * Uso: silo-vib <archivo_de_parámetros>
+ * Uso: unav-walkers <archivo_de_parámetros>
  *
  * Secuencia:
  *  1. Lectura de parámetros (GlobalSetup) y construcción del sistema
@@ -111,10 +111,11 @@ void print_elapsed(std::chrono::high_resolution_clock::time_point start) {
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
-    cout << "Error: archivo de parámetros requerido." << endl;
+    cout << "Error: archivo de parámetros requerido.\n"
+         << "Uso: " << argv[0] << " <archivo_de_parámetros>" << endl;
     return 1;
   }
-  cout << "# silo-vib ver. 3.1" << endl;
+  cout << "# unav-walkers ver. 3.2" << endl;
   cout << "# 2026.09.29" << endl;
 #ifdef GIT_HASH
   cout << "# git: " << GIT_HASH << endl;

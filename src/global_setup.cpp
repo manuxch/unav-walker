@@ -352,23 +352,21 @@ void GlobalSetup::print() const {
     const TipoGrano &gr = granos[i];
     cout << "# \tGrano tipo " << i + 1 << ":" << endl;
     cout << "# \t   Número de granos: " << gr.n_granos << endl;
-    cout << "# \t   Radio = " << gr.radio << " [m]" << endl;
-    cout << "# \t   Densidad = " << gr.dens << " [kg/m²]" << endl;
-    cout << "# \t   Coeficiente de fricción = " << gr.fric << endl;
+    cout << "# \t   Radio = " << gr.radio << endl;
+    cout << "# \t   Densidad (masa por unidad de área) = " << gr.dens << endl;
+    cout << "# \t   Coeficiente de fricción grano-grano = " << gr.fric << endl;
     cout << "# \t   Coeficiente de fricción estática c/base = " << gr.fric_s
          << endl;
     cout << "# \t   Coeficiente de fricción dinámica c/base = " << gr.fric_d
          << endl;
-    cout << "# \t   Coeficiente de fricción = " << gr.fric << endl;
     cout << "# \t   Coeficiente de restitución = " << gr.rest << endl;
     cout << "# \t   Geometría: ";
     cout << "Disco." << endl;
   }
   cout << "# Parámetros de control de la simulación:" << endl;
-  cout << "# \t Paso de integración: " << dt << " s." << endl;
-  cout << "# \t Tiempo de simulación con salida bloqueada: " << t_block << " s."
-       << endl;
-  cout << "# \t Tiempo máximo de simulación: " << t_max << " s." << endl;
+  cout << "# \t Paso de integración: " << dt << endl;
+  cout << "# \t Tiempo de simulación con salida bloqueada: " << t_block << endl;
+  cout << "# \t Tiempo máximo de simulación: " << t_max << endl;
   cout << "# \t Máx. granos descargados para parar: ";
   if (max_granos_desc > 0)
     cout << max_granos_desc << endl;
@@ -377,13 +375,13 @@ void GlobalSetup::print() const {
   cout << "# \t Iteraciones para restricciones de posición: " << p_iter << endl;
   cout << "# \t Iteraciones para restricciones de velocidad: " << v_iter
        << endl;
-  cout << "# \t Magnitud de g (hacia -y):" << g << endl;
-  cout << "# \t Se realiza reinyección de granos? ";
-  cout << (reinyeccion ? "Si." : "No.") << endl;
-  cout << "# \t Detección continua de colisiones (TOI, bullets)? "
-       << (continuous_physics ? "Si." : "No.") << endl;
-  cout << "# \t Silo cerrado con fondo de medición (gID=-200)? "
-       << (fondo_medicion ? "Si." : "No.") << endl;
+  cout << "# \t Gravedad g (carga normal sobre la base): " << g << endl;
+  cout << "# \t ¿Se reinyectan los granos descargados? "
+       << (reinyeccion ? "Sí." : "No.") << endl;
+  cout << "# \t ¿Detección continua de colisiones (TOI, bullets)? "
+       << (continuous_physics ? "Sí." : "No.") << endl;
+  cout << "# \t ¿Silo cerrado con fondo de medición (gID=-200)? "
+       << (fondo_medicion ? "Sí." : "No.") << endl;
 
   cout << "# Parámetros de estadísticas y registros:" << endl;
   cout << "# \t Identificador de carpeta y archivos: " << dir_id << endl;
@@ -405,7 +403,7 @@ void GlobalSetup::print() const {
   cout << "# \t Frecuencia del chequeo de balance de fuerzas: "
        << check_balance_freq << endl;
   cout << "# \t Guardar solo partículas en ROI: "
-       << (save_roi_only ? "Si" : "No") << endl;
+       << (save_roi_only ? "Sí" : "No") << endl;
   if (save_roi_only) {
     cout << "# \t ROI: x = [-" << x_roi << ", " << x_roi << "], y = ["
          << y_min_roi << ", " << y_max_roi << "]" << endl;
