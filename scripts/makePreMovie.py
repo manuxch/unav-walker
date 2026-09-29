@@ -80,6 +80,8 @@ for f in tqdm(fileFrames[::skp_frm]):
     fout = preName + '{:06d}.png'.format(nActualFile)
     time = float(data[0].split()[2])
     for linea in data[1:]:
+        if linea.startswith('#'):  # cabecera de procedencia (v3.0+)
+            continue
         l = linea.split()
         gid = int(l[0])
         if gid < 0:

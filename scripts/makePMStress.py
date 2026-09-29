@@ -98,6 +98,8 @@ for frm_id, value in tqdm(frm_idxs.items()):
     fin.close()
     n_grains = 0
     for linea in data[1:]:
+        if linea.startswith('#'):  # cabecera de procedencia (v3.0+)
+            continue
         if int(linea.split()[0]) >= 0:
             n_grains += 1
     gcolors = np.zeros(n_grains)
@@ -118,6 +120,8 @@ for frm_id, value in tqdm(frm_idxs.items()):
     fout = preName + f'{nActualFile:06d}.png'
     time = float(data[0].split()[2])
     for linea in data[1:]:
+        if linea.startswith('#'):  # cabecera de procedencia (v3.0+)
+            continue
         l = linea.split()
         gid = int(l[0])
         if gid < 0:
