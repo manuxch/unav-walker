@@ -82,3 +82,47 @@ Con `--phase-output`, se escribe además el perfil para cada bin de fase:
 **Validación.** Sobre una simulación de 149 frames, la salida coincide con
 una implementación independiente en Python (numpy) con una diferencia
 relativa máxima de 3e-7, que es la precisión de impresión.
+
+## Gráficos: `scripts/plot_stress_profile.py`
+
+```bash
+python3 tools/scripts/plot_stress_profile.py perfil_D3.dat perfil_D5.dat -o perfiles.pdf \
+    [--etiquetas "D = 3d" "D = 5d"] [--sim] [--continuo] [--sin-tex]
+```
+
+Grafica una curva por archivo de `stress_profile`, en seis paneles en
+función de la altura:
+
+- (a) presión `p = -(sxx + syy)/2`;
+- (b) `-syy` y (c) `-sxx`;
+- (d) `sxy` y `syx`;
+- (e) parte tangencial `stxy` y `styx`;
+- (f) parte cinética `-kyy` y `-kxx`.
+
+Las bandas son el error estándar por bloques. La etiqueta por defecto es
+`D = 2W`.
+
+- Por defecto usa unidades experimentales: `y` en cm, con el eje invertido
+  y el origen en el orificio, y estrés 2D en N/m. Con `--sim` se dejan las
+  unidades de la simulación.
+- Con `--continuo` multiplica el estrés por `phi` (estrés medio del bin).
+
+### Unidades: `scripts/unidades.py`
+
+Único módulo con los factores de conversión (de `utils/reduced_units.ods`):
+
+| Magnitud | Experimento | Simulación |
+|---|---|---|
+| Longitud (diámetro `d`) | 0.005 m | 1 |
+| Masa | 2.10e-4 kg | 1 |
+| Tiempo `sqrt(d/g)` | 0.0225877 s | 1 |
+| Velocidad | 0.221359 m/s | 1 |
+| Fuerza `m g` | 0.002058 N | 1 |
+| Estrés 2D `F/L` | 0.4116 N/m | 1 |
+
+`convertir_perfil()` además invierte el eje `y`, así que cambian de signo
+`vy` y las componentes `xy` y `yx`. Los errores no cambian de signo.
+
+Los scripts `plot-fuerzas.py`, `plot-mapa-fuerzas.py` y `plot-perfil.py`
+son anteriores. Grafican las salidas de `force_profile`, `force_map2d` y
+`vel_profile`, y tienen sus propios factores de conversión.
