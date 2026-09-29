@@ -323,3 +323,11 @@ TSWLatexianTemp*
 
 # Jupyter-notebook checkpoints
 */*.ipynb_checkpoints*
+
+# Ejecutables del simulador (se compilan con make en src/)
+src/silo-vib
+src/walkers-forceWall
+
+# Python
+__pycache__/
+*.pyc

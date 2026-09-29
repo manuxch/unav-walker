@@ -1,1 +1,0 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/force_profile.dir/link.d CMakeFiles/force_profile.dir/force_profile.cpp.o -o bin/force_profile  libdem_reader.a
