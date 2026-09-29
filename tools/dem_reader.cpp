@@ -291,11 +291,12 @@ FCFrame read_fc(const std::filesystem::path& path)
 
     std::string line;
     bool header_read = false;
+    bool format_ok   = false;
 
     while (std::getline(fin, line)) {
         if (line.empty()) continue;
 
-        // Cabecera: "# Time:  <t>"
+        // Cabecera: "# Time: <t>"
         if (!header_read && line.find("Time:") != std::string::npos) {
             std::istringstream iss(line);
             std::string tok;
@@ -306,31 +307,37 @@ FCFrame read_fc(const std::filesystem::path& path)
             continue;
         }
 
-        if (line[0] == '#') continue;  // Cabecera de columnas
-
-        // Datos: gID_A gID_B cp.x cp.y norm tan CPn
-        std::istringstream iss(line);
-        Contact c;
-        std::string n_pc_str;
-
-        if (!(iss >> c.gID_A >> c.gID_B
-                  >> c.cp_x >> c.cp_y
-                  >> c.norm >> c.tan
-                  >> n_pc_str)) {
+        if (line[0] == '#') {
+            if (parse_provenance_line(line, frame.prov)) continue;
+            // Cabecera de columnas: identifica el formato
+            if (line.find("gID_A") != std::string::npos) {
+                format_ok = line.find("xA yA xB yB") != std::string::npos;
+                if (!format_ok) {
+                    throw std::runtime_error(
+                        "dem::read_fc: formato de contactos anterior a la "
+                        "versión 3.0 del simulador (fuerzas con otra escala): "
+                        + path.string());
+                }
+            }
             continue;
         }
-
-        // Extraer número de CP: "CP1" -> 1, "CP2" -> 2
-        c.n_pc = 0;
-        if (n_pc_str.size() > 2 && n_pc_str.starts_with("CP")) {
-            auto [ptr, ec] = std::from_chars(
-                n_pc_str.data() + 2,
-                n_pc_str.data() + n_pc_str.size(),
-                c.n_pc);
-            if (ec != std::errc{}) c.n_pc = 0;
+        if (!format_ok) {
+            throw std::runtime_error(
+                "dem::read_fc: falta la cabecera de columnas: " + path.string());
         }
 
-        frame.contacts.push_back(std::move(c));
+        // Datos: gID_A gID_B cp.x cp.y Fn Ft nx ny xA yA xB yB n_pc tipo
+        std::istringstream iss(line);
+        Contact c;
+        std::string tipo;
+        if (!(iss >> c.gID_A >> c.gID_B >> c.cp_x >> c.cp_y >> c.norm >> c.tan
+                  >> c.nx >> c.ny >> c.xA >> c.yA >> c.xB >> c.yB >> c.n_pc
+                  >> tipo)) {
+            throw std::runtime_error("dem::read_fc: línea inválida en "
+                                     + path.string() + ": " + line);
+        }
+        c.wall = (tipo == "GW");
+        frame.contacts.push_back(c);
     }
 
     return frame;
@@ -341,6 +348,122 @@ FCFrame read_fc(const std::filesystem::path& dir, int case_id, int frame_id)
     FCFrame frame = read_fc(fc_path(dir, case_id, frame_id));
     frame.case_id  = case_id;
     frame.frame_id = frame_id;
+    return frame;
+}
+
+// ============================================================================
+// Archivos por prefijo, cabecera de procedencia y .sxy
+// ============================================================================
+
+std::filesystem::path frame_path(const std::filesystem::path& dir,
+                                 const std::string& pre, int frame_id,
+                                 const std::string& ext)
+{
+    return dir / (pre + "_" + frame_id_to_str(frame_id) + ext);
+}
+
+std::vector<int> list_frames_with_prefix(const std::filesystem::path& dir,
+                                         const std::string& pre,
+                                         const std::string& ext)
+{
+    if (!std::filesystem::is_directory(dir)) {
+        throw std::runtime_error("dem::list_frames_with_prefix: directorio "
+                                 "no existe: " + dir.string());
+    }
+    const std::string prefix = pre + "_";
+    std::vector<int> ids;
+    for (const auto& entry : std::filesystem::directory_iterator(dir)) {
+        if (!entry.is_regular_file()) continue;
+        if (entry.path().extension() != ext) continue;
+        const std::string stem = entry.path().stem().string();
+        if (!stem.starts_with(prefix)) continue;
+        const std::string id_str = stem.substr(prefix.size());
+        int val = 0;
+        auto [ptr, ec] = std::from_chars(id_str.data(),
+                                         id_str.data() + id_str.size(), val);
+        if (ec != std::errc{} || ptr != id_str.data() + id_str.size()) continue;
+        ids.push_back(val);
+    }
+    std::sort(ids.begin(), ids.end());
+    return ids;
+}
+
+bool parse_provenance_line(const std::string& line, Provenance& prov)
+{
+    std::istringstream iss(line);
+    std::string hash, key;
+    if (!(iss >> hash >> key) || hash != "#") return false;
+    if (key == "nStep:") {
+        iss >> prov.n_step;
+        std::string tok;
+        while (iss >> tok) {
+            if (tok == "n_frame:") iss >> prov.n_frame;
+            else if (tok == "t:") iss >> prov.t;
+            else if (tok == "dt:") iss >> prov.dt;
+            else if (tok == "fase:") iss >> prov.phase;
+        }
+        prov.present = true;
+        return true;
+    }
+    if (key == "git:") {
+        iss >> prov.git;
+        std::string tok;
+        while (iss >> tok) {
+            if (tok == "params:") iss >> prov.params;
+            else if (tok == "params_hash:") iss >> prov.params_hash;
+        }
+        return true;
+    }
+    return false;
+}
+
+SXYFrame read_sxy(const std::filesystem::path& path)
+{
+    std::ifstream fin(path);
+    if (!fin.is_open()) {
+        throw std::runtime_error("dem::read_sxy: no se puede abrir: "
+                                 + path.string());
+    }
+    SXYFrame frame;
+    std::string line;
+    bool format_ok = false;
+    while (std::getline(fin, line)) {
+        if (line.empty()) continue;
+        if (line[0] == '#') {
+            std::istringstream iss(line);
+            std::string hash, key;
+            iss >> hash >> key;
+            if (key == "tSim:") { iss >> frame.time; continue; }
+            if (parse_provenance_line(line, frame.prov)) continue;
+            if (key == "gID") {
+                format_ok = line.find("snxx") != std::string::npos;
+                if (!format_ok) {
+                    throw std::runtime_error(
+                        "dem::read_sxy: formato .sxy anterior a la versión 3.0 "
+                        "del simulador: " + path.string());
+                }
+            }
+            continue;
+        }
+        if (!format_ok) {
+            throw std::runtime_error(
+                "dem::read_sxy: falta la cabecera de columnas: " + path.string());
+        }
+        // gID sxx sxy syx syy snxx snxy snyx snyy x y r m vx vy w z_gg z_gw
+        std::istringstream iss(line);
+        GrainStress g;
+        if (!(iss >> g.gID >> g.s[0] >> g.s[1] >> g.s[2] >> g.s[3] >> g.sn[0]
+                  >> g.sn[1] >> g.sn[2] >> g.sn[3] >> g.x >> g.y >> g.r >> g.m
+                  >> g.vx >> g.vy >> g.w >> g.z_gg >> g.z_gw)) {
+            throw std::runtime_error("dem::read_sxy: línea inválida en "
+                                     + path.string() + ": " + line);
+        }
+        frame.grains.push_back(g);
+    }
+    if (!frame.prov.present) {
+        throw std::runtime_error("dem::read_sxy: falta la cabecera de "
+                                 "procedencia: " + path.string());
+    }
     return frame;
 }
 

@@ -45,3 +45,10 @@ target_compile_options(force_profile PRIVATE -Wall -Wextra -O2)
 add_executable(force_map2d force_map2d.cpp)
 target_link_libraries(force_map2d PRIVATE dem_reader Threads::Threads)
 target_compile_options(force_map2d PRIVATE -Wall -Wextra -O2)
+
+# -----------------------------------------------------------------------
+# Perfil del tensor de estrés (archivos .sxy, simulador >= 3.0)
+# -----------------------------------------------------------------------
+add_executable(stress_profile stress_profile.cpp)
+target_link_libraries(stress_profile PRIVATE dem_reader Threads::Threads)
+target_compile_options(stress_profile PRIVATE -Wall -Wextra -O2)
