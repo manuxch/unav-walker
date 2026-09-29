@@ -339,3 +339,11 @@ src/tests/test_reinjection
 
 # Documentación generada por Doxygen
 src/doc/
+
+# Restos de fusiones y de editores
+*.orig
+*_BACKUP_*
+*_BASE_*
+*_LOCAL_*
+*_REMOTE_*
+*.kate-swp
