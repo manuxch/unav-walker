@@ -6,6 +6,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import numpy as np
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import unidades  # factores de conversión (utils/reduced_units.ods)
 
 plt.rcParams.update({
     'text.usetex': True,
@@ -65,22 +68,22 @@ def main():
     fn_M = norm_force.reshape((n_bins_y, n_bins_x))
     ft_M = tan_force.reshape((n_bins_y, n_bins_x))
 
-    # Conversión de unidades (según scripts previos)
-    cm_factor = 100.0  # asumiendo y en cm
-    f_s_2_e = 0.002058 # conversión de fuerza
-    
-    x_M_cm = x_M * cm_factor
-    y_M_cm = y_M * cm_factor
-    fn_M_e = fn_M * f_s_2_e
-    ft_M_e = ft_M * f_s_2_e
+    # Conversión a unidades experimentales (unidades.py): x, y en cm, con el
+    # eje y invertido; fuerzas en N.
+    x_M_cm = unidades.x_a_cm(x_M)
+    y_M_cm = unidades.y_a_cm(y_M)
+    fn_M_e = unidades.fuerza_a_N(fn_M)
+    ft_M_e = unidades.fuerza_a_N(ft_M)
 
     # Para omitir ceros (background), usamos NaN
     fn_M_e[fn_M_e == 0] = np.nan
     ft_M_e[ft_M_e == 0] = np.nan
 
-    xmin, xmax = x_M_cm.min(), x_M_cm.max()
-    ymin, ymax = y_M_cm.min(), y_M_cm.max()
-    extent = [xmin, xmax, ymin, ymax]
+    # La fila 0 del mapa es la de menor y de la simulación (junto al
+    # orificio); con el eje invertido su coordenada experimental es la mayor.
+    # extent sigue el orden de las filas, así la imagen conserva la
+    # orientación del silo (orificio abajo) y solo cambian las etiquetas.
+    extent = [x_M_cm.min(), x_M_cm.max(), y_M_cm[0, 0], y_M_cm[-1, 0]]
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharey=True)
 

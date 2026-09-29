@@ -123,6 +123,10 @@ Las bandas son el error estándar por bloques. La etiqueta por defecto es
 `convertir_perfil()` además invierte el eje `y`, así que cambian de signo
 `vy` y las componentes `xy` y `yx`. Los errores no cambian de signo.
 
-Los scripts `plot-fuerzas.py`, `plot-mapa-fuerzas.py` y `plot-perfil.py`
-son anteriores. Grafican las salidas de `force_profile`, `force_map2d` y
-`vel_profile`, y tienen sus propios factores de conversión.
+Para magnitudes sueltas hay funciones: `x_a_cm`, `y_a_cm`, `vx_a_cm_s`,
+`vy_a_cm_s` y `fuerza_a_N`. También usan este módulo `plot-perfil.py`
+(`vel_profile`), `plot-fuerzas.py` (`force_profile`) y
+`plot-mapa-fuerzas.py` (`force_map2d`).
+
+Los scripts de `../scripts/` con `t = 0.0553 s` o longitud `0.03 m`
+corresponden a otro montaje (d = 3 cm) y no usan este módulo.

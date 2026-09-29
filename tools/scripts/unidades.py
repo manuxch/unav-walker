@@ -30,6 +30,31 @@ ESTRES_2D = FUERZA / LONGITUD  # N/m
 CM = 100.0  # m -> cm
 
 
+def x_a_cm(x):
+    """Coordenada x de la simulación a cm."""
+    return np.asarray(x, dtype=float) * LONGITUD * CM
+
+
+def y_a_cm(y):
+    """Coordenada y de la simulación a cm, con el eje invertido."""
+    return -np.asarray(y, dtype=float) * LONGITUD * CM
+
+
+def vx_a_cm_s(vx):
+    """Velocidad v_x de la simulación a cm/s."""
+    return np.asarray(vx, dtype=float) * VELOCIDAD * CM
+
+
+def vy_a_cm_s(vy):
+    """Velocidad v_y de la simulación a cm/s, con el eje invertido."""
+    return -np.asarray(vy, dtype=float) * VELOCIDAD * CM
+
+
+def fuerza_a_N(f):
+    """Fuerza (o módulo de fuerza) de la simulación a N."""
+    return np.asarray(f, dtype=float) * FUERZA
+
+
 def es_tensor_cruzado(nombre):
     """True para las componentes xy o yx de un tensor (sxy, snyx, kxy, ...)."""
     return re.fullmatch(r"(s|sn|st|k)(xy|yx)", nombre) is not None

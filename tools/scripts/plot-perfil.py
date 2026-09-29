@@ -5,6 +5,10 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import numpy as np
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import unidades  # factores de conversión (utils/reduced_units.ods)
 plt.rcParams.update({
     'text.usetex': True,
     'font.family': 'serif',
@@ -23,15 +27,13 @@ cmap = mpl.colormaps['plasma']
 files = glob.glob("perfil-ve-*.dat")
 files.sort()
 print(files)
-d_s_2_e = 0.005 * 100 
-v_s_2_e = 0.221359436211787 * 100
 alfa = 0.7
 
 for f in files:
     d = int(f.split('-')[2].split('.')[0])
     y, v_y = np.loadtxt(f, unpack=True, comments='#')
-    y *= -d_s_2_e
-    v_y *= -v_s_2_e
+    y = unidades.y_a_cm(y)
+    v_y = unidades.vy_a_cm_s(v_y)
     print(f"D = {d:3d} - max vy = {v_y.max():.3f} - vf = {v_y[0]:.3f}")
     c = cmap(norm(d))
     plt.plot(y, v_y, '.-', color=c, label=fr"$D = {d/10} \, d$", alpha=alfa)  # vy vs y
