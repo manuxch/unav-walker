@@ -165,7 +165,9 @@ python3 $S/plot_stress_profile.py estres-D*.dat -o estres.pdf
 
 `plot-perfil.py` y `plot-fuerzas.py` grafican todos los archivos del
 directorio actual y toman `D` del nombre, en décimas de diámetro:
-`perfil-fn-30.dat` corresponde a `D = 3.0 d`. Un lazo típico, con una
+`perfil-fn-30.dat` corresponde a `D = 3.0 d` y `perfil-fn-40.dat` a
+`D = 4.0 d` (no `-04`, que sería `D = 0.4 d`). Los archivos cuyo sufijo no
+es un número entero se ignoran con un aviso. Un lazo típico, con una
 corrida por `D` en `corrida_D<D>/`:
 
 ```bash
@@ -346,9 +348,9 @@ fuerzas en N; estrés 2D en N/m.
 python3 tools/scripts/plot-perfil.py
 ```
 
-Lee todos los `perfil-ve-<10D>.dat` del directorio actual (salidas de
-`vel_profile` con la cantidad `vy`) y grafica `<v_y>` (cm/s) en función de
-`y` (cm), una curva por `D`, en `perfiles-vy.pdf`. La escala de colores
+Lee todos los `perfil-ve-<NN>.dat`, con `NN` = 10 D, del directorio
+actual (salidas de `vel_profile` con la cantidad `vy`) y grafica `<v_y>`
+(cm/s) en función de `y` (cm), una curva por `D`, en `perfiles-vy.pdf`. La escala de colores
 está fijada para `D` entre 4 y 20 diámetros.
 
 ### plot-fuerzas.py
@@ -357,10 +359,10 @@ está fijada para `D` entre 4 y 20 diámetros.
 python3 tools/scripts/plot-fuerzas.py
 ```
 
-Lee todos los `perfil-fn-<10D>.dat` (salidas de `force_profile --qty norm`)
-y `perfil-ft-<10D>.dat` (`--qty tan`) del directorio actual. Grafica
-`<f_N>` y `<|f_T|>` (N) en función de `y` (cm), en dos paneles, en
-`perfiles-fn-ft.pdf`. Usa las dos primeras columnas de cada archivo, así
+Lee todos los `perfil-fn-<NN>.dat`, con `NN` = 10 D (salidas de
+`force_profile --qty norm`), y `perfil-ft-<NN>.dat` (`--qty tan`) del
+directorio actual. Grafica `<f_N>` y `<|f_T|>` (N) en función de `y` (cm),
+en dos paneles, en `perfiles-fn-ft.pdf`. Usa las dos primeras columnas de cada archivo, así
 que la columna `n` no molesta.
 
 ### plot-mapa-fuerzas.py
