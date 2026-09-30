@@ -318,11 +318,15 @@ es negativo en compresión.
   centro en la franja aporta toda su área aunque sobresalga, así que en
   franjas angostas `phi` puede superar 1.
 - Errores `e_*`: error estándar de las medias por bloques de un período.
-  Con menos de ~10 períodos son poco confiables.
+  Con menos de ~10 períodos son poco confiables. Para `k`, las
+  fluctuaciones de cada bloque se miden respecto de la misma media global
+  por bin de `y` y de fase.
+- En bines casi vacíos (un grano por celda de `y` y fase), `v' = 0` y `k`
+  da cero: no es agitación nula, es falta de datos.
 
 **Salida principal:** `y n phi vx vy sxx sxy syx syy snxx snxy snyx snyy
 stxx stxy styx styy kxx kxy kyy e_sxx e_sxy e_syx e_syy e_snxx e_snxy e_snyx
-e_snyy`, con `n` = pares grano-frame y `nan` en los bines vacíos.
+e_snyy e_kxx e_kxy e_kyy`, con `n` = pares grano-frame y `nan` en los bines vacíos.
 
 **Salida por fase** (`--phase-output`): `fase y n n_frames phi vx vy sxx sxy
 syx syy snxx snxy snyx snyy kxx kxy kyy`, un bloque por bin de fase.
@@ -392,7 +396,7 @@ Una curva por archivo de `stress_profile`. La etiqueta por defecto,
 - (b) `-syy` y (c) `-sxx`;
 - (d) `sxy` y `syx`;
 - (e) parte tangencial `stxy` y `styx`;
-- (f) parte cinética `-kyy` y `-kxx`.
+- (f) parte cinética `-kyy` y `-kxx`, con sus errores.
 
 Las bandas son el error estándar por bloques. Opciones:
 

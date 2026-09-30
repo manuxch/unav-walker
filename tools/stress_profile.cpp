@@ -51,7 +51,9 @@
  *   phi (s + k).
  *
  *   Errores (e_*): desviación estándar de las medias por bloques de un
- *   período, dividida por sqrt(número de bloques).
+ *   período, dividida por sqrt(número de bloques). Para k, las
+ *   fluctuaciones de cada bloque se miden respecto de la misma <v>(y, fase)
+ *   global, de modo que las medias por bloque estiman la misma cantidad.
  * \endverbatim
  *
  * \author Manuel Carlevaro
@@ -130,11 +132,35 @@ struct Acc {
     }
 };
 
+/// Sumas de masa y velocidad de un bin de fase dentro de un bloque.
+struct KinPhase {
+    int    ph = 0;           ///< Bin de fase
+    double m = 0.0;          ///< sum m_p
+    double mv[2] = {};       ///< sum m_p v_p
+    double mvv[3] = {};      ///< sum m_p v_i v_j (xx, xy, yy)
+};
+
 /// Sumas por bloque (período) y bin de y, para los errores.
 struct BlockAcc {
     double A = 0.0;
     double As[4] = {};
     double Asn[4] = {};
+    /// Parte cinética por bin de fase. Un bloque solo toca las fases de sus
+    /// frames, así que se guarda en forma dispersa.
+    std::vector<KinPhase> kin;
+
+    /// Agrega las sumas cinéticas \p a (un frame, bin de fase \p ph).
+    void add_kin(int ph, const Acc& a) {
+        auto it = std::find_if(kin.begin(), kin.end(),
+                               [ph](const KinPhase& k) { return k.ph == ph; });
+        if (it == kin.end()) {
+            kin.push_back(KinPhase{ph});
+            it = kin.end() - 1;
+        }
+        it->m += a.m;
+        for (int k = 0; k < 2; ++k) it->mv[k] += a.mv[k];
+        for (int k = 0; k < 3; ++k) it->mvv[k] += a.mvv[k];
+    }
 };
 
 struct Params {
@@ -227,6 +253,7 @@ struct FrameTask {
                 gb[ib].As[k] += local_block[ib].As[k];
                 gb[ib].Asn[k] += local_block[ib].Asn[k];
             }
+            if (local[ib].n > 0) gb[ib].add_kin(ph, local[ib]);
         }
         ++glob->frames_per_phase[ph];
         ++glob->n_frames;
@@ -307,6 +334,19 @@ static void write_value(std::ostream& out, double v) {
     else out << "  " << v;
 }
 
+/// Error estándar de la media a partir de las medias por bloque; nan si hay
+/// menos de dos bloques.
+static double block_error(const std::vector<double>& means) {
+    if (means.size() < 2) return kNaN;
+    double mu = 0.0;
+    for (double v : means) mu += v;
+    mu /= means.size();
+    double var = 0.0;
+    for (double v : means) var += (v - mu) * (v - mu);
+    var /= (means.size() - 1);
+    return std::sqrt(var / means.size());
+}
+
 /// Cabecera común de los archivos de salida.
 static void write_header(std::ostream& out, const Params& p, const Global& g,
                          const std::string& title) {
@@ -336,7 +376,8 @@ static void write_profile(const Params& p, Global& g) {
     write_header(out, p, g, "stress_profile (promedio en fase)");
     out << "# y n phi vx vy sxx sxy syx syy snxx snxy snyx snyy "
            "stxx stxy styx styy kxx kxy kyy "
-           "e_sxx e_sxy e_syx e_syy e_snxx e_snxy e_snyx e_snyy\n";
+           "e_sxx e_sxy e_syx e_syy e_snxx e_snxy e_snyx e_snyy "
+           "e_kxx e_kxy e_kyy\n";
     out << std::scientific << std::setprecision(6);
     const double a_bin = 2.0 * p.half_width * p.dy;
     for (int ib = 0; ib < p.n_bins; ++ib) {
@@ -369,19 +410,27 @@ static void write_profile(const Params& p, Global& g) {
                         means.push_back((part == 0 ? vb[ib].As[k] : vb[ib].Asn[k])
                                         / vb[ib].A);
                 }
-                double e = kNaN;
-                if (means.size() >= 2) {
-                    double mu = 0.0;
-                    for (double v : means) mu += v;
-                    mu /= means.size();
-                    double var = 0.0;
-                    for (double v : means) var += (v - mu) * (v - mu);
-                    var /= (means.size() - 1);
-                    e = std::sqrt(var / means.size());
-                }
-                write_value(out, e);
+                write_value(out, block_error(means));
             }
         }
+        // Parte cinética: fluctuaciones de cada bloque respecto de la media
+        // global <v>(y, fase) de su bin de fase:
+        //   sum m v'_i v'_j = mvv_ij - mv_i u_j - u_i mv_j + m u_i u_j
+        std::vector<double> kmeans[3];
+        for (const auto& [blk, vb] : g.blocks) {
+            if (vb[ib].A <= 0.0) continue;
+            double f[3] = {0.0, 0.0, 0.0};
+            for (const KinPhase& kp : vb[ib].kin) {
+                const Acc& a = g.acc[kp.ph][ib];
+                const double u[2] = {a.mv[0] / a.m, a.mv[1] / a.m};
+                f[0] += kp.mvv[0] - 2.0 * kp.mv[0] * u[0] + kp.m * u[0] * u[0];
+                f[1] += kp.mvv[1] - kp.mv[0] * u[1] - u[0] * kp.mv[1]
+                        + kp.m * u[0] * u[1];
+                f[2] += kp.mvv[2] - 2.0 * kp.mv[1] * u[1] + kp.m * u[1] * u[1];
+            }
+            for (int k = 0; k < 3; ++k) kmeans[k].push_back(-f[k] / vb[ib].A);
+        }
+        for (int k = 0; k < 3; ++k) write_value(out, block_error(kmeans[k]));
         out << "\n";
     }
 }

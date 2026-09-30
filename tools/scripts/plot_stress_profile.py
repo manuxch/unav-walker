@@ -15,7 +15,8 @@ en función de la altura y:
     (f) parte cinética: -kyy (línea) y -kxx (trazos)
 
 Las bandas sombreadas son el error estándar por bloques de un período
-(para p se combinan los errores de sxx y syy sin covarianza). Signos: el
+(para p se combinan los errores de sxx y syy sin covarianza; en (f), las
+de -kyy y -kxx). Signos: el
 estrés es negativo en compresión, por eso se grafican -sxx, -syy y p.
 
 Por defecto las unidades son las experimentales (y en cm con el eje
@@ -126,8 +127,12 @@ def main():
         ax[3].plot(y, d["syx"], "--", color=c, lw=1.2)
         ax[4].plot(y, d["stxy"], "-", color=c, lw=1.5)
         ax[4].plot(y, d["styx"], "--", color=c, lw=1.2)
-        ax[5].plot(y, -d["kyy"], "-", color=c, lw=1.5)
+        # Las salidas anteriores a los errores de k no tienen e_k*
+        banda(ax[5], y, -d["kyy"], d.get("e_kyy"), c)
         ax[5].plot(y, -d["kxx"], "--", color=c, lw=1.2)
+        if d.get("e_kxx") is not None:
+            ax[5].fill_between(y, -d["kxx"] - d["e_kxx"], -d["kxx"] + d["e_kxx"],
+                               color=c, alpha=0.15, lw=0)
 
     for a, t in zip(ax, titulos):
         a.set_title(t, fontsize=11)
