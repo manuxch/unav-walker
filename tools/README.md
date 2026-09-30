@@ -132,22 +132,22 @@ La dinámica se visualiza renderizando los `.xy` con `granular_render`.
 
 ```bash
 # Velocidad vertical media en la franja |x| <= D/2, bines de un diámetro
-$B/vel_profile frames_walker frm 1.5 30 0 30 perfil-ve-30.dat
+$B/vel_profile frames_walker frm 1.5 30 0 30 perfil-ve-03.dat
 
 # Fuerzas de contacto (Fn y |Ft| en archivos separados, para plot-fuerzas.py),
 # sin contactos con paredes ni contactos inactivos
-$B/force_profile frames_walker frm 1.5 30 0 30 perfil-fn-30.dat --qty norm --no-walls --active-only
-$B/force_profile frames_walker frm 1.5 30 0 30 perfil-ft-30.dat --qty tan  --no-walls --active-only
+$B/force_profile frames_walker frm 1.5 30 0 30 perfil-fn-03.dat --qty norm --no-walls --active-only
+$B/force_profile frames_walker frm 1.5 30 0 30 perfil-ft-03.dat --qty tan  --no-walls --active-only
 
 # Todas las cantidades de fuerza en un solo archivo
-$B/force_profile frames_walker frm 1.5 30 0 30 fuerzas-D30.dat --qty norm tan fmag fx fy --no-walls --active-only
+$B/force_profile frames_walker frm 1.5 30 0 30 fuerzas-D03.dat --qty norm tan fmag fx fy --no-walls --active-only
 
 # Tensor de estrés en la franja, promediado y resuelto en fase
-$B/stress_profile frames_walker frm -o estres-D30.dat --half-width 1.5 --y-max 30 \
-    --freq 0.45175395 --phase-output estres-fase-D30.dat
+$B/stress_profile frames_walker frm -o estres-D03.dat --half-width 1.5 --y-max 30 \
+    --freq 0.45175395 --phase-output estres-fase-D03.dat
 
 # Mapa 2D de fuerzas de contacto en todo el silo (bines de un diámetro)
-$B/force_map2d frames_walker frm 20 30 mapa-D30.dat --xmin -10 --xmax 10 --ymin 0 --ymax 30 \
+$B/force_map2d frames_walker frm 20 30 mapa-D03.dat --xmin -10 --xmax 10 --ymin 0 --ymax 30 \
     --no-walls --active-only
 ```
 
@@ -157,24 +157,24 @@ $B/force_map2d frames_walker frm 20 30 mapa-D30.dat --xmin -10 --xmax 10 --ymin 
 S=/ruta/a/unav-walker/tools/scripts
 python3 $S/plot-perfil.py                     # lee perfil-ve-*.dat  -> perfiles-vy.pdf
 python3 $S/plot-fuerzas.py                    # lee perfil-fn-*.dat y perfil-ft-*.dat -> perfiles-fn-ft.pdf
-python3 $S/plot-mapa-fuerzas.py mapa-D30.dat -o mapa-D30.pdf
+python3 $S/plot-mapa-fuerzas.py mapa-D03.dat -o mapa-D03.pdf
 python3 $S/plot_stress_profile.py estres-D*.dat -o estres.pdf
 ```
 
 ### 5. Varios anchos de orificio
 
 `plot-perfil.py` y `plot-fuerzas.py` grafican todos los archivos del
-directorio actual y toman `D` del nombre, en décimas de diámetro:
-`perfil-fn-30.dat` corresponde a `D = 3.0 d` y `perfil-fn-40.dat` a
-`D = 4.0 d` (no `-04`, que sería `D = 0.4 d`). Los archivos cuyo sufijo no
-es un número entero se ignoran con un aviso. Un lazo típico, con una
+directorio actual y toman `D` del nombre, en diámetros y con dos
+dígitos: `perfil-fn-03.dat` corresponde a `D = 3 d` y `perfil-fn-12.dat`
+a `D = 12 d`. Por ahora solo se admiten valores enteros de `D`; los
+archivos cuyo sufijo no es un número entero se ignoran con un aviso. Un lazo típico, con una
 corrida por `D` en `corrida_D<D>/`:
 
 ```bash
 for D in 2 3 5 8 12 18; do
   W=$(awk "BEGIN {print $D / 2}")            # semiancho de la franja
   dir=corrida_D$D/frames_walker
-  tag=$((D * 10))
+  tag=$(printf %02d $D)
   $B/vel_profile   $dir frm $W 30 0 30 perfil-ve-$tag.dat
   $B/force_profile $dir frm $W 30 0 30 perfil-fn-$tag.dat --qty norm --no-walls --active-only
   $B/force_profile $dir frm $W 30 0 30 perfil-ft-$tag.dat --qty tan  --no-walls --active-only
@@ -353,10 +353,11 @@ fuerzas en N; estrés 2D en N/m.
 python3 tools/scripts/plot-perfil.py
 ```
 
-Lee todos los `perfil-ve-<NN>.dat`, con `NN` = 10 D, del directorio
-actual (salidas de `vel_profile` con la cantidad `vy`) y grafica `<v_y>`
-(cm/s) en función de `y` (cm), una curva por `D`, en `perfiles-vy.pdf`. La escala de colores
-está fijada para `D` entre 4 y 20 diámetros.
+Lee todos los `perfil-ve-<NN>.dat`, con `NN` = D en dos dígitos, del
+directorio actual (salidas de `vel_profile` con la cantidad `vy`) y
+grafica `<v_y>` (cm/s) en función de `y` (cm), una curva por `D`, en
+`perfiles-vy.pdf`. La escala de colores está fijada para `D` entre 2 y 20
+diámetros.
 
 ### plot-fuerzas.py
 
@@ -364,7 +365,7 @@ está fijada para `D` entre 4 y 20 diámetros.
 python3 tools/scripts/plot-fuerzas.py
 ```
 
-Lee todos los `perfil-fn-<NN>.dat`, con `NN` = 10 D (salidas de
+Lee todos los `perfil-fn-<NN>.dat`, con `NN` = D (salidas de
 `force_profile --qty norm`), y `perfil-ft-<NN>.dat` (`--qty tan`) del
 directorio actual. Grafica `<f_N>` y `<|f_T|>` (N) en función de `y` (cm),
 en dos paneles, en `perfiles-fn-ft.pdf`. Usa las dos primeras columnas de cada archivo, así
@@ -386,7 +387,7 @@ con `.pdf`.
 ### plot_stress_profile.py
 
 ```bash
-python3 tools/scripts/plot_stress_profile.py estres-D30.dat estres-D50.dat -o estres.pdf \
+python3 tools/scripts/plot_stress_profile.py estres-D03.dat estres-D05.dat -o estres.pdf \
     [--etiquetas "D = 3d" "D = 5d"] [--sim] [--continuo] [--sin-tex]
 ```
 

@@ -11,16 +11,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import unidades  # factores de conversión (utils/reduced_units.ods)
 def archivos_por_D(patron):
-    """Pares (10 D, archivo) de los archivos que cumplen el patrón glob.
+    """Pares (D, archivo) de los archivos que cumplen el patrón glob.
 
-    El sufijo numérico del nombre es 10 D (perfil-fn-30.dat -> D = 3.0 d).
+    El sufijo numérico del nombre es D en diámetros (perfil-fn-03.dat -> D = 3 d).
     Los archivos con otro sufijo se saltean con un aviso.
     """
     pares = []
     for f in sorted(glob.glob(patron)):
         m = re.fullmatch(r'.*-(\d+)\.dat', f)
         if m is None:
-            print(f"aviso: {f} ignorado (el sufijo no es 10 D)", file=sys.stderr)
+            print(f"aviso: {f} ignorado (el sufijo no es D)", file=sys.stderr)
             continue
         pares.append((int(m.group(1)), f))
     return pares
@@ -37,7 +37,7 @@ plt.rcParams.update({
     'ytick.labelsize': 14
 })
 
-norm = colors.Normalize(vmin=40, vmax=200)
+norm = colors.Normalize(vmin=2, vmax=20)
 cmap = mpl.colormaps['plasma']
 
 files = archivos_por_D("perfil-ve-*.dat")
@@ -49,7 +49,7 @@ for d, f in files:
     v_y = unidades.vy_a_cm_s(v_y)
     print(f"D = {d:3d} - max vy = {np.nanmax(v_y):.3f} - vf = {v_y[0]:.3f}")
     c = cmap(norm(d))
-    plt.plot(y, v_y, '.-', color=c, label=fr"$D = {d/10} \, d$", alpha=alfa)  # vy vs y
+    plt.plot(y, v_y, '.-', color=c, label=fr"$D = {d} \, d$", alpha=alfa)  # vy vs y
 
 # plt.plot(data[:, 1], data[:, 0])  # vy vs y
 plt.ylabel(r'$\langle v_y \rangle$ (cm/s)');
