@@ -1,0 +1,538 @@
+% Cálculo del tensor de estrés en unav-walkers: simulación y procesamiento.
+% Compilar con: latexmk -pdf estres.tex
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noshorthands,es-tabla]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\vect}[1]{\mathbf{#1}}
+\newcommand{\n}{\vect{n}}
+\newcommand{\tv}{\vect{t}}
+\newcommand{\lv}{\vect{l}}
+\newcommand{\f}{\vect{f}}
+\newcommand{\vv}{\vect{v}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\ave}[1]{\langle #1 \rangle}
+
+\title{Tensor de estrés en \code{unav-walkers}:\\
+  cálculo en la simulación y procesamiento posterior}
+\author{Manuel Carlevaro}
+\date{Versión del código: simulador 3.3, \code{stress\_profile} con errores
+  de la parte cinética}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  Este documento describe todo el cálculo relacionado con el tensor de
+  estrés: cómo se reconstruyen las fuerzas de contacto a partir de los
+  impulsos de Box2D, cómo el simulador arma el tensor de cada grano y lo
+  escribe en los archivos \code{.sxy}, cómo \code{stress\_profile} los
+  promedia en una franja vertical para obtener perfiles en $y$ (parte de
+  contacto, normal, tangencial y cinética, con sus errores) y cómo
+  \code{plot\_stress\_profile.py} los convierte a unidades experimentales.
+  Cada fórmula remite a la función del código que la implementa.
+\end{abstract}
+
+\tableofcontents
+
+% ---------------------------------------------------------------------------
+\section{Flujo de datos}
+
+\begin{center}
+\small
+\begin{tabular}{>{\raggedright}p{0.22\textwidth}>{\raggedright}p{0.3\textwidth}p{0.36\textwidth}}
+  \toprule
+  Etapa & Código & Resultado \\
+  \midrule
+  Fuerzas de contacto & \code{contact\_point\_force} (\code{src/contacts.cpp})
+      & $F_n$, $F_t$, $\n$, $\tv$ en cada punto de contacto \\
+  Tensor por grano & \code{save\_stress} (\code{src/output.cpp})
+      & \code{<pre>\_<frame>.sxy}: $s$, $s^n$, posición, velocidad \\
+  Perfiles en $y$ & \code{tools/stress\_profile.cpp}
+      & $s$, $s^n$, $s^t$, $k$, $\phi$, errores por bloques \\
+  Gráficos & \code{plot\_stress\_profile.py} y \code{unidades.py}
+      (en \code{tools/scripts/}) & seis paneles en unidades experimentales \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+% ---------------------------------------------------------------------------
+\section{Convenciones}
+
+\paragraph{Unidades.} La simulación usa unidades reducidas: el diámetro
+$d$ de los discos, su masa $m$ y el tiempo $\sqrt{d/g}$ valen 1. La
+fuerza se mide en $mg$ y el estrés bidimensional (fuerza por unidad de
+longitud) en $mg/d$. La conversión a las unidades del experimento está en
+la sección~\ref{sec:unidades}.
+
+\paragraph{Signo.} El estrés es \emph{negativo en compresión}. En un
+empaquetamiento comprimido, $s_{xx}$ y $s_{yy}$ son negativos; por eso se
+grafican $-s_{xx}$, $-s_{yy}$ y la presión $p = -(s_{xx}+s_{yy})/2$.
+
+\paragraph{Orden de los índices.} En todo el código,
+\begin{equation}
+  s_{ij} \propto \sum f_i \, l_j ,
+\end{equation}
+con el primer índice en la fuerza $\f$ y el segundo en el brazo $\lv$. El
+orden solo importa para la parte antisimétrica (sección~\ref{sec:antisim}). Las
+componentes se escriben en el orden \code{xx xy yx yy}.
+
+\paragraph{Ejes.} El silo ocupa $|x| \le R$, $0 \le y \le H$, con el
+orificio en $y = 0$, $|x| \le r$. El eje $y$ de la simulación es opuesto
+al de los experimentos.
+
+% ---------------------------------------------------------------------------
+\section{Fuerzas de contacto a partir de Box2D}
+\label{sec:fuerzas}
+
+Box2D (versión 2.4.2) resuelve los contactos con impulsos. En cada paso
+de tiempo $\Delta t$, el solver de velocidades acumula en cada punto del
+manifold un impulso normal $\lambda_n \ge 0$ y uno tangencial
+$\lambda_t$, con $|\lambda_t| \le \mu \lambda_n$. La fuerza media durante
+el paso es
+\begin{equation}
+  F_n = \frac{\lambda_n}{\Delta t}, \qquad
+  F_t = \frac{\lambda_t}{\Delta t}.
+\end{equation}
+
+\paragraph{Normal y tangente.} La normal $\n$ del contacto apunta del
+cuerpo A al cuerpo B. La tangente es la que usa \code{b2ContactSolver}:
+\begin{equation}
+  \tv = \code{b2Cross}(\n, 1) = (n_y, -n_x).
+\end{equation}
+La fuerza sobre B es
+\begin{equation}
+  \f_B = F_n \, \n + F_t \, \tv , \qquad \f_A = -\f_B .
+  \label{eq:fuerza}
+\end{equation}
+Esta convención está centralizada en \code{contact\_point\_force}; todas
+las salidas y los diagnósticos la usan. Se validó con el balance de
+impulso de cada grano entre dos pasos: el residuo relativo es $\sim
+10^{-5}$ (lineal) y $\sim 10^{-6}$ (angular), contra $\sim 0.1$ con la
+tangente invertida.
+
+\paragraph{Punto de contacto.} Para dos discos, Box2D ubica el punto de
+contacto en el punto medio entre las superficies, sobre la línea de los
+centros. Si $\delta$ es la superposición, el brazo desde el centro de cada
+disco es
+\begin{equation}
+  \lv_A = +\rho_A \, \n, \qquad \lv_B = -\rho_B \, \n, \qquad
+  \rho = R - \delta/2 .
+  \label{eq:brazo}
+\end{equation}
+Lo mismo vale para un disco contra una pared (cadena o segmento): el punto
+está sobre la normal que pasa por el centro del disco. En los dos casos,
+$\lv \parallel \n$. Esta propiedad, exacta para discos, es la que da las
+identidades de la sección~\ref{sec:propiedades}.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.6,>=stealth]
+  \draw[thick] (0,0) circle (1);
+  \draw[thick] (1.9,0) circle (1);
+  \fill (0,0) circle (0.03) node[left] {A};
+  \fill (1.9,0) circle (0.03) node[right] {B};
+  \draw[->,gray] (0,0) -- (0.93,0);
+  \node[gray,below] at (0.45,0) {$\lv_A$};
+  \draw[->,gray] (1.9,0) -- (0.97,0);
+  \node[gray,below] at (1.45,0) {$\lv_B$};
+  \fill (0.95,0) circle (0.035);
+  \draw[->,very thick,blue] (0.95,0.07) -- (1.6,0.07) node[above] {$\n$};
+  \draw[->,very thick,red] (0.95,0) -- (0.95,-0.65) node[below] {$\tv$};
+  \node[align=left,font=\small] at (4.6,0)
+    {$\n$: de A hacia B\\ $\tv = (n_y, -n_x)$\\ $\f_B = F_n\n + F_t\tv$};
+\end{tikzpicture}
+\end{center}
+
+\paragraph{Qué no incluyen las fuerzas.}
+\begin{itemize}
+  \item \emph{Impulsos de tiempo de impacto (TOI).} Box2D no los guarda en
+    los manifolds. Por eso \code{continuous\_physics} está desactivado por
+    defecto: con TOI activo, las fuerzas registradas quedarían incompletas.
+  \item \emph{Corrección de posición.} Las iteraciones de posición mueven
+    los cuerpos para reducir la superposición sin transferir impulso; no
+    aportan a $\lambda_n$ ni a $\lambda_t$.
+\end{itemize}
+
+\paragraph{Coeficientes.} Box2D combina la fricción de dos cuerpos como
+$\mu = \sqrt{\mu_1 \mu_2}$ y la restitución como $\max(e_1, e_2)$.
+
+\paragraph{Instante de la medición.} En cada iteración del lazo principal
+(\code{src/main.cpp}) primero se aplica la fricción de la base y se
+escriben las salidas, y después se llama a \code{Step}. Un archivo con
+tiempo $t$ contiene las posiciones y velocidades al final del paso
+anterior y los impulsos de ese paso, es decir, las fuerzas medias en
+$[t - \Delta t, t]$.
+
+% ---------------------------------------------------------------------------
+\section{La base vibrada}
+\label{sec:base}
+
+Los discos se apoyan sobre una base horizontal que vibra en la dirección
+$y$ del silo. La gravedad no actúa en el plano: solo fija la carga normal
+$N = mg$ sobre la base. La aceleración de la base es
+\begin{equation}
+  a(t) = \Gamma g \left[ \rho \sin(\omega t) + (1-\rho) \sin(2 \omega t +
+  \varphi) \right], \qquad \omega = 2 \pi f ,
+\end{equation}
+y la base se mueve con $-y(t)$ en coordenadas del silo. La fase que se
+registra en la cabecera de cada archivo es $\omega t \bmod 2\pi$.
+
+La base ejerce sobre cada grano (\code{src/base\_friction.cpp}):
+\begin{itemize}
+  \item una fuerza de fricción de Karnopp, aplicada en el centro, que
+    depende de la velocidad relativa a la base, con adherencia hasta
+    $\mu_s N$ y deslizamiento con $\mu_d N$;
+  \item un torque de pivoteo de Coulomb que se opone al giro, con límite
+    estático $\frac{2}{3} \mu_s N R$ y valor dinámico
+    $\tau_\text{piv} = -\frac{2}{3} \mu_d N R \, \operatorname{sign}\omega$.
+\end{itemize}
+Estas fuerzas \emph{no} entran en el tensor de estrés, que se calcula solo
+con los contactos. El torque de pivoteo, sin embargo, deja una huella en
+su parte antisimétrica (sección~\ref{sec:antisim}).
+
+% ---------------------------------------------------------------------------
+\section{Tensor de estrés de cada grano}
+\label{sec:grano}
+
+\subsection{Definición}
+
+Para cada grano $p$, \code{save\_stress} suma sobre todos sus puntos de
+contacto $c$, con otros granos y con las paredes:
+\begin{equation}
+  s^{(p)}_{ij} = \frac{1}{A_p} \sum_{c} f^{(c)}_i \, l^{(c)}_j ,
+  \qquad
+  s^{n(p)}_{ij} = \frac{1}{A_p} \sum_{c} f^{n(c)}_i \, l^{(c)}_j ,
+  \label{eq:love}
+\end{equation}
+donde $\f^{(c)}$ es la fuerza de contacto sobre el grano según
+\eqref{eq:fuerza} (con el signo que corresponde a A o a B), $\lv^{(c)}$
+es el vector del centro de masa del grano al punto de contacto y
+$A_p = \pi R_p^2$ es el \emph{área del propio grano} (no una celda de
+Voronoi). $s^n$ usa solo la parte normal de la fuerza,
+$\f^{n} = \pm F_n \n$ (con el signo de \eqref{eq:fuerza}). La parte tangencial no se escribe: es $s^t = s - s^n$.
+
+\paragraph{Por qué el área del grano.} Con esta normalización, $s^{(p)}$
+es el estrés medio \emph{sobre el grano}. El estrés medio en una región
+se obtiene multiplicando por la fracción de área (sección~\ref{sec:phi}).
+
+\paragraph{Relación con el estrés de Cauchy.} Para un cuerpo rígido, el
+teorema de la divergencia da
+\begin{equation}
+  \int_{A_p} \sigma_{ij} \, dA
+  = \sum_c f^{(c)}_i l^{(c)}_j
+  + \int_{A_p} b_i \, r_j \, dA
+  - \int_{A_p} \rho_m \, a_i \, r_j \, dA ,
+\end{equation}
+con $\vect{b}$ la fuerza de la base por unidad de área, $\vect{r}$ la
+posición respecto del centro y $\vect{a}$ la aceleración local. La
+fricción de Karnopp es una tracción uniforme y no aporta al primer
+momento; el pivoteo y la aceleración angular sí, pero solo a la parte
+antisimétrica, y la aceleración centrípeta aporta un término isótropo del
+orden de $\omega^2 I$, despreciable. Así, $s^{(p)}$ es el estrés medio de
+Cauchy del grano (fórmula de Love) salvo por la parte antisimétrica, que
+se analiza en la sección~\ref{sec:antisim}.
+
+\subsection{Formas explícitas para discos}
+\label{sec:propiedades}
+
+Con \eqref{eq:fuerza} y \eqref{eq:brazo}, los signos de A y de B se
+compensan y se obtiene la misma expresión para los dos cuerpos del
+contacto:
+\begin{align}
+  A_p \, s^{n(p)} &= -\sum_c \rho_c F^{(c)}_n \; \n^{(c)} \otimes \n^{(c)} ,
+  \label{eq:sn} \\
+  A_p \, s^{t(p)} &= -\sum_c \rho_c F^{(c)}_t \; \tv^{(c)} \otimes \n^{(c)} .
+  \label{eq:st}
+\end{align}
+De aquí salen tres propiedades.
+
+\paragraph{1. La parte normal es simétrica.} $\n \otimes \n$ es simétrico,
+así que $s^n_{xy} = s^n_{yx}$.
+
+\paragraph{2. La parte tangencial tiene traza nula.} Como $\tv \cdot \n =
+0$, $s^t_{xx} + s^t_{yy} = 0$. La fricción entre granos \emph{no aporta a
+la presión}; solo aporta al desviador. La presión del grano es
+\begin{equation}
+  p^{(p)} = -\tfrac{1}{2}\left(s^{(p)}_{xx} + s^{(p)}_{yy}\right)
+  = \frac{1}{2 A_p} \sum_c \rho_c F^{(c)}_n
+  \simeq \frac{1}{2 \pi R_p} \sum_c F^{(c)}_n ,
+\end{equation}
+la suma de las fuerzas normales por unidad de perímetro (a menos de la
+corrección $\delta / 2R$ en $\rho$).
+
+\paragraph{3. La parte antisimétrica es el torque de contacto.}
+\label{sec:antisim}
+Con $\n \times \tv = n_x t_y - n_y t_x = -1$,
+\begin{equation}
+  s^{(p)}_{yx} - s^{(p)}_{xy} = s^{t(p)}_{yx} - s^{t(p)}_{xy}
+  = \frac{1}{A_p} \sum_c \rho_c F^{(c)}_t
+  = \frac{\tau^{(p)}_\text{c}}{A_p} ,
+  \label{eq:torque}
+\end{equation}
+donde $\tau_\text{c} = \sum_c (l_x f_y - l_y f_x)$ es el torque de los
+contactos respecto del centro. La ecuación de rotación del grano es
+$I \dot\omega = \tau_\text{c} + \tau_\text{piv}$. En el promedio temporal
+en estado estacionario, $\ave{I\dot\omega} \approx 0$ y
+\begin{equation}
+  \ave{s^t_{yx} - s^t_{xy}} \approx -\frac{\ave{\tau_\text{piv}}}{A_p} .
+\end{equation}
+La diferencia entre las curvas de $s^t_{xy}$ y $s^t_{yx}$ mide el torque
+que los contactos transmiten a los granos y que la base disipa por
+pivoteo. No es un error numérico. Sin fricción con la base, el tensor
+sería simétrico en promedio.
+
+La parte simétrica de $s^t$,
+$-\frac{1}{2A_p} \sum_c \rho_c F_t (\tv \otimes \n + \n \otimes \tv)$, es
+un corte puro con ejes principales a $45^\circ$ de cada normal: es el
+aporte de la fricción al corte y a la diferencia de esfuerzos normales.
+
+\paragraph{Verificación.} En la corrida de prueba (\code{frm-04}, una muestra de
+34 frames con 13\,600 pares grano-frame), $\max|s^t_{xx} + s^t_{yy}|$ y $\max|s^n_{xy} -
+s^n_{yx}|$ son del orden de $10^{-5}$, la precisión con que se escribe el
+archivo (seis cifras, con $\max|s| \approx 50$).
+
+\subsection{El archivo \code{.sxy}}
+
+Se escribe cada \code{save\_tensors\_freq} pasos. Cada línea corresponde a
+un grano:
+\begin{center}
+  \code{gID sxx sxy syx syy snxx snxy snyx snyy x y r m vx vy w z\_gg z\_gw}
+\end{center}
+con posición, radio, masa, velocidad lineal y angular, y los números de
+puntos de contacto activos ($F_n > 0$) con granos (\code{z\_gg}) y con
+paredes (\code{z\_gw}). La cabecera registra \code{nStep}, \code{n\_frame},
+$t$, $\Delta t$, la fase $\omega t \bmod 2\pi$, el commit de git, el
+archivo de parámetros y su hash. Con \code{save\_roi\_only: T} se escriben
+solo los granos del rectángulo $|x| \le x_\text{roi}$,
+$y_\text{min,roi} \le y \le y_\text{max,roi}$; sus tensores incluyen
+todos sus contactos, también con granos fuera del rectángulo.
+
+% ---------------------------------------------------------------------------
+\section{Perfiles en \texorpdfstring{$y$}{y}: \code{stress\_profile}}
+\label{sec:perfiles}
+
+\subsection{Selección y bines}
+
+Se usan los granos con centro en la franja $|x - x_c| \le W$ (en general
+$W = D/2 = r$) y $y_\text{min} \le y < y_\text{max}$, en bines de alto
+$\Delta y$ (por defecto, un diámetro). Cada frame con tiempo $t$ en
+$[t_\text{min}, t_\text{max}]$ se asigna a:
+\begin{itemize}
+  \item un \emph{bin de fase} $\varphi = \lfloor P \, \theta / 2\pi
+    \rfloor$, con $\theta$ la fase de la cabecera y $P$ el número de bines
+    de fase (\code{-{}-phase-bins}, por defecto 20);
+  \item un \emph{bloque} $b = \lfloor f t \rfloor$, un período de la
+    excitación, para los errores.
+\end{itemize}
+El programa verifica que $\theta$ coincida con $2\pi f t \bmod 2\pi$ (con
+la $f$ de \code{-{}-freq}) y que todos los archivos provengan del mismo
+commit y del mismo archivo de parámetros.
+
+Sea $\mathcal{B}$ el conjunto de pares grano-frame $(p, \text{frame})$ de
+un bin de $y$, y $N_f$ el número de frames usados.
+
+\subsection{Parte de contacto}
+
+Promedio pesado por el área de los granos:
+\begin{equation}
+  s_{ij} = \frac{\sum_{\mathcal{B}} A_p \, s^{(p)}_{ij}}
+                {\sum_{\mathcal{B}} A_p},
+  \qquad
+  s^n_{ij} = \frac{\sum_{\mathcal{B}} A_p \, s^{n(p)}_{ij}}
+                  {\sum_{\mathcal{B}} A_p},
+  \qquad
+  s^t = s - s^n .
+\end{equation}
+Con granos de un solo tamaño, es el promedio simple. Por la
+sección~\ref{sec:propiedades}, $s^n$ es simétrico, $s^t$ tiene traza nula y
+$s_{yx} - s_{xy} = s^t_{yx} - s^t_{xy}$ es el torque medio de contacto por
+unidad de área.
+
+\subsection{Parte cinética}
+\label{sec:cinetica}
+
+El transporte de momento por las fluctuaciones de velocidad se escribe con
+la misma normalización, para que se sume a $s$:
+\begin{equation}
+  k_{ij} = -\frac{\sum_{\mathcal{B}} m_p \, v'_{p,i} v'_{p,j}}
+                 {\sum_{\mathcal{B}} A_p},
+  \qquad
+  \vv'_p = \vv_p - \vect{u}(y, \varphi),
+  \label{eq:k}
+\end{equation}
+con el signo menos por la convención de compresión negativa. La velocidad
+de referencia es la media pesada por masa en el bin de $y$ \emph{y en el
+bin de fase}:
+\begin{equation}
+  \vect{u}(y, \varphi) = \frac{\sum_{\mathcal{B}_\varphi} m_p \vv_p}
+                              {\sum_{\mathcal{B}_\varphi} m_p},
+\end{equation}
+donde $\mathcal{B}_\varphi \subset \mathcal{B}$ son los pares de los
+frames con bin de fase $\varphi$. Restar la media por $y$ quita el flujo
+medio de descarga; restar la media por fase quita el movimiento coherente
+con la oscilación de la base, que de otro modo contaría como agitación.
+Con \code{-{}-phase-bins 1}, la referencia es la media temporal.
+
+\paragraph{Cálculo en una pasada.} Por cada celda $(y, \varphi)$ se
+acumulan $M = \sum m$, $\vect{Q} = \sum m \vv$ y
+$S_{ij} = \sum m v_i v_j$. La suma de las fluctuaciones es
+\begin{equation}
+  \sum_{\mathcal{B}_\varphi} m \, v'_i v'_j = S_{ij} - \frac{Q_i Q_j}{M},
+\end{equation}
+y el numerador de \eqref{eq:k} es la suma sobre las $P$ fases
+(\code{Acc::fluct}).
+
+$k_{xx}$ y $k_{yy}$ son una temperatura granular traslacional por
+componente, en unidades de estrés; su diferencia indica la anisotropía de
+la agitación. La rotación no entra en $k$.
+
+\paragraph{Limitaciones.}
+\begin{itemize}
+  \item \emph{Gradientes dentro de la celda.} La referencia es la media en
+    toda la franja y en todo el bin de $y$. Si $\ave{v_y}$ varía con $x$
+    dentro de la franja, o con $y$ dentro del bin, esa variación se suma a
+    $k$ como falsa agitación. El efecto crece cerca del orificio, donde los
+    gradientes son mayores.
+  \item \emph{Celdas casi vacías.} Si una celda $(y, \varphi)$ tiene un
+    solo grano, $\vv' = 0$ y su aporte es nulo. En los bines con muy pocos
+    datos, $k \approx 0$ indica falta de datos, no agitación nula.
+\end{itemize}
+
+\subsection{Fracción de área y estrés medio del bin}
+\label{sec:phi}
+
+\begin{equation}
+  \phi = \frac{\sum_{\mathcal{B}} A_p}{A_\text{bin} \, N_f},
+  \qquad A_\text{bin} = 2W \, \Delta y .
+\end{equation}
+El estrés medio del bin (promedio sobre el área del bin, no sobre los
+granos) es
+\begin{equation}
+  \bar\sigma = \phi \, (s + k) .
+\end{equation}
+Como cada grano aporta toda su área aunque sobresalga del bin, $\phi$
+\emph{no} es una fracción de empaquetamiento física y en franjas angostas
+puede superar 1. Es el factor que convierte el estrés sobre los granos en
+el estrés medio del bin.
+
+\subsection{Errores por bloques}
+
+Los errores \code{e\_*} suponen que los promedios sobre períodos distintos
+son independientes. Para cada bloque $b$ se calcula la media del bloque
+con los mismos pesos:
+\begin{equation}
+  s^{[b]}_{ij} = \frac{\sum_{\mathcal{B} \cap b} A_p \, s^{(p)}_{ij}}
+                      {\sum_{\mathcal{B} \cap b} A_p},
+\end{equation}
+y lo mismo para $s^n$. Con $N_b$ bloques con datos, el error es el error
+estándar de la media:
+\begin{equation}
+  e = \sqrt{\frac{1}{N_b (N_b - 1)} \sum_b \left(s^{[b]} - \bar s\right)^2},
+  \qquad \bar s = \frac{1}{N_b} \sum_b s^{[b]} .
+\end{equation}
+
+\paragraph{Parte cinética.} Para que las medias por bloque estimen la
+misma cantidad que \eqref{eq:k}, las fluctuaciones de cada bloque se miden
+respecto de la \emph{misma} referencia global $\vect{u}(y, \varphi)$, no
+de una media del bloque (con unos 9 frames por período, esta sería muy
+ruidosa). Por cada bloque se guardan $M$, $\vect{Q}$ y $S$ de cada bin de
+fase que el bloque toca, y al final
+\begin{equation}
+  \sum_{\mathcal{B}_\varphi \cap b} m \, v'_i v'_j
+  = S^{[b]}_{ij} - Q^{[b]}_i u_j - u_i Q^{[b]}_j + M^{[b]} u_i u_j ,
+  \qquad
+  k^{[b]}_{ij} = -\frac{\sum_\varphi (\ldots)}{\sum_{\mathcal{B} \cap b} A_p},
+\end{equation}
+con $\vect{u} = \vect{u}(y, \varphi)$. El error de $k$ se calcula con las
+$k^{[b]}$ como el de $s$.
+
+\paragraph{Validez.} Con menos de unos 10 períodos, los errores son poco
+confiables. Si hay correlaciones entre períodos consecutivos, los errores
+se subestiman; se puede comprobar agrupando bloques más largos.
+
+\subsection{Salidas}
+
+Perfil promediado en fase (\code{-o}), una línea por bin de $y$:
+\begin{center}
+  \small\code{y n phi vx vy sxx sxy syx syy snxx snxy snyx snyy stxx stxy
+  styx styy kxx kxy kyy}\\
+  \small\code{e\_sxx e\_sxy e\_syx e\_syy e\_snxx e\_snxy e\_snyx e\_snyy
+  e\_kxx e\_kxy e\_kyy}
+\end{center}
+con \code{n} el número de pares grano-frame y \code{nan} en los bines sin
+datos. \code{vx}, \code{vy} son las velocidades medias pesadas por masa.
+
+Perfil resuelto en fase (\code{-{}-phase-output}): las mismas cantidades
+(sin $s^t$ ni errores) para cada bin de fase, con la fracción de área
+$\phi$ calculada con los frames de esa fase y $k$ con las fluctuaciones de
+la celda.
+
+% ---------------------------------------------------------------------------
+\section{Gráficos y unidades experimentales}
+\label{sec:unidades}
+
+\code{plot\_stress\_profile.py} lee las salidas por el nombre de las
+columnas y grafica seis paneles en función de $y$:
+\begin{center}
+\begin{tabular}{cl}
+  \toprule
+  Panel & Cantidad \\
+  \midrule
+  (a) & $p = -(s_{xx} + s_{yy})/2$, error $\frac{1}{2}\sqrt{e_{xx}^2 +
+        e_{yy}^2}$ (sin covarianza) \\
+  (b) & $-s_{yy}$ \\
+  (c) & $-s_{xx}$ \\
+  (d) & $s_{xy}$ (línea), $s_{yx}$ (trazos) \\
+  (e) & $s^t_{xy}$ (línea), $s^t_{yx}$ (trazos) \\
+  (f) & $-k_{yy}$ (línea), $-k_{xx}$ (trazos), con sus errores \\
+  \bottomrule
+\end{tabular}
+\end{center}
+Con \code{-{}-continuo}, el estrés y sus errores se multiplican por $\phi$
+(estrés medio del bin).
+
+\paragraph{Conversión} (\code{unidades.py}, valores de
+\code{utils/reduced\_units.ods}):
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  Magnitud & Unidad reducida & Valor \\
+  \midrule
+  longitud & $d$ & $0.005$ m \\
+  masa & $m$ & $2.10 \times 10^{-4}$ kg \\
+  tiempo & $\sqrt{d/g}$ & $0.0225877$ s \\
+  velocidad & $\sqrt{gd}$ & $0.221359$ m/s \\
+  fuerza & $mg$ & $0.002058$ N \\
+  estrés 2D & $mg/d$ & $0.4116$ N/m \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Inversión del eje $y$.} Al pasar a las coordenadas del
+experimento, $y \to -y$. Cambian de signo las cantidades con un único
+índice $y$: $v_y$ y las componentes cruzadas $xy$, $yx$ de $s$, $s^n$,
+$s^t$ y $k$. Las diagonales y los errores no cambian.
+
+% ---------------------------------------------------------------------------
+\section{Verificaciones}
+
+\begin{itemize}
+  \item Balance de impulso por grano (\code{check\_balance\_freq}):
+    residuo relativo $\sim 10^{-5}$ lineal y $\sim 10^{-6}$ angular sin
+    TOI; valida la convención de la tangente.
+  \item Identidades de discos (sección~\ref{sec:propiedades}): se cumplen a la
+    precisión de la salida.
+  \item \code{stress\_profile} contra una implementación independiente en
+    Python: diferencias relativas $\le 3 \times 10^{-7}$ en $s$, $s^n$,
+    $k$ y en los errores de $k$.
+\end{itemize}
+
+\end{document}

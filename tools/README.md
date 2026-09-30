@@ -302,7 +302,8 @@ bin/stress_profile <dir> <pre> -o <salida> --half-width W --y-max Y --freq F \
 | `--phase-output` | Escribe además el perfil resuelto en fase |
 
 **Definiciones.** Índices `xx xy yx yy`, con `s_ij = sum f_i l_j`; el signo
-es negativo en compresión.
+es negativo en compresión. La deducción completa, con las propiedades de
+las partes normal y tangencial, está en `docs/stress/estres.tex`.
 
 - Tensor de contacto: `s = sum_p A_p s_p / sum_p A_p`, promediado sobre el
   área de los granos. Es el estrés sobre los granos. Se da el total `s`,

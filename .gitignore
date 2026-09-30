@@ -350,3 +350,6 @@ src/doc/
 
 # Ejecutables compilados con CMake
 /bin/
+
+# PDF de la documentación en LaTeX (se compila desde el .tex)
+docs/stress/estres.pdf
