@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import glob 
+import glob
+import re
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -9,6 +10,21 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import unidades  # factores de conversión (utils/reduced_units.ods)
+def archivos_por_D(patron):
+    """Pares (10 D, archivo) de los archivos que cumplen el patrón glob.
+
+    El sufijo numérico del nombre es 10 D (perfil-fn-30.dat -> D = 3.0 d).
+    Los archivos con otro sufijo se saltean con un aviso.
+    """
+    pares = []
+    for f in sorted(glob.glob(patron)):
+        m = re.fullmatch(r'.*-(\d+)\.dat', f)
+        if m is None:
+            print(f"aviso: {f} ignorado (el sufijo no es 10 D)", file=sys.stderr)
+            continue
+        pares.append((int(m.group(1)), f))
+    return pares
+
 plt.rcParams.update({
     'text.usetex': True,
     'font.family': 'serif',
@@ -24,13 +40,10 @@ plt.rcParams.update({
 norm = colors.Normalize(vmin=40, vmax=200)
 cmap = mpl.colormaps['plasma']
 
-files = glob.glob("perfil-ve-*.dat")
-files.sort()
-print(files)
+files = archivos_por_D("perfil-ve-*.dat")
 alfa = 0.7
 
-for f in files:
-    d = int(f.split('-')[2].split('.')[0])
+for d, f in files:
     y, v_y = np.loadtxt(f, unpack=True, comments='#')
     y = unidades.y_a_cm(y)
     v_y = unidades.vy_a_cm_s(v_y)
