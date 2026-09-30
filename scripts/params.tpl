@@ -1,92 +1,114 @@
-# Input file for agdamper
-# Author: Manuel Carlevaro
-# Date: 2023.12.05 
+# Archivo de parámetros de unav-walkers (ejemplo). Ver README.md.
+# Formato: "clave: valor"; los comentarios empiezan con '#' o '//'.
+# Unidades reducidas: diámetro de grano d = 1 (radio 0.5), g = 1.
 #
-# Semilla del generador de números aleatorios
+# Semilla del generador de números aleatorios (la simulación es reproducible)
 rand_seed: 1729
 #
-# Parámetros de Box2D
-# Nota: Box2D utiliza el sistema métrico MKS
-#
-# Parámetros del contenedor
-# [altura_silo]: alto de la silo (dirección y)
-# [base_silo]: ancho de la silo (dirección x=
-# [friccion_silo]: coeficiente de fricción de la silo
-# [restitucion_silo]: coeficiente de restitución del silo
-# La rotación de los granos se amortigua por fricción de pivoteo con la base (fric_b_s, fric_b_d).
-#   Control de la excitación
-# [Amplitud_exitacion]: amplitud de la excitación armónica
-# [Frecuencia_exitacion]: frecuencia de la excitación armónica (Hz)
-# [K_resorte]: constante elástica del resorte
-# [resorte_L0]: longitud del resorte en reposo
-# [Viscosidad_amortiguador]: constante de amortiguación viscosa
-altura_silo: 40
-radio_silo: 7
-radio_out_silo: __rOut__
+# Contenedor (el silo ocupa |x| <= R, 0 <= y <= H; el orificio, |x| <= r en y = 0)
+# [altura_silo]: altura H
+# [radio_silo]: semiancho R
+# [radio_out_silo]: semiancho del orificio r (D = 2 r)
+# [restitucion_silo]: restitución de las paredes. Box2D combina restituciones
+#     con el máximo, así que domina la del grano si es mayor.
+# [friccion_silo]: fricción de las paredes. Box2D combina fricciones como
+#     sqrt(f_grano * f_silo): con f_silo = f_grano la fricción grano-pared es
+#     igual a la grano-grano.
+# Excitación de la base: a(t) = Gamma g [rho sin(w t) + (1 - rho) sin(2 w t + phi)]
+# [Amplitud_exitacion_gamma]: aceleración reducida Gamma
+# [Frecuencia_exitacion]: frecuencia f del primer armónico (w = 2 pi f)
+# [Cero_tol]: umbral de velocidad relativa para la adherencia a la base
+# [rho]: peso del primer armónico (0 < rho < 1)
+# [fase_phi]: fase del segundo armónico (opcional, por defecto 0)
+altura_silo: 60
+radio_silo: 19.3
+radio_out_silo: __radio__
 restitucion_silo: 0.1
-friccion_silo: 0.16  // = fricción grano-grano
-Amplitud_exitacion_gamma: 1.0
-Frecuencia_exitacion: 1.10656667
-Cero_tol: 0.0001  
+friccion_silo: 0.13
+Amplitud_exitacion_gamma: 1.7
+Frecuencia_exitacion: 0.45175395
+Cero_tol: 0.00001
 rho: 0.5
-fase_phi: 0.0
+fase_phi: 1.63
 
 # Granos
-#	[noTipoGranos]: cantidad de tipos de granos diferentes
-#	Por cada tipo de grano:
-#	[noGranos radio nLados dens fric fric_b_s fric_b_d rest ]
-#	(int double int double double double)
-#	Notas:
-#	    [noGranos]: Cantidad de granos de cada tipo
-#		[radio] = m 
-#		[nLados] = 1 es un disco, o 3 <= nLados <= 8
-#       [dens] = kg/m¹
-#		[fric]: Coeficiente de fricción grano-grano 0 <= fric 
-#		[fric_b_s]: Coeficiente de fricción estática del grano con la base 0 <= fric_s 
-#		[fric_b_d]: Coeficiente de fricción dinámica del grano con la base 0 <= fric_d 
-#		[rest]: Coeficiente de restitución grano-grano <= rest <= 1
+#	[noTipoGranos]: cantidad de tipos de granos, seguida de una línea por tipo:
+#	noGranos radio nLados dens fric fric_b_s fric_b_d rest
+#	    [noGranos]: cantidad de granos de ese tipo
+#	    [radio]: radio del disco
+#	    [nLados]: 1 (por ahora solo se admiten discos)
+#	    [dens]: densidad (masa por unidad de área); 1.273239545 = 4/pi da m = 1
+#	    [fric]: coeficiente de fricción grano-grano (>= 0)
+#	    [fric_b_s]: coeficiente de fricción estática con la base (>= fric_b_d)
+#	    [fric_b_d]: coeficiente de fricción dinámica con la base (>= 0)
+#	    [rest]: coeficiente de restitución grano-grano (0 <= rest <= 1)
 noTipoGranos: 1
-450 0.5 1 1.273239545 0.16 0.2 0.16 0.5 
-# Notas:
-#   - Radio de triángulo con = área que disco de r = 1: 0.777560
-#   - Radio de cuadrado con = área que disco de r = 1:  0.626657
+2000 0.5 1 1.273239545 0.13 0.14 0.13 0.5
 #
 # Control de la simulación
-# [timeStep]: Paso de integración del movimiento (en s)
-# [tMax]: Máximo tiempo de simulación (en s)
-# [tBlock]: Tiempo de simulación con bloqueo de salida (en s)
-# [pIter]: iteraciones de posicion para la satisfacción de restricciones
-# [vIter]: iteraciones de velocidad para la satisfacción de restricciones
-# [g]: Magnitud de la aceleración de la gravedad (hacia -y) kg m / s²
-# [n_periodos_medida]: Cantidad de ciclos para mediciones de fuerza, posición, etc.
-timeStep: 0.005 
+# [timeStep]: paso de integración dt
+# [tMax]: tiempo máximo de simulación
+# [tBlock]: tiempo con el orificio cerrado (deposición)
+# [t_Register]: comienzo de los registros
+# [maxGranosDesc]: detener al descargar este número de granos (opcional; 0 = no)
+# [pIter], [vIter]: iteraciones de posición y de velocidad del solver de Box2D
+# [g]: gravedad; solo fija la carga normal m g sobre la base
+# [do_reinyection]: T = reinyectar los granos descargados; F = eliminarlos
+timeStep: 0.005  // período T = 1/0.45175395 = 2.2136 -> 442.7 pasos por período
 tMax: 5000.0
-tBlock: 500.0
-t_Register: 4990.96  // tMax - 10 T, T = 1/1.10656667
-pIter: 30
-vIter: 30
+tBlock: 750.0
+t_Register: 4955.72  // tMax - 20 T
+maxGranosDesc: 0  // 0 = deshabilitado; >0 = detener cuando salgan N granos
+pIter: 60
+vIter: 60
 g: 1.0
 do_reinyection: T
+# [fondo_medicion]: T = silo cerrado con fondo de medición (gID=-200) y sin
+#     descarga; la fuerza sobre el fondo se guarda en cada paso en
+#     frames_<dirID>/wall_force_<preFrameFile>.dat. F = silo con orificio.
 fondo_medicion: F
-# [continuous_physics]: (opcional, por defecto F) T = detección continua de colisiones (TOI) y granos
-#     "bullet". Los impulsos de los subpasos TOI no quedan registrados en los
-#     contactos, así que las fuerzas guardadas quedan incompletas. Con
-#     dt = 0.005 el desplazamiento por paso es ~1e-3 << radio: no hace falta.
+# [continuous_physics]: (opcional, por defecto F) T = detección continua de
+#     colisiones (TOI) y granos "bullet". Los impulsos de los subpasos TOI no
+#     quedan registrados en los contactos, así que las fuerzas guardadas quedan
+#     incompletas. Con dt = 0.005 el desplazamiento por paso es ~1e-3 << radio.
 continuous_physics: F
 
-# Parámetros de registro
-# [dirID]: sufijo del nombre del directorio de guardado de frames
-# [preFrameFile]: prefijo del archivo de salida de frames
-# [saveFrameFreq]: Paso de guardado de los frames
+# Registros (frecuencias en pasos; 0 = deshabilitado). Los archivos se escriben
+# en frames_<dirID>/ y los de un mismo instante comparten el número de frame
+# (pasos desde t_Register).
+# [dirID]: sufijo del directorio de salida
+# [preFrameFile]: prefijo de los archivos de frames
+# [saveFrameFreq]: configuración (.xy)
+# [save_tensors_freq]: tensor de estrés por grano (.sxy)
+# [fluxFile]: archivo de granos descargados
+# [fluxFreq]: > 0 habilita el archivo de granos descargados
+# [packing_fraction_out_freq]: packing fraction en el bulk y en el orificio
+# [pf_file]: archivo del packing fraction
+# [freq_perfiles]: perfiles de ocupación y velocidad sobre el orificio
+# [n_bin_perfiles]: bines de esos perfiles
+# [freq_save_contacts]: fuerzas de contacto (fc_*.dat)
+# [save_ve_freq]: velocidades y energías (.ve)
+# [check_balance_freq]: chequeo de balance de impulso por grano
+#     (frames_<dirID>/balance_<preFrameFile>.dat)
 dirID: walker
-preFrameFile: frm
+preFrameFile: frm-__radioS__
 saveFrameFreq: 0
-fluxFile: flx-__C__.dat
+save_tensors_freq: 5
+fluxFile: flx-__radioS__.dat
 fluxFreq: 5
-# Registros de fuerzas y tensores (frecuencias en pasos; 0 = deshabilitado)
-freq_save_contacts: 0
-save_tensors_freq: 0
-save_ve_freq: 0
+packing_fraction_out_freq: 0
+pf_file: pf-__radioS__.dat
+freq_perfiles: 0
+n_bin_perfiles: 40
+freq_save_contacts: 5
+save_ve_freq: 5
 check_balance_freq: 0
-save_roi_only: F
 #
+# Región de interés (ROI) para las salidas por grano y por contacto
+# [save_roi_only]: F = se guarda todo el sistema; T = solo el rectángulo
+#     |x| <= x_roi, y_min_roi <= y <= y_max_roi (centros de los granos; para los
+#     contactos, todos los de los granos cuyo centro está en el ROI).
+save_roi_only: F
+x_roi: 2.0
+y_min_roi: -2.0
+y_max_roi: 2.0
