@@ -9,6 +9,7 @@ gráficos deben importarlos de aquí. Valores de utils/reduced_units.ods:
     velocidad  d / t = 0.221359436211787 m/s
     fuerza     m g = 0.002058 N
     estrés 2D  F / L = 0.4116 N/m
+    energía    m g d = 1.029e-5 J
 
 Coordenadas: el eje y de la simulación es opuesto al de los experimentos, y
 el origen está en el orificio. Al invertir y, cambian de signo las
@@ -26,6 +27,7 @@ TIEMPO = 0.0225876975726313  # s
 VELOCIDAD = LONGITUD / TIEMPO  # m/s
 FUERZA = MASA * LONGITUD / TIEMPO**2  # N (= m g)
 ESTRES_2D = FUERZA / LONGITUD  # N/m
+ENERGIA = FUERZA * LONGITUD  # J (= m g d)
 
 CM = 100.0  # m -> cm
 
@@ -48,6 +50,20 @@ def vx_a_cm_s(vx):
 def vy_a_cm_s(vy):
     """Velocidad v_y de la simulación a cm/s, con el eje invertido."""
     return -np.asarray(vy, dtype=float) * VELOCIDAD * CM
+
+
+def w_a_rad_s(w):
+    """Velocidad angular de la simulación a rad/s, con el eje y invertido.
+
+    Invertir y es una reflexión: cambia el sentido de giro, así que w cambia
+    de signo.
+    """
+    return -np.asarray(w, dtype=float) / TIEMPO
+
+
+def energia_a_J(e):
+    """Energía de la simulación a J."""
+    return np.asarray(e, dtype=float) * ENERGIA
 
 
 def fuerza_a_N(f):

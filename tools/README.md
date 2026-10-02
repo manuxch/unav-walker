@@ -20,7 +20,7 @@ descrito en [`../src/README.md`](../src/README.md).
 | `bin/force_profile` | `fc_<pre>_*.dat` | perfil en `y` | Fuerzas de contacto medias en una franja vertical |
 | `bin/force_map2d` | `fc_<pre>_*.dat` | mapa `(x, y)` | Fuerzas de contacto medias en todo el silo |
 | `bin/stress_profile` | `<pre>_*.sxy` | perfil en `y` (y por fase) | Tensor de estrés (contacto y cinético) en una franja vertical |
-| `scripts/plot-perfil.py` | salidas de `vel_profile` | `perfiles-vy.pdf` | Perfiles de `v_y` para varios `D` |
+| `scripts/plot-perfil.py` | salidas de `vel_profile` | `perfiles-<qty>.pdf` | Una figura por columna (`v_y`, `v_x`, ...), una curva por `D` |
 | `scripts/plot-fuerzas.py` | salidas de `force_profile` | `perfiles-fn-ft.pdf` | Perfiles de `Fn` y `\|Ft\|` para varios `D` |
 | `scripts/plot-mapa-fuerzas.py` | salida de `force_map2d` | figura | Mapas de `Fn` y `\|Ft\|` |
 | `scripts/plot_stress_profile.py` | salidas de `stress_profile` | figura | Perfiles del tensor de estrés para varios `D` |
@@ -155,7 +155,7 @@ $B/force_map2d frames_walker frm 20 30 mapa-D03.dat --xmin -10 --xmax 10 --ymin 
 
 ```bash
 S=/ruta/a/unav-walker/tools/scripts
-python3 $S/plot-perfil.py                     # lee perfil-ve-*.dat  -> perfiles-vy.pdf
+python3 $S/plot-perfil.py                     # lee perfil-ve-*.dat  -> perfiles-<qty>.pdf, una por columna
 python3 $S/plot-fuerzas.py                    # lee perfil-fn-*.dat y perfil-ft-*.dat -> perfiles-fn-ft.pdf
 python3 $S/plot-mapa-fuerzas.py mapa-D03.dat -o mapa-D03.pdf
 python3 $S/plot_stress_profile.py estres-D*.dat -o estres.pdf
@@ -222,8 +222,8 @@ bin/vel_profile <dir> <pre> <x_m> <n_bins> <y_min> <y_max> <salida> \
 
 Salida: `y_center qty1 qty2 ...`. Cada valor es la media sobre todos los
 pares grano-frame del bin. **Los bines vacíos valen 0.** `plot-perfil.py`
-espera exactamente dos columnas, así que para usarlo hay que correr con la
-cantidad por defecto (`vy`).
+identifica las columnas por su nombre en la cabecera y no grafica los
+bines con valor 0.
 
 ### force_profile
 
@@ -350,14 +350,37 @@ fuerzas en N; estrés 2D en N/m.
 ### plot-perfil.py
 
 ```bash
-python3 tools/scripts/plot-perfil.py
+python3 tools/scripts/plot-perfil.py [archivos ...] [--qty vy vx ...] \
+    [--etiqueta E] [--titulo T] [--sin-tex]
 ```
 
-Lee todos los `perfil-ve-<NN>.dat`, con `NN` = D en dos dígitos, del
-directorio actual (salidas de `vel_profile` con la cantidad `vy`) y
-grafica `<v_y>` (cm/s) en función de `y` (cm), una curva por `D`, en
-`perfiles-vy.pdf`. La escala de colores está fijada para `D` entre 2 y 20
-diámetros.
+Sin archivos, lee todos los `perfil-ve-<NN>.dat` del directorio actual, con
+`NN` = D en dos dígitos. Las columnas se identifican por la cabecera
+`# y_center vy vx ...` que escribe `vel_profile`. Por defecto hace **una
+figura por cada columna** presente en los archivos, con una curva por `D`
+en función de `y` (cm); `--qty` restringe a las cantidades pedidas. Un
+archivo que no tiene una columna no aparece en esa figura.
+
+El nombre de la columna fija la conversión, la etiqueta del eje, el título
+y el archivo de salida, `perfiles-<qty>.pdf`:
+
+| Columna | Unidades | Nota |
+|---|---|---|
+| `vy`, `vx`, `speed` | cm/s | `vy` cambia de signo (eje `y` invertido) |
+| `w` | rad/s | cambia de signo (la inversión de `y` es una reflexión) |
+| `Eklin`, `Ekrot` | J | |
+| otra | unidades de la simulación | con un aviso |
+
+- `--etiqueta E` agrega un sufijo: `perfiles-<qty>-E.pdf`.
+- `--titulo T` reemplaza el título de todas las figuras; `{qty}` se
+  reemplaza por el nombre de la cantidad.
+
+Los bines vacíos (valor 0 en la salida de `vel_profile`) no se grafican. La
+escala de colores está fijada para `D` entre 2 y 20 diámetros. Ejemplo:
+
+```bash
+python3 tools/scripts/plot-perfil.py --qty vy speed --etiqueta PRL --titulo 'Corrida PRL: {qty}'
+```
 
 ### plot-fuerzas.py
 
