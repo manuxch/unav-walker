@@ -1,7 +1,8 @@
 /*! \file test_reinjection.cpp
  * \brief Prueba de reinject_grains (discharge.hpp): los granos reinyectados
  * no se superponen con otros cuerpos, quedan con velocidad nula y dentro de
- * la franja de reinyección.
+ * la franja de reinyección, y no conservan la fuerza de la base que se les
+ * aplicó antes de reinyectarlos (después de un paso siguen en reposo).
  *
  * Uso: `test_reinjection archivo_de_parámetros` (H = 30, R = 10).
  */
@@ -68,6 +69,13 @@ int main(int argc, char *argv[]) {
     g->SetLinearVelocity(b2Vec2(0.3f, -2.0f));
     g->SetAngularVelocity(5.0f);
     world.Step(1e-6f, 1, 1); // actualiza el broadphase
+    // Fuerza y torque de la base, como en apply_base_friction
+    const b2Vec2 f_base(0.13f, -0.05f);
+    const float tau_base = 0.02f;
+    g->ApplyForceToCenter(f_base, true);
+    g->ApplyTorque(tau_base, true);
+    body_data(g)->f_base = f_base;
+    body_data(g)->tau_base = tau_base;
     reinject_grains(&world, gs, rng, true);
     if (!body_data(g)->is_in) continue; // sin lugar: se reintenta luego
     ++reinjected;
@@ -79,6 +87,18 @@ int main(int argc, char *argv[]) {
     bool ok = d_min >= 1.0f && g->GetLinearVelocity().Length() == 0.0f &&
               g->GetAngularVelocity() == 0.0f && p.y >= y_min && p.y <= y_max &&
               std::abs(p.x) <= x_max;
+    // Un paso: sin fuerza residual, el grano sigue en reposo
+    world.Step(0.005f, 8, 3);
+    const bool rest = g->GetLinearVelocity().Length() == 0.0f &&
+                      g->GetAngularVelocity() == 0.0f &&
+                      body_data(g)->f_base.Length() == 0.0f &&
+                      body_data(g)->tau_base == 0.0f;
+    if (!rest) {
+      ++fails;
+      std::printf("FALLA: fuerza residual tras la reinyección, |v| = %g, "
+                  "w = %g\n",
+                  g->GetLinearVelocity().Length(), g->GetAngularVelocity());
+    }
     if (!ok) {
       ++fails;
       std::printf("FALLA: d_min = %.4f, |v| = %.3f, w = %.3f, (x, y) = (%.2f, "

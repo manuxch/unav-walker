@@ -127,6 +127,13 @@ void reinject_grains(b2World *w, const GlobalSetup &gs, RNG &rng,
         b->SetLinearVelocity(b2Vec2(0.0f, 0.0f));
         b->SetAngularVelocity(0.0f);
         b->SetAwake(true);
+        // La fricción de la base de este paso ya se aplicó con el estado
+        // anterior del grano, y SetTransform no la borra: se cancela para
+        // que el grano reinyectado empiece en reposo y sin fuerza residual.
+        b->ApplyForceToCenter(-bd->f_base, false);
+        b->ApplyTorque(-bd->tau_base, false);
+        bd->f_base.SetZero();
+        bd->tau_base = 0.0f;
         bd->is_in = true;
       } else if (++n_fail % 1000 == 1) {
         std::cout << "# AVISO: sin lugar libre para reinyectar (fallos "
