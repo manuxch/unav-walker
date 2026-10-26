@@ -113,7 +113,8 @@ def main():
         if args.etiquetas:
             etiqueta = args.etiquetas[i]
         elif w is not None:
-            etiqueta = rf"$D = {2 * w:g}\,d$"
+            etiqueta = rf"$D = {w:g}\,d$"
+            # etiqueta = rf"$D = {2 * w:g}\,d$"
         else:
             etiqueta = Path(archivo).stem
         y = d["y"]
