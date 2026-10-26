@@ -90,6 +90,8 @@ continuous_physics: F
 # [save_ve_freq]: velocidades y energías (.ve)
 # [check_balance_freq]: chequeo de balance de impulso por grano
 #     (frames_<dirID>/balance_<preFrameFile>.dat)
+# [save_energy]: balance de energía de la base por período y por fase
+#     (frames_<dirID>/energy_<preFrameFile>.dat y energy_fase_<...>.dat)
 dirID: walker
 preFrameFile: frm
 saveFrameFreq: 5
@@ -103,6 +105,7 @@ n_bin_perfiles: 40
 freq_save_contacts: 0
 save_ve_freq: 0
 check_balance_freq: 0
+save_energy: F
 #
 # Región de interés (ROI) para las salidas por grano y por contacto
 # [save_roi_only]: F = se guarda todo el sistema; T = solo el rectángulo

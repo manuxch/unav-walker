@@ -88,6 +88,7 @@ simulación. Los archivos se escriben en `frames_<dirID>/` (ver Salidas).
 | `discharge.*` | Conteo de descargados, reinyección, packing fraction, perfiles en el orificio |
 | `output.*` | Archivos por frame y cabecera de procedencia |
 | `diagnostics.*` | Chequeo del balance de impulso por grano |
+| `energy_budget.*` | Balance de energía de la base: trabajo de la base, de la fricción y de los contactos |
 | `rng.*` | Generador de números aleatorios (`std::mt19937`) |
 | `tests/` | Pruebas y regresión |
 
@@ -137,6 +138,7 @@ un valor fuera de rango terminan el programa con un mensaje de error.
 | `freq_save_contacts` | no (0) | Frecuencia de `fc_*.dat` |
 | `save_tensors_freq` | no (0) | Frecuencia de `.sxy` |
 | `check_balance_freq` | no (0) | Frecuencia del chequeo de balance |
+| `save_energy` | no (F) | Balance de energía por período y por fase (`energy_<pre>.dat`, `energy_fase_<pre>.dat`) |
 | `save_roi_only` | no (F) | Guardar solo el ROI `|x| <= x_roi`, `y_min_roi <= y <= y_max_roi` |
 | `x_roi`, `y_min_roi`, `y_max_roi` | con ROI | Límites del ROI |
 
@@ -166,9 +168,36 @@ granos (aunque el punto de contacto quede fuera).
 | `fc_<pre>_<frame>.dat` | `gid_A gid_B cp.x cp.y Fn Ft nx ny xA yA xB yB n_pc tipo` |
 | `<pre>_<frame>.sxy` | `gid sxx sxy syx syy snxx snxy snyx snyy x y r m vx vy w z_gg z_gw` |
 | `balance_<pre>.dat` | `t nStep n_grains rel_lin max_rel_lin rel_ang max_rel_ang n_bad rel_lin_flip rel_ang_flip` |
+| `energy_<pre>.dat` | `periodo t_ini t_fin npasos N Wb Wlin Wpiv Wg Dslide Dpiv Wcont dK dK_reiny K` (ver abajo) |
+| `energy_fase_<pre>.dat` | `fase dfase npasos N Wb ... K`: trabajo por período en cada bin de fase (20 bines) |
 | `wall_force_<pre>.dat` | `t Fx Fy |F|` (fuerza de los granos sobre el fondo de medición) |
 | `fluxFile` | `granos_descargados tipo t total_tipo_1 ... total` |
 | `pf_file` | `t pf_bulk pf_out` |
+
+### Balance de energía (`save_energy: T`)
+
+Desde `t_Register`, `energy_budget.*` calcula en cada paso, sumando sobre
+los granos (en unidades de m g d):
+
+| Columna | Significado |
+|---|---|
+| `Wb` | Trabajo de la base, `Σ dt F·v_b`: la energía que sale del motor |
+| `Wlin`, `Wpiv` | Trabajo de la fricción de Karnopp y del torque de pivoteo sobre los granos |
+| `Wg` | `Wlin + Wpiv`: energía que entra al medio granular |
+| `Dslide` | `Wb - Wlin`: disipación por deslizamiento contra la base |
+| `Dpiv` | `-Wpiv`: disipación por pivoteo |
+| `Wcont` | `dK - Wg`: trabajo de los contactos entre granos y con las paredes (negativo: disipación) |
+| `dK` | Cambio de energía cinética dentro de los pasos |
+| `dK_reiny` | Cambio de energía cinética por descarga y reinyección (entre pasos) |
+| `K` | Energía cinética total media |
+
+Box2D integra primero las fuerzas aplicadas y después resuelve los
+contactos, así que `Wlin` y `Wpiv` son el cambio de energía de la primera
+etapa. Se calculan con la misma aritmética de punto flotante que Box2D, de
+modo que `Wcont` es exactamente el trabajo de los contactos. El balance
+cierra: `K(fin) - K(inicio) = Wg + Wcont + dK_reiny`. Los períodos son los
+mismos bloques `b = floor(f t)` que usa `stress_profile`. En estado
+estacionario, `-Wcont ≈ Wg`.
 
 Identificadores (`gid`): granos `>= 0`, paredes `-100`, tapa `-110`, fondo de
 medición `-200`. En `fc_*.dat`, `tipo` es `GG` (grano-grano) o `GW`
@@ -207,7 +236,10 @@ análisis.
 - `ctest --test-dir build` corre:
   - pruebas unitarias de la fricción con la base (Karnopp y pivoteo,
     incluida la independencia respecto de `dt`);
-  - una prueba de la reinyección (sin superposiciones y con velocidad nula);
+  - una prueba de la reinyección (sin superposiciones, con velocidad nula y
+    sin fuerza residual de la base);
+  - una prueba del balance de energía (un grano solo sobre la base y un
+    choque entre dos granos);
   - una prueba del lector de parámetros (cada tipo de error y un archivo
     válido).
 - `tests/regression.sh <binario_ref> <binario_nuevo>` compara byte a byte

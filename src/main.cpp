@@ -24,6 +24,7 @@
 #include "contacts.hpp"
 #include "diagnostics.hpp"
 #include "discharge.hpp"
+#include "energy_budget.hpp"
 #include "git_version.hpp" // GIT_HASH, generado por CMake
 #include "global_setup.hpp"
 #include "output.hpp"
@@ -116,8 +117,8 @@ int main(int argc, char *argv[]) {
          << "Uso: " << argv[0] << " <archivo_de_parámetros>" << endl;
     return 1;
   }
-  cout << "# unav-walkers ver. 3.3" << endl;
-  cout << "# 2026.09.29" << endl;
+  cout << "# unav-walkers ver. 3.4" << endl;
+  cout << "# 2026.10.26" << endl;
   cout << "# git: " << GIT_HASH << endl;
   const GlobalSetup gs(argv[1]);
   RNG rng(gs.rnd_seed);
@@ -151,6 +152,7 @@ int main(int argc, char *argv[]) {
 
   // Archivos de salida continuos
   std::ofstream flux_file, wall_force_file, balance_file, pf_file;
+  EnergyBudget energy(gs.silo.frec); // se abre en t_Register si save_energy
   if (gs.flux_freq > 0) open_flux_file(flux_file, gs);
   if (gs.fondo_medicion) open_wall_force_file(wall_force_file, gs);
   if (gs.check_balance_freq) open_balance_file(balance_file, gs);
@@ -217,7 +219,19 @@ int main(int argc, char *argv[]) {
     }
     const bool check_now = every(gs.check_balance_freq);
     if (check_now) record_pre_step(&world);
+    // Balance de energía: foto después de la descarga y la reinyección
+    const bool energy_now = gs.save_energy && t >= gs.t_register;
+    if (energy_now) {
+      if (!energy.active()) {
+        const std::string dir = "frames_" + gs.dir_id + "/";
+        energy.open(dir + "energy_" + gs.pre_frame_file + ".dat",
+                    dir + "energy_fase_" + gs.pre_frame_file + ".dat",
+                    provenance_header(gs, t, n_step, n_frame));
+      }
+      energy.before_step(&world, base.v);
+    }
     world.Step(dt, gs.p_iter, gs.v_iter);
+    if (energy_now) energy.after_step(&world, t, dt);
     if (check_now) check_force_balance(&world, gs, t, n_step, balance_file);
     if (gs.fondo_medicion) {
       b2Vec2 wf = wall_force(&world, dt, kGidMeasuringFloor);
@@ -250,6 +264,7 @@ int main(int argc, char *argv[]) {
   flux_file.close();
   wall_force_file.close();
   balance_file.close();
+  energy.close();
   cout << "# Simulación finalizada." << endl;
   print_elapsed(start_time);
   if (gs.save_tensors_freq) {

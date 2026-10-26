@@ -11,7 +11,8 @@
 #   - el archivo de parámetros;
 #   - frames_<dirID>/<pre>_*       (.xy, .sxy, .ve)
 #   - frames_<dirID>/fc_<pre>_*    (contactos)
-#   - frames_<dirID>/wall_force_<pre>.dat, balance_<pre>.dat (si existen)
+#   - frames_<dirID>/wall_force_<pre>.dat, balance_<pre>.dat,
+#     energy_<pre>.dat, energy_fase_<pre>.dat (si existen)
 #   - fluxFile y pf_file (si existen);
 #   - la salida estándar de SLURM flx_<job>_<i>.out, con i el índice de
 #     p-<i>.in (si existe).
@@ -65,7 +66,8 @@ for pfile in "$@"; do
   printf '%s\n' "$pfile" >"$lista"
   find "$frames" -maxdepth 1 -type f \
     \( -name "${pre}_*" -o -name "fc_${pre}_*" \
-    -o -name "wall_force_${pre}.dat" -o -name "balance_${pre}.dat" \) |
+    -o -name "wall_force_${pre}.dat" -o -name "balance_${pre}.dat" \
+    -o -name "energy_${pre}.dat" -o -name "energy_fase_${pre}.dat" \) |
     sort >>"$lista"
   n_frames=$(($(wc -l <"$lista") - 1))
   if ((n_frames == 0)); then

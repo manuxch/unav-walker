@@ -88,6 +88,7 @@ public:
   int save_contact_freq = 0;          //!< Frecuencia de fc_*.dat
   int save_tensors_freq = 0;          //!< Frecuencia de .sxy
   int check_balance_freq = 0;         //!< Frecuencia del chequeo de balance
+  bool save_energy = false;           //!< Balance de energía de la base
 
   // Región de interés (ROI) para las salidas por grano y por contacto
   bool save_roi_only = false; //!< false: todo el sistema

@@ -149,6 +149,7 @@ void GlobalSetup::load(const string &input_file) {
       {"freq_save_contacts:", false},
       {"save_tensors_freq:", false},
       {"check_balance_freq:", false},
+      {"save_energy:", false},
       {"save_roi_only:", false},
       {"x_roi:", false},
       {"y_min_roi:", false},
@@ -305,6 +306,7 @@ void GlobalSetup::load(const string &input_file) {
   save_contact_freq = opt_freq("freq_save_contacts:");
   save_tensors_freq = opt_freq("save_tensors_freq:");
   check_balance_freq = opt_freq("check_balance_freq:");
+  save_energy = has("save_energy:") ? B("save_energy:") : false;
   check(save_frame_freq >= 0, "saveFrameFreq debe ser >= 0.");
   check(flux_freq >= 0, "fluxFreq debe ser >= 0.");
   if (has("pf_file:")) pf_file = vals.at("pf_file:");
@@ -405,6 +407,7 @@ void GlobalSetup::print() const {
        << save_contact_freq << endl;
   cout << "# \t Frecuencia del chequeo de balance de fuerzas: "
        << check_balance_freq << endl;
+  cout << "# \t Balance de energía: " << (save_energy ? "Sí" : "No") << endl;
   cout << "# \t Guardar solo partículas en ROI: "
        << (save_roi_only ? "Sí" : "No") << endl;
   if (save_roi_only) {

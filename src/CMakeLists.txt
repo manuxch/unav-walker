@@ -41,6 +41,7 @@ add_library(sim_core STATIC
   contacts.cpp
   diagnostics.cpp
   discharge.cpp
+  energy_budget.cpp
   global_setup.cpp
   output.cpp
   rng.cpp
@@ -64,7 +65,7 @@ endif()
 # Pruebas (ctest). Los ejecutables de prueba quedan en el directorio de
 # compilación, no en bin/.
 # ---------------------------------------------------------------------------
-foreach(t test_friction test_reinjection)
+foreach(t test_friction test_reinjection test_energy)
   add_executable(${t} tests/${t}.cpp)
   target_link_libraries(${t} PRIVATE sim_core)
   target_compile_options(${t} PRIVATE -Wall -Wextra)
@@ -73,6 +74,7 @@ foreach(t test_friction test_reinjection)
 endforeach()
 
 add_test(NAME friccion_con_la_base COMMAND test_friction)
+add_test(NAME balance_de_energia COMMAND test_energy)
 add_test(NAME reinyeccion
          COMMAND test_reinjection ${CMAKE_CURRENT_SOURCE_DIR}/tests/params_test.in)
 add_test(NAME lector_de_parametros
