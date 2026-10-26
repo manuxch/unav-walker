@@ -21,10 +21,11 @@ descrito en [`../src/README.md`](../src/README.md).
 | `bin/force_map2d` | `fc_<pre>_*.dat` | mapa `(x, y)` | Fuerzas de contacto medias en todo el silo |
 | `bin/stress_profile` | `<pre>_*.sxy` | perfil en `y` (y por fase) | Tensor de estrés (contacto y cinético) en una franja vertical |
 | `scripts/plot-perfil.py` | salidas de `vel_profile` | `perfiles-<qty>.pdf` | Una figura por columna (`v_y`, `v_x`, ...), una curva por `D` |
-| `scripts/plot-fuerzas.py` | salidas de `force_profile` | `perfiles-fn-ft.pdf` | Perfiles de `Fn` y `\|Ft\|` para varios `D` |
+| `scripts/plot-fuerzas.py` | salidas de `force_profile` | `perfiles-fuerzas.pdf` | Un panel por cantidad (`Fn`, `\|Ft\|`, `\|F\|`, ...), una curva por `D` |
 | `scripts/plot-mapa-fuerzas.py` | salida de `force_map2d` | figura | Mapas de `Fn` y `\|Ft\|` |
 | `scripts/plot_stress_profile.py` | salidas de `stress_profile` | figura | Perfiles del tensor de estrés para varios `D` |
 | `scripts/unidades.py` | — | — | Conversión a unidades experimentales |
+| `scripts/perfiles_comun.py` | — | — | Lectura de perfiles por cabecera de columnas y `D` del nombre (usado por `plot-perfil.py` y `plot-fuerzas.py`) |
 | `dem_reader` (biblioteca) | todos los formatos | — | Lectura de archivos para programas nuevos |
 
 La visualización de la dinámica (imágenes y videos de los frames `.xy`) se
@@ -134,13 +135,9 @@ La dinámica se visualiza renderizando los `.xy` con `granular_render`.
 # Velocidad vertical media en la franja |x| <= D/2, bines de un diámetro
 $B/vel_profile frames_walker frm 1.5 30 0 30 perfil-ve-03.dat
 
-# Fuerzas de contacto (Fn y |Ft| en archivos separados, para plot-fuerzas.py),
-# sin contactos con paredes ni contactos inactivos
-$B/force_profile frames_walker frm 1.5 30 0 30 perfil-fn-03.dat --qty norm --no-walls --active-only
-$B/force_profile frames_walker frm 1.5 30 0 30 perfil-ft-03.dat --qty tan  --no-walls --active-only
-
-# Todas las cantidades de fuerza en un solo archivo
-$B/force_profile frames_walker frm 1.5 30 0 30 fuerzas-D03.dat --qty norm tan fmag fx fy --no-walls --active-only
+# Fuerzas de contacto en un solo archivo (una columna por cantidad), sin
+# contactos con paredes ni contactos inactivos
+$B/force_profile frames_walker frm 1.5 30 0 30 perfil-f-03.dat --qty norm tan fmag fx fy --no-walls --active-only
 
 # Tensor de estrés en la franja, promediado y resuelto en fase
 $B/stress_profile frames_walker frm -o estres-D03.dat --half-width 1.5 --y-max 30 \
@@ -156,7 +153,7 @@ $B/force_map2d frames_walker frm 20 30 mapa-D03.dat --xmin -10 --xmax 10 --ymin 
 ```bash
 S=/ruta/a/unav-walker/tools/scripts
 python3 $S/plot-perfil.py                     # lee perfil-ve-*.dat  -> perfiles-<qty>.pdf, una por columna
-python3 $S/plot-fuerzas.py                    # lee perfil-fn-*.dat y perfil-ft-*.dat -> perfiles-fn-ft.pdf
+python3 $S/plot-fuerzas.py                    # lee perfil-f*-*.dat  -> perfiles-fuerzas.pdf, un panel por columna
 python3 $S/plot-mapa-fuerzas.py mapa-D03.dat -o mapa-D03.pdf
 python3 $S/plot_stress_profile.py estres-D*.dat -o estres.pdf
 ```
@@ -165,7 +162,7 @@ python3 $S/plot_stress_profile.py estres-D*.dat -o estres.pdf
 
 `plot-perfil.py` y `plot-fuerzas.py` grafican todos los archivos del
 directorio actual y toman `D` del nombre, en diámetros y con dos
-dígitos: `perfil-fn-03.dat` corresponde a `D = 3 d` y `perfil-fn-12.dat`
+dígitos: `perfil-f-03.dat` corresponde a `D = 3 d` y `perfil-f-12.dat`
 a `D = 12 d`. Por ahora solo se admiten valores enteros de `D`; los
 archivos cuyo sufijo no es un número entero se ignoran con un aviso. Un lazo típico, con una
 corrida por `D` en `corrida_D<D>/`:
@@ -176,8 +173,7 @@ for D in 2 3 5 8 12 18; do
   dir=corrida_D$D/frames_walker
   tag=$(printf %02d $D)
   $B/vel_profile   $dir frm $W 30 0 30 perfil-ve-$tag.dat
-  $B/force_profile $dir frm $W 30 0 30 perfil-fn-$tag.dat --qty norm --no-walls --active-only
-  $B/force_profile $dir frm $W 30 0 30 perfil-ft-$tag.dat --qty tan  --no-walls --active-only
+  $B/force_profile $dir frm $W 30 0 30 perfil-f-$tag.dat --qty norm tan fmag --no-walls --active-only
   $B/stress_profile $dir frm -o estres-D$tag.dat --half-width $W --y-max 30 --freq 0.45175395
 done
 python3 $S/plot-perfil.py && python3 $S/plot-fuerzas.py
@@ -376,7 +372,7 @@ y el archivo de salida, `perfiles-<qty>.pdf`:
   reemplaza por el nombre de la cantidad.
 
 Los bines vacíos (valor 0 en la salida de `vel_profile`) no se grafican. La
-escala de colores está fijada para `D` entre 2 y 20 diámetros. Ejemplo:
+escala de colores está fijada para `D` entre 3 y 14 diámetros. Ejemplo:
 
 ```bash
 python3 tools/scripts/plot-perfil.py --qty vy speed --etiqueta PRL --titulo 'Corrida PRL: {qty}'
@@ -385,14 +381,43 @@ python3 tools/scripts/plot-perfil.py --qty vy speed --etiqueta PRL --titulo 'Cor
 ### plot-fuerzas.py
 
 ```bash
-python3 tools/scripts/plot-fuerzas.py
+python3 tools/scripts/plot-fuerzas.py [archivos ...] [--qty norm tan ...] \
+    [--etiqueta E] [--titulo T] [--sin-tex]
 ```
 
-Lee todos los `perfil-fn-<NN>.dat`, con `NN` = D (salidas de
-`force_profile --qty norm`), y `perfil-ft-<NN>.dat` (`--qty tan`) del
-directorio actual. Grafica `<f_N>` y `<|f_T|>` (N) en función de `y` (cm),
-en dos paneles, en `perfiles-fn-ft.pdf`. Usa las dos primeras columnas de cada archivo, así
-que la columna `n` no molesta.
+Sin archivos, lee todos los `perfil-f*-<NN>.dat` del directorio actual
+(`perfil-f-04.dat`, `perfil-fn-04.dat`, `perfil-ft-04.dat`, ...), con `NN`
+= D en dos dígitos. Las columnas se identifican por la cabecera
+`# y_center <qty...> n` de `force_profile`: un archivo puede tener una o
+varias cantidades, y las de un mismo `D` pueden estar en archivos
+distintos. Si una cantidad de un mismo `D` aparece en dos archivos, se usa
+el primero (en orden alfabético) con un aviso. La columna `n` no se
+grafica.
+
+Hace **un panel por cada cantidad presente**, una curva por `D`, en función
+de `y` (cm), en este orden:
+
+| Columna | Panel |
+|---|---|
+| `norm` | `<f_N>`, componente normal |
+| `tan` | `<\|f_T\|>`, módulo de la tangencial |
+| `fmag` | `<\|f\|>`, módulo de la fuerza |
+| `fx`, `fy` | `<\|f_x\|>`, `<\|f_y\|>`, módulos de las componentes |
+
+Todas en N; `fx` y `fy` son valores absolutos, así que no cambian de signo
+al invertir el eje `y`. Una columna con otro nombre se grafica en unidades
+de la simulación, con un aviso.
+
+- `--qty` elige y ordena los paneles.
+- `--etiqueta E` cambia el archivo a `perfiles-fuerzas-E.pdf`.
+- `--titulo T` pone un título arriba de la figura.
+
+Los bines vacíos (`nan`) no se grafican. La escala de colores está fijada
+para `D` entre 3 y 14 diámetros. Ejemplo:
+
+```bash
+python3 tools/scripts/plot-fuerzas.py --qty norm tan --etiqueta PRL
+```
 
 ### plot-mapa-fuerzas.py
 

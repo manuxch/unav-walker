@@ -28,7 +28,6 @@ vel_profile escribe 0 en los bines vacíos; esos bines no se grafican.
 
 import argparse
 import glob
-import re
 import sys
 from pathlib import Path
 
@@ -39,6 +38,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import unidades  # factores de conversión (utils/reduced_units.ods)
+from perfiles_comun import leer_perfiles
 
 # Cantidad -> (conversión, etiqueta del eje, título por defecto)
 CANTIDADES = {
@@ -58,34 +58,6 @@ CANTIDADES = {
 }
 
 
-def d_de_archivo(f):
-    """D (en diámetros) del sufijo del nombre, o None si no es un entero."""
-    m = re.fullmatch(r".*-(\d+)\.dat", Path(f).name)
-    return int(m.group(1)) if m else None
-
-
-def columnas(f):
-    """Nombres de las columnas, de la cabecera '# y_center ...'."""
-    with open(f) as h:
-        for linea in h:
-            if not linea.startswith("#"):
-                break
-            campos = linea[1:].split()
-            if campos and campos[0] == "y_center":
-                return campos
-    return None
-
-
-def leer(f):
-    """(nombres de columnas, datos) del archivo; None sin cabecera."""
-    nombres = columnas(f)
-    if nombres is None:
-        print(f"aviso: {f} ignorado (sin cabecera '# y_center ...')",
-              file=sys.stderr)
-        return None
-    return nombres, np.loadtxt(f, comments="#", ndmin=2)
-
-
 def figura(qty, perfiles, args):
     """Una figura de la cantidad qty con los perfiles [(D, archivo, nombres,
     datos)] que la tienen. Devuelve el nombre del archivo guardado."""
@@ -99,7 +71,7 @@ def figura(qty, perfiles, args):
         titulo = f"Perfil de {etiqueta_y}"
     if args.titulo is not None:
         titulo = args.titulo.replace("{qty}", qty)
-    norm = colors.Normalize(vmin=2, vmax=20)
+    norm = colors.Normalize(vmin=3, vmax=14)
     cmap = mpl.colormaps['plasma']
 
     fig, ax = plt.subplots()
@@ -153,20 +125,7 @@ def main():
     })
 
     archivos = args.archivos or sorted(glob.glob("perfil-ve-*.dat"))
-    pares = []
-    for f in archivos:
-        d = d_de_archivo(f)
-        if d is None:
-            print(f"aviso: {f} ignorado (el sufijo no es D)", file=sys.stderr)
-            continue
-        pares.append((d, f))
-    pares.sort()
-
-    perfiles = []
-    for d, f in pares:
-        r = leer(f)
-        if r is not None:
-            perfiles.append((d, f, *r))
+    perfiles = leer_perfiles(archivos)
     # Cantidades: las pedidas, o todas las columnas en orden de aparición
     presentes = []
     for _, _, nombres, _ in perfiles:
