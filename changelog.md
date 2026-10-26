@@ -1,3 +1,24 @@
+# Versión 3.4
+
+2026.10.26
+
+- Balance de energía de la base (`save_energy: T`, módulo `energy_budget`):
+  trabajo de la base, de la fricción de Karnopp y del pivoteo sobre los
+  granos, disipación contra la base, trabajo de los contactos y cambio de
+  energía por descarga y reinyección, por período de la excitación
+  (`energy_<pre>.dat`) y por bin de fase (`energy_fase_<pre>.dat`). La
+  primera etapa del Step se calcula con la misma aritmética que Box2D, así
+  que el trabajo de los contactos es exacto. Basado en la propuesta de
+  `docs/energia/` (no versionada), con la foto de los granos tomada después
+  de la descarga y la reinyección.
+- Reinyección sin la fuerza residual de la base: el grano reinyectado
+  recibía durante un paso la fricción calculada con su estado anterior.
+  Cambia los resultados a partir de la primera reinyección.
+- Las cabeceras de procedencia registran `r_out` (radio del orificio). Con
+  `save_roi_only: T`, `x_roi` debe ser `>= radio_out_silo`.
+- Pruebas: balance de energía (grano solo y choque) y fuerza residual en la
+  reinyección.
+
 # Versión 3.3
 
 2026.09.29
