@@ -112,6 +112,6 @@ save_energy: T
 #     |x| <= x_roi, y_min_roi <= y <= y_max_roi (centros de los granos; para los
 #     contactos, todos los de los granos cuyo centro está en el ROI).
 save_roi_only: F
-x_roi: 2.0
+x_roi: __radio__
 y_min_roi: -2.0
 y_max_roi: 2.0
