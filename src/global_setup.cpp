@@ -320,7 +320,10 @@ void GlobalSetup::load(const string &input_file) {
     x_roi = D("x_roi:");
     y_min_roi = D("y_min_roi:");
     y_max_roi = D("y_max_roi:");
-    check(x_roi > 0, "x_roi debe ser > 0.");
+    check(x_roi >= silo.r,
+          "x_roi debe ser >= radio_out_silo: el ROI guardado tiene que "
+          "contener la franja del orificio (|x| <= r), que es la que se "
+          "analiza.");
     check(y_max_roi > y_min_roi, "y_max_roi debe ser > y_min_roi.");
   }
 }

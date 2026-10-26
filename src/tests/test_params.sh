@@ -35,6 +35,7 @@ caso "polígonos no admitidos" "solo se admiten discos" 's/^250 0.5 1 /250 0.5 3
 caso "línea de grano incompleta" "línea de tipo de grano 1 mal formada" 's/^250 0.5 1 .*/250 0.5 1 1.27/'
 caso "valor fuera de rango" "radio_out_silo debe cumplir" 's/^radio_out_silo: .*/radio_out_silo: 20/'
 caso "ROI incompleto" "se requieren x_roi" 's/^save_roi_only: F/save_roi_only: T/;/^x_roi:/d'
+caso "ROI más angosto que el orificio" "x_roi debe ser >= radio_out_silo" 's/^save_roi_only: F/save_roi_only: T/;s/^x_roi: .*/x_roi: 1.0/'
 caso "parámetro obsoleto" "atenuacion_rotacional ya no se usa" '$a atenuacion_rotacional: 0.95'
 
 # El archivo base se acepta y una corrida corta termina bien.

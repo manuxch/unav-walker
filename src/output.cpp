@@ -66,7 +66,8 @@ string provenance_header(const GlobalSetup &gs, double t, uint32_t n_step,
   oss << "# nStep: " << n_step << " n_frame: " << n_frame << " t: " << t
       << " dt: " << gs.dt << " fase: " << phase << " (w t mod 2pi, rad)\n";
   oss << "# git: " << GIT_HASH << " params: " << gs.params_file
-      << " params_hash: " << gs.params_hash << "\n";
+      << " params_hash: " << gs.params_hash << " r_out: " << gs.silo.r
+      << "\n";
   return oss.str();
 }
 

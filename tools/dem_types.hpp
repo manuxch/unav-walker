@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <limits>
 #include <string>
 #include <vector>
 #include <utility>    // std::pair
@@ -111,6 +112,7 @@ struct Provenance {
     std::string git;                 ///< Versión del simulador (hash de git)
     std::string params;              ///< Archivo de parámetros
     std::string params_hash;         ///< Hash del archivo de parámetros
+    double      r_out       = std::numeric_limits<double>::quiet_NaN(); ///< Semiancho del orificio (versión >= 3.4; NaN si falta)
 };
 
 /// Un punto de contacto en un archivo fc_*.dat (formato del simulador >= 3.0).

@@ -149,7 +149,11 @@ Los archivos por frame se numeran con `n_frame`, la cantidad de pasos desde
 número**. Todos empiezan con una cabecera de procedencia:
 
     # nStep: <paso> n_frame: <frame> t: <t> dt: <dt> fase: <w t mod 2pi> (w t mod 2pi, rad)
-    # git: <hash de git> params: <archivo> params_hash: <hash FNV-1a del archivo>
+    # git: <hash de git> params: <archivo> params_hash: <hash FNV-1a del archivo> r_out: <radio_out_silo>
+
+`r_out` es el semiancho del orificio (D = 2 r_out); las herramientas de
+análisis lo usan para verificar que la franja de los perfiles tenga el
+ancho del orificio.
 
 Con `save_roi_only: T`, las salidas por grano incluyen los granos cuyo
 centro está en el ROI, y `fc_*.dat` incluye **todos** los contactos de esos

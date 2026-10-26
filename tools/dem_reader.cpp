@@ -411,6 +411,7 @@ bool parse_provenance_line(const std::string& line, Provenance& prov)
         while (iss >> tok) {
             if (tok == "params:") iss >> prov.params;
             else if (tok == "params_hash:") iss >> prov.params_hash;
+            else if (tok == "r_out:") iss >> prov.r_out;
         }
         return true;
     }
