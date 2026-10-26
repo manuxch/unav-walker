@@ -21,6 +21,7 @@
 #include "dem_types.hpp"
 
 #include <filesystem>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -121,5 +122,42 @@ SXYFrame read_sxy(const std::filesystem::path& path);
 /// "# git: ...") y completa \p prov. Devuelve false si la línea no es de
 /// procedencia.
 bool parse_provenance_line(const std::string& line, Provenance& prov);
+
+// ---------------------------------------------------------------------------
+// Franja de los perfiles
+//
+// Los perfiles en y se calculan en una franja vertical |x| <= x_m. Por
+// convención su ancho es el del orificio: x_m = r_out, ancho 2 x_m = D. El
+// simulador >= 3.4 registra r_out en la cabecera de procedencia, y las
+// herramientas lo usan para fijar o verificar x_m.
+// ---------------------------------------------------------------------------
+
+/// Franja resuelta y verificada.
+struct Strip {
+    double half_width = 0.0;  ///< Semiancho x_m
+    double r_out = std::numeric_limits<double>::quiet_NaN(); ///< Semiancho del orificio (NaN si los archivos no lo registran)
+    /// "orificio" (x_m = r_out), "libre" (otro ancho, pedido con
+    /// --ancho-libre) o "sin_verificar" (archivos sin r_out).
+    std::string kind;
+};
+
+/// Resuelve la franja a partir del argumento \p spec ("orificio" o un
+/// semiancho positivo) y del r_out de los archivos.
+///
+/// Con "orificio", x_m = r_out. Con un número, debe coincidir con r_out
+/// salvo que \p free_width sea true; si los archivos no registran r_out, se
+/// acepta sin verificar. \p x_center distinto de cero solo se admite con
+/// \p free_width.
+/// \throws std::invalid_argument si la franja no es la del orificio y no se
+///         pidió \p free_width, o si \p spec no es válido.
+Strip resolve_strip(const std::string& spec, double r_out, bool free_width,
+                    double x_center = 0.0);
+
+/// Campos de la franja para la cabecera de las salidas:
+/// `x_m=<x_m>  ancho=<2 x_m>  r_out=<r>  D=<2 r>  franja=<tipo>`.
+std::string strip_fields(const Strip& s);
+
+/// Línea de comentario que explica los campos de la franja.
+std::string strip_comment();
 
 } // namespace dem

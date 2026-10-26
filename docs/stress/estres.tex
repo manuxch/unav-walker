@@ -321,8 +321,14 @@ todos sus contactos, también con granos fuera del rectángulo.
 
 \subsection{Selección y bines}
 
-Se usan los granos con centro en la franja $|x - x_c| \le W$ (en general
-$W = D/2 = r$) y $y_\text{min} \le y < y_\text{max}$, en bines de alto
+Se usan los granos con centro en la franja $|x - x_c| \le W$, del ancho
+del orificio: $W = D/2 = r$ y $x_c = 0$. El simulador (versión $\ge 3.4$)
+registra $r$ en la cabecera de cada archivo (\code{r\_out}); por defecto
+\code{stress\_profile} toma $W = r$ de ahí, y si se le da otro semiancho o
+centro termina con un error, salvo que se pida explícitamente
+(\code{-{}-ancho-libre}). La franja usada queda en la cabecera de la salida
+(\code{x\_m}, \code{ancho}, \code{r\_out}, \code{D},
+\code{franja=orificio}). Se usan además $y_\text{min} \le y < y_\text{max}$, en bines de alto
 $\Delta y$ (por defecto, un diámetro). Cada frame con tiempo $t$ en
 $[t_\text{min}, t_\text{max}]$ se asigna a:
 \begin{itemize}

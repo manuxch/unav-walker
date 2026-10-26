@@ -83,19 +83,6 @@ struct VelocityEntry {
     double E_kin_rot;  ///< Energía cinética rotacional = 0.5 * I * w^2
 };
 
-/// Contenido completo de un archivo frm_aa_nn.ve.
-struct VEFrame {
-    double time;      ///< Tiempo de simulación del frame
-    int    case_id;   ///< Identificador del caso (aa)
-    int    frame_id;  ///< Identificador del frame (nn)
-
-    std::vector<VelocityEntry> particles;
-};
-
-// ============================================================================
-// Tipos para archivos fc_frm_aa_nn.dat (fuerzas de contacto)
-// ============================================================================
-
 /// Cabecera de procedencia que el simulador (versión >= 3.0) escribe en cada
 /// archivo de salida:
 /// \verbatim
@@ -114,6 +101,21 @@ struct Provenance {
     std::string params_hash;         ///< Hash del archivo de parámetros
     double      r_out       = std::numeric_limits<double>::quiet_NaN(); ///< Semiancho del orificio (versión >= 3.4; NaN si falta)
 };
+
+/// Contenido completo de un archivo frm_aa_nn.ve.
+struct VEFrame {
+    double time;      ///< Tiempo de simulación del frame
+    int    case_id;   ///< Identificador del caso (aa)
+    int    frame_id;  ///< Identificador del frame (nn)
+
+    std::vector<VelocityEntry> particles;
+    Provenance prov;  ///< Cabecera de procedencia (simulador >= 3.0)
+};
+
+// ============================================================================
+// Tipos para archivos fc_frm_aa_nn.dat (fuerzas de contacto)
+// ============================================================================
+
 
 /// Un punto de contacto en un archivo fc_*.dat (formato del simulador >= 3.0).
 ///

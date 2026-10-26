@@ -5,20 +5,24 @@
  *
  * \verbatim
  * Uso:
- *   stress_profile <dir> <pre> -o <salida> --half-width W --y-max Y
- *                  --freq F [opciones]
+ *   stress_profile <dir> <pre> -o <salida> --y-max Y --freq F [opciones]
  *
  * Argumentos:
  *   dir              Directorio con los archivos <pre>_<frame>.sxy
  *   pre              Prefijo de los archivos (preFrameFile), p. ej. frm-100
  *   -o <salida>      Archivo de salida (perfil promediado en fase)
- *   --half-width W   Semiancho de la franja: |x - x_c| <= W (W = D/2)
  *   --y-max Y        Límite superior del rango en y
  *   --freq F         Frecuencia de la excitación (Frecuencia_exitacion);
  *                    define los bloques de un período para los errores y se
  *                    verifica contra la fase de la cabecera de cada archivo
  *
  * Opciones:
+ *   --half-width W    Semiancho de la franja, |x - x_c| <= W: 'orificio'
+ *                     (default; W = r_out de las cabeceras, ancho D) o un
+ *                     número, que debe coincidir con r_out salvo con
+ *                     --ancho-libre
+ *   --ancho-libre     Admite una franja de otro ancho o centro que el
+ *                     orificio
  *   --y-min Y0        Límite inferior del rango en y (default 0)
  *   --dy DY           Alto de los bines (default 1, un diámetro)
  *   --x-center XC     Centro de la franja (default 0)
@@ -168,7 +172,10 @@ struct Params {
     std::string pre;
     fs::path    output;
     fs::path    phase_output;
-    double half_width = -1.0;
+    std::string half_width_spec = "orificio"; ///< 'orificio' o un número
+    bool   free_width = false;
+    double half_width = -1.0;  ///< Semiancho resuelto
+    dem::Strip strip;          ///< Franja resuelta
     double x_center = 0.0;
     double y_min = 0.0;
     double y_max = kNaN;
@@ -273,8 +280,8 @@ struct FrameTask {
 static void print_usage(const char* prog) {
     std::cout <<
         "Uso:\n"
-        "  " << prog << " <dir> <pre> -o <salida> --half-width W --y-max Y "
-        "--freq F\n"
+        "  " << prog << " <dir> <pre> -o <salida> --y-max Y --freq F\n"
+        "      [--half-width orificio|W] [--ancho-libre]\n"
         "      [--y-min Y0] [--dy DY] [--x-center XC] [--t-min T0] "
         "[--t-max T1]\n"
         "      [--phase-bins P] [--phase-output archivo] [--threads N]\n\n"
@@ -299,7 +306,8 @@ static Params parse_args(int argc, char* argv[]) {
             return argv[i];
         };
         if (tok == "-o") p.output = next();
-        else if (tok == "--half-width") p.half_width = std::stod(next());
+        else if (tok == "--half-width") p.half_width_spec = next();
+        else if (tok == "--ancho-libre") p.free_width = true;
         else if (tok == "--x-center") p.x_center = std::stod(next());
         else if (tok == "--y-min") p.y_min = std::stod(next());
         else if (tok == "--y-max") p.y_max = std::stod(next());
@@ -313,8 +321,6 @@ static Params parse_args(int argc, char* argv[]) {
         else throw std::invalid_argument("argumento desconocido: " + tok);
     }
     if (p.output.empty()) throw std::invalid_argument("falta -o <salida>");
-    if (p.half_width <= 0.0)
-        throw std::invalid_argument("falta --half-width W (> 0)");
     if (std::isnan(p.y_max) || p.y_max <= p.y_min)
         throw std::invalid_argument("falta --y-max Y (> y_min)");
     if (p.dy <= 0.0) throw std::invalid_argument("--dy debe ser > 0");
@@ -361,6 +367,9 @@ static void write_header(std::ostream& out, const Params& p, const Global& g,
         << g.t_last << "]  bloques=" << g.blocks.size() << "\n";
     out << "# git=" << join(g.git) << "  params=" << join(g.params)
         << "  params_hash=" << join(g.params_hash) << "\n";
+    out << "# " << dem::strip_fields(p.strip) << "  x_center=" << p.x_center
+        << "\n";
+    out << dem::strip_comment() << "\n";
     out << "# franja |x - " << p.x_center << "| <= " << p.half_width
         << "  y=[" << p.y_min << ", " << p.y_max << ")  dy=" << p.dy
         << "  freq=" << p.freq << "  phase_bins=" << p.phase_bins << "\n";
@@ -492,6 +501,21 @@ int main(int argc, char* argv[]) {
         std::cerr << "No hay archivos " << p.pre << "_*.sxy en " << p.dir << "\n";
         return 1;
     }
+    // Franja: r_out de la cabecera del primer frame
+    try {
+        const auto first = dem::read_sxy(dem::frame_path(p.dir, p.pre, ids.front(), ".sxy"));
+        p.strip = dem::resolve_strip(p.half_width_spec, first.prov.r_out,
+                                     p.free_width, p.x_center);
+        p.half_width = p.strip.half_width;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << "\n";
+        return 1;
+    }
+    if (p.strip.kind == "sin_verificar")
+        std::cerr << "Aviso: los archivos no registran r_out (simulador "
+                     "anterior a 3.4); no se verifica que la franja tenga el "
+                     "ancho del orificio.\n";
+    std::cout << "Franja: " << dem::strip_fields(p.strip) << "\n";
     std::cout << "Archivos .sxy: " << ids.size() << "  threads: " << p.n_threads
               << "  bines en y: " << p.n_bins << "\n";
 

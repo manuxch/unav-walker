@@ -78,10 +78,12 @@ e invierten el eje `y` (ver [Unidades](#unidades-scriptsunidadespy)).
 **Formato de salida.** Texto compatible con `numpy.loadtxt`: las líneas de
 cabecera empiezan con `#` y la última de ellas nombra las columnas.
 
-**Franja central.** Para el perfil sobre el orificio se usa una franja de
-semiancho `D/2 = radio_out_silo`. Según la herramienta, la selección es por
-el punto de contacto (`force_profile`) o por el centro del grano
-(`vel_profile`, `stress_profile`).
+**Franja central.** Los perfiles se calculan en una franja del ancho del
+orificio, de semiancho `D/2 = radio_out_silo`; las herramientas lo toman de
+las cabeceras y lo verifican (ver [La franja](#la-franja-ancho-del-orificio)).
+Según la herramienta, la selección es por el punto de contacto
+(`force_profile`) o por el centro del grano (`vel_profile`,
+`stress_profile`).
 
 ## Pipeline de uso
 
@@ -113,11 +115,12 @@ Con 20 pasos entre frames hay ~22 muestras por período, unos 220 frames en
 10 períodos.
 
 > **ROI.** Si se usa `save_roi_only: T` para ahorrar espacio, el ROI tiene
-> que contener la franja de análisis. Para `stress_profile` y
-> `vel_profile` alcanza con `x_roi >= D/2`. Para `force_profile` hace
-> falta `x_roi >= D/2 + 0.5`: se guardan los contactos de los granos con
-> centro en el ROI, y un punto de contacto puede estar hasta un radio
-> fuera del centro.
+> que contener la franja de análisis: el simulador exige
+> `x_roi >= radio_out_silo`. Alcanza también para `force_profile`: se
+> guardan todos los contactos de los granos con centro en el ROI, y un
+> punto de contacto con `|cp_x| <= r` tiene al menos uno de sus granos con
+> centro en `|x| <= r` (el punto está entre los dos centros, o sobre la
+> normal que pasa por el centro en un contacto con pared).
 
 ### 2. Controles rápidos
 
@@ -132,15 +135,15 @@ La dinámica se visualiza renderizando los `.xy` con `granular_render`.
 ### 3. Perfiles y mapas (unidades de la simulación)
 
 ```bash
-# Velocidad vertical media en la franja |x| <= D/2, bines de un diámetro
-$B/vel_profile frames_walker frm 1.5 30 0 30 perfil-ve-03.dat
+# Velocidad vertical media en la franja del orificio, |x| <= D/2, bines de un diámetro
+$B/vel_profile frames_walker frm orificio 30 0 30 perfil-ve-03.dat
 
 # Fuerzas de contacto en un solo archivo (una columna por cantidad), sin
 # contactos con paredes ni contactos inactivos
-$B/force_profile frames_walker frm 1.5 30 0 30 perfil-f-03.dat --qty norm tan fmag fx fy --no-walls --active-only
+$B/force_profile frames_walker frm orificio 30 0 30 perfil-f-03.dat --qty norm tan fmag fx fy --no-walls --active-only
 
 # Tensor de estrés en la franja, promediado y resuelto en fase
-$B/stress_profile frames_walker frm -o estres-D03.dat --half-width 1.5 --y-max 30 \
+$B/stress_profile frames_walker frm -o estres-D03.dat --y-max 30 \
     --freq 0.45175395 --phase-output estres-fase-D03.dat
 
 # Mapa 2D de fuerzas de contacto en todo el silo (bines de un diámetro)
@@ -169,19 +172,20 @@ corrida por `D` en `corrida_D<D>/`:
 
 ```bash
 for D in 2 3 5 8 12 18; do
-  W=$(awk "BEGIN {print $D / 2}")            # semiancho de la franja
   dir=corrida_D$D/frames_walker
   tag=$(printf %02d $D)
-  $B/vel_profile   $dir frm $W 30 0 30 perfil-ve-$tag.dat
-  $B/force_profile $dir frm $W 30 0 30 perfil-f-$tag.dat --qty norm tan fmag --no-walls --active-only
-  $B/stress_profile $dir frm -o estres-D$tag.dat --half-width $W --y-max 30 --freq 0.45175395
+  $B/vel_profile   $dir frm orificio 30 0 30 perfil-ve-$tag.dat
+  $B/force_profile $dir frm orificio 30 0 30 perfil-f-$tag.dat --qty norm tan fmag --no-walls --active-only
+  $B/stress_profile $dir frm -o estres-D$tag.dat --y-max 30 --freq 0.45175395
 done
 python3 $S/plot-perfil.py && python3 $S/plot-fuerzas.py
 python3 $S/plot_stress_profile.py estres-D*.dat -o estres.pdf
 ```
 
-`plot_stress_profile.py` toma la etiqueta `D = 2W` de la cabecera de cada
-archivo, así que no depende del nombre.
+`plot_stress_profile.py` toma la etiqueta `D` de la cabecera de cada
+archivo, así que no depende del nombre. Los tres scripts avisan si la franja
+de un archivo no es la del orificio, o si el `D` del nombre no coincide con
+el de la cabecera.
 
 ---
 
@@ -200,6 +204,33 @@ bin/read_demo <dir> <pre> <frame_id>
 bin/read_demo frames_walker frm 20
 ```
 
+### La franja: ancho del orificio
+
+Los perfiles en `y` se calculan en la franja vertical `|x| <= x_m`. **Por
+convención, su ancho es el del orificio**: `x_m = r_out` (`radio_out_silo`),
+ancho `2 x_m = D`. El simulador >= 3.4 registra `r_out` en la cabecera de
+procedencia de cada archivo, y `vel_profile`, `force_profile` y
+`stress_profile` lo usan:
+
+- `orificio` como semiancho (en `stress_profile`, sin `--half-width`) toma
+  `x_m = r_out` de las cabeceras;
+- un número debe coincidir con `r_out`; si no, el programa termina con un
+  error, salvo que se pase `--ancho-libre`. Lo mismo con `--x-center`
+  distinto de 0 en `stress_profile`;
+- con archivos anteriores a 3.4 (sin `r_out`) hay que dar el número, y se
+  avisa que no se puede verificar;
+- si los frames tienen distintos `r_out`, el programa termina con un error.
+
+La salida registra la franja en la cabecera:
+
+```
+# vel_profile  pre=frm  x_m=2.5  ancho=5  r_out=2.5  D=5  franja=orificio  frames=16 ...
+# franja |x| <= x_m, de ancho 2 x_m. franja=orificio: x_m = r_out y el ancho es el del orificio, D = 2 r_out.
+```
+
+`franja` vale `orificio`, `libre` (otro ancho, con `--ancho-libre`) o
+`sin_verificar` (archivos sin `r_out`).
+
 ### vel_profile
 
 Perfil vertical de velocidades y energías en la franja `|x| <= x_m`,
@@ -207,12 +238,12 @@ seleccionando los granos por su centro.
 
 ```bash
 bin/vel_profile <dir> <pre> <x_m> <n_bins> <y_min> <y_max> <salida> \
-    [--qty vy vx w speed Eklin Ekrot] [--threads N]
+    [--qty vy vx w speed Eklin Ekrot] [--ancho-libre] [--threads N]
 ```
 
 | Argumento | Descripción |
 |---|---|
-| `x_m` | Semiancho de la franja (`D/2` para el orificio) |
+| `x_m` | Semiancho de la franja: `orificio` o un número (ver arriba) |
 | `n_bins`, `y_min`, `y_max` | Bines de igual alto en `[y_min, y_max)` |
 | `--qty` | `vy` (por defecto), `vx`, `w` (velocidad angular), `speed` (`\|v\|`), `Eklin`, `Ekrot` (energías cinéticas) |
 
@@ -228,11 +259,12 @@ seleccionando por el **punto de contacto**.
 
 ```bash
 bin/force_profile <dir> <pre> <x_m> <n_bins> <y_min> <y_max> <salida> \
-    [--qty norm tan fmag fx fy] [--no-walls] [--active-only] [--threads N]
+    [--qty norm tan fmag fx fy] [--no-walls] [--active-only] [--ancho-libre] [--threads N]
 ```
 
 | Opción | Descripción |
 |---|---|
+| `x_m` | Semiancho de la franja: `orificio` o un número (ver arriba) |
 | `--qty norm` | `Fn`, componente normal (por defecto) |
 | `--qty tan` | `\|Ft\|`, módulo de la componente tangencial |
 | `--qty fmag` | `\|F\| = sqrt(Fn² + Ft²)` |
@@ -283,14 +315,15 @@ seleccionando los granos por su centro, a partir de los `.sxy`. El
 simulador ya calcula el tensor de cada grano.
 
 ```bash
-bin/stress_profile <dir> <pre> -o <salida> --half-width W --y-max Y --freq F \
+bin/stress_profile <dir> <pre> -o <salida> --y-max Y --freq F \
+    [--half-width orificio|W] [--ancho-libre] \
     [--y-min 0] [--dy 1] [--x-center 0] [--t-min T0] [--t-max T1] \
     [--phase-bins 20] [--phase-output <archivo>] [--threads N]
 ```
 
 | Argumento | Descripción |
 |---|---|
-| `--half-width W` | Semiancho de la franja (`D/2` para el orificio) |
+| `--half-width W` | Semiancho de la franja: `orificio` (por defecto) o un número (ver arriba) |
 | `--y-max Y`, `--y-min`, `--dy` | Rango y alto de los bines (por defecto, un diámetro) |
 | `--freq F` | `Frecuencia_exitacion` de la simulación: define los bloques de un período para los errores y se verifica contra la fase de las cabeceras |
 | `--t-min`, `--t-max` | Intervalo de tiempo a promediar |

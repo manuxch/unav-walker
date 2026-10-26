@@ -5,9 +5,11 @@ Uso:
     plot_stress_profile.py perfil1.dat [perfil2.dat ...] -o figura.pdf
         [--etiquetas "D = 3d" "D = 5d" ...] [--sim] [--continuo] [--sin-tex]
 
-Cada archivo es una salida de bin/stress_profile (una curva por archivo; por
-defecto la etiqueta es D = 2W, con W el semiancho de la franja). Paneles,
-en función de la altura y:
+Cada archivo es una salida de bin/stress_profile (una curva por archivo).
+Por defecto la etiqueta es el D de la cabecera (stress_profile >= 3.4); en
+archivos anteriores, el del sufijo del nombre (estres-D04.dat, stress-04.dat
+-> D = 4 d). Avisa si la franja no tiene el ancho del orificio. Paneles, en
+función de la altura y:
 
     (a) presión p = -(sxx + syy)/2 del tensor de contacto
     (b) -syy (normal vertical)          (c) -sxx (normal horizontal)
@@ -36,6 +38,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import unidades  # noqa: E402
+from perfiles_comun import d_de_archivo, d_de_cabecera, verificar_franja  # noqa: E402
 
 
 def leer_perfil(archivo):
@@ -71,7 +74,7 @@ def main():
     ap.add_argument("-o", "--salida", required=True,
                     help="figura (pdf, png, svg)")
     ap.add_argument("--etiquetas", nargs="+",
-                    help="etiqueta de cada perfil (por defecto, D = 2W)")
+                    help="etiqueta de cada perfil (por defecto, D de la cabecera)")
     ap.add_argument("--sim", action="store_true",
                     help="unidades de la simulación")
     ap.add_argument("--continuo", action="store_true",
@@ -112,11 +115,13 @@ def main():
         c = colores[i]
         if args.etiquetas:
             etiqueta = args.etiquetas[i]
+        elif (dd := d_de_cabecera(archivo) or d_de_archivo(archivo)) is not None:
+            etiqueta = rf"$D = {dd:g}\,d$"
         elif w is not None:
-            etiqueta = rf"$D = {w:g}\,d$"
-            # etiqueta = rf"$D = {2 * w:g}\,d$"
+            etiqueta = rf"$|x| \le {w:g}\,d$"
         else:
             etiqueta = Path(archivo).stem
+        verificar_franja(archivo)
         y = d["y"]
         p = -(d["sxx"] + d["syy"]) / 2
         e_p = np.hypot(d["e_sxx"], d["e_syy"]) / 2

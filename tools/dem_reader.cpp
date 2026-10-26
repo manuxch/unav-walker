@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <charconv>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -246,7 +247,10 @@ VEFrame read_ve(const std::filesystem::path& path)
             continue;
         }
 
-        if (line[0] == '#') continue;   // Cabecera de columnas u otros comentarios
+        if (line[0] == '#') {   // Procedencia, cabecera de columnas u otros
+            parse_provenance_line(line, frame.prov);
+            continue;
+        }
 
         // Datos: gID tipo x y vx vy w E_kin_lin E_kin_rot
         std::istringstream iss(line);
@@ -466,6 +470,67 @@ SXYFrame read_sxy(const std::filesystem::path& path)
                                  "procedencia: " + path.string());
     }
     return frame;
+}
+
+Strip resolve_strip(const std::string& spec, double r_out, bool free_width,
+                    double x_center)
+{
+    Strip s;
+    s.r_out = r_out;
+    const bool known = std::isfinite(r_out);
+    if (spec == "orificio") {
+        if (!known) {
+            throw std::invalid_argument(
+                "los archivos no registran r_out (simulador anterior a la "
+                "versión 3.4): dar el semiancho de la franja como número");
+        }
+        s.half_width = r_out;
+    } else {
+        std::size_t pos = 0;
+        try {
+            s.half_width = std::stod(spec, &pos);
+        } catch (const std::exception&) {
+            pos = 0;
+        }
+        if (pos != spec.size() || !(s.half_width > 0.0)) {
+            throw std::invalid_argument("semiancho de la franja inválido: '"
+                                        + spec + "' (usar 'orificio' o un "
+                                        "número positivo)");
+        }
+    }
+    const bool is_orifice =
+        known && std::fabs(s.half_width - r_out) <= 1e-6 * r_out
+        && x_center == 0.0;
+    if (is_orifice) {
+        s.kind = "orificio";
+    } else if (free_width) {
+        s.kind = "libre";
+    } else if (!known && x_center == 0.0) {
+        s.kind = "sin_verificar";
+    } else {
+        std::ostringstream msg;
+        msg << "la franja (semiancho " << s.half_width << ", centro "
+            << x_center << ") no es la del orificio";
+        if (known) msg << " (r_out = " << r_out << ")";
+        msg << ". Usar 'orificio' o, si es a propósito, --ancho-libre";
+        throw std::invalid_argument(msg.str());
+    }
+    return s;
+}
+
+std::string strip_fields(const Strip& s)
+{
+    std::ostringstream oss;
+    oss << "x_m=" << s.half_width << "  ancho=" << 2.0 * s.half_width
+        << "  r_out=" << s.r_out << "  D=" << 2.0 * s.r_out
+        << "  franja=" << s.kind;
+    return oss.str();
+}
+
+std::string strip_comment()
+{
+    return "# franja |x| <= x_m, de ancho 2 x_m. franja=orificio: x_m = r_out "
+           "y el ancho es el del orificio, D = 2 r_out.";
 }
 
 } // namespace dem
