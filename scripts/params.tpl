@@ -57,7 +57,7 @@ noTipoGranos: 1
 timeStep: 0.005  // período T = 1/0.45175395 = 2.2136 -> 442.7 pasos por período
 tMax: 5000.0
 tBlock: 750.0
-t_Register: 4955.72  // tMax - 20 T
+t_Register: 4933.59  // tMax - 30 T
 maxGranosDesc: 0  // 0 = deshabilitado; >0 = detener cuando salgan N granos
 pIter: 60
 vIter: 60
