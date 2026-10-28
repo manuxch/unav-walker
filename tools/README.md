@@ -22,6 +22,7 @@ descrito en [`../src/README.md`](../src/README.md).
 | `bin/stress_profile` | `<pre>_*.sxy` | perfil en `y` (y por fase) | Tensor de estrés (contacto y cinético) en una franja vertical |
 | `scripts/plot-perfil.py` | salidas de `vel_profile` | `perfiles-<qty>.pdf` | Una figura por columna (`v_y`, `v_x`, ...), una curva por `D` |
 | `scripts/plot-fuerzas.py` | salidas de `force_profile` | `perfiles-fuerzas.pdf` | Un panel por cantidad (`Fn`, `\|Ft\|`, `\|F\|`, ...), una curva por `D` |
+| `scripts/plot-energia.py` | `energy_<pre>.dat`, `energy_fase_<pre>.dat` | `energia-*.pdf`, `energia-D.dat` | Balance de energía de la base en función de `D`, en fase y por período |
 | `scripts/plot-mapa-fuerzas.py` | salida de `force_map2d` | figura | Mapas de `Fn` y `\|Ft\|` |
 | `scripts/plot_stress_profile.py` | salidas de `stress_profile` | figura | Perfiles del tensor de estrés para varios `D` |
 | `scripts/unidades.py` | — | — | Conversión a unidades experimentales |
@@ -157,6 +158,7 @@ $B/force_map2d frames_walker frm 20 30 mapa-D03.dat --xmin -10 --xmax 10 --ymin 
 S=/ruta/a/unav-walker/tools/scripts
 python3 $S/plot-perfil.py                     # lee perfil-ve-*.dat  -> perfiles-<qty>.pdf, una por columna
 python3 $S/plot-fuerzas.py                    # lee perfil-f*-*.dat  -> perfiles-fuerzas.pdf, un panel por columna
+python3 $S/plot-energia.py                     # lee frames_*/energy_*.dat -> energia-D.pdf, energia-fase.pdf, ...
 python3 $S/plot-mapa-fuerzas.py mapa-D03.dat -o mapa-D03.pdf
 python3 $S/plot_stress_profile.py estres-D*.dat -o estres.pdf
 ```
@@ -451,6 +453,44 @@ para `D` entre 3 y 14 diámetros. Ejemplo:
 ```bash
 python3 tools/scripts/plot-fuerzas.py --qty norm tan --etiqueta PRL
 ```
+
+### plot-energia.py
+
+```bash
+python3 tools/scripts/plot-energia.py [archivos ...] [--etiqueta E] [--reducidas] [--sin-tex]
+```
+
+Balance de energía de la base (salidas de `save_energy: T`, ver
+`src/README.md`). Sin archivos lee los `energy_<pre>.dat` del directorio
+actual y de `frames_*/`, que es donde quedan las 12 corridas de
+`scripts/start.sh`; para corridas en directorios separados, pasar los
+archivos (`corrida_D*/frames_walker/energy_frm-*.dat`). Cada
+`energy_fase_<pre>.dat` se busca al lado de su `energy_<pre>.dat`. `D` sale
+del sufijo de `<pre>` y se verifica contra `r_out` de la cabecera.
+
+Cada período cumple exactamente
+
+    Wb   = Dslide + Wlin
+    Wlin = Dpiv + (-Wcont) + (-dK_reiny) + ΔK,     ΔK = dK + dK_reiny
+
+es decir: de lo que entrega el motor (`Wb`) una parte se disipa deslizando
+contra la base (`Dslide`) y el resto (`Wlin`) entra a los granos, que lo
+pierden por pivoteo (`Dpiv`), en los contactos (`-Wcont`) o se lo llevan al
+salir por el orificio (`-dK_reiny`).
+
+Salidas (con `--etiqueta E`, sufijo `-E`):
+
+| Archivo | Contenido |
+|---|---|
+| `energia-D.pdf` | (a) términos del balance por período vs `D` (escala log); (b) `Wlin/Wb`; (c) reparto de `Wlin` |
+| `energia-fase.pdf` | `Wb`, `Wlin`, `Wcont` por período y por unidad de fase, y `<K>`, vs fase `f t mod 1`; una curva por `D` |
+| `energia-periodos.pdf` | series por período de `Wb`, `Wlin`, `-Wcont` y `<K>`, para ver si el registro es estacionario |
+| `energia-D.dat` | medias y errores de todos los términos y de los cocientes, una fila por `D` |
+
+Solo se usan los períodos completos. Los errores son el error estándar de
+la media entre períodos (cada período es un bloque; los cocientes, por
+linealización). Unidades: mJ y s; `--reducidas` deja `m g d` y unidades de
+la simulación.
 
 ### plot-mapa-fuerzas.py
 
