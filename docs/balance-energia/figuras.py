@@ -10,6 +10,8 @@ datos/p-*.in y analisis/perfil-ve-<NN>.dat. Escribe en figuras/:
 
     energia-D.pdf, energia-fase.pdf, energia-periodos.pdf
                           (las de tools/scripts/plot-energia.py)
+    energia-paridad-D.pdf, energia-paridad-fase.pdf
+                          (las de tools/scripts/plot-energia-paridad.py)
     alternancia.pdf       W_lin por período para cuatro D: respuesta de
                           período 2
     base.pdf              velocidad de la base y trabajo de la base en fase
@@ -78,6 +80,13 @@ def main():
         cmd.append("--sin-tex")
     subprocess.run(cmd, cwd=salida, check=True, stdout=subprocess.DEVNULL)
     (salida / "energia-D.dat").unlink(missing_ok=True)
+    # Paridad (lee los .ve: tarda unos minutos)
+    cmd = [sys.executable, str(SCRIPTS / "plot-energia-paridad.py"),
+           *map(str, energias)]
+    if args.sin_tex:
+        cmd.append("--sin-tex")
+    subprocess.run(cmd, cwd=salida, check=True, stdout=subprocess.DEVNULL)
+    (salida / "energia-paridad.dat").unlink(missing_ok=True)
 
     if not args.sin_tex:
         plt.rcParams.update({"text.usetex": True, "font.family": "serif",

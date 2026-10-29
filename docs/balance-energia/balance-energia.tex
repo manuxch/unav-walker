@@ -154,7 +154,17 @@ impulsos de contacto.
 
 \subsection{Términos}
 
-Para cada grano $p$ y cada paso de duración $\Delta t$ se definen:
+Sean $\F_p$ y $\tau_p$ la fuerza de Karnopp y el torque de pivoteo que la
+base ejerce sobre el grano $p$ en un paso de duración $\Delta t$
+(sección~\ref{sec:base}). Son las únicas fuerzas aplicadas: el código las
+guarda en \code{BodyData::f\_base} y \code{tau\_base}, y no incluyen los
+contactos. Las sumas sobre $p$ recorren todos los granos del sistema,
+$p = 1, \dots, N_g$ ($N_g = 2000$): los que están en el silo y también los
+que ya salieron por el orificio y siguen sobre la base hasta que se los
+reinyecta (\code{before\_step} recorre todos los cuerpos dinámicos que son
+granos). Cada término de la tabla es la contribución de un paso; los
+archivos dan su suma sobre los pasos de cada período o de cada bin de
+fase. Se definen:
 \begin{center}
 \begin{tabular}{>{$}l<{$}p{0.68\textwidth}}
   \toprule
@@ -427,14 +437,14 @@ $\varphi$ los dos armónicos se compensan en parte: $\max|v_b| =
 \begin{table}[ht]
 \centering
 \small
-\caption{Balance de energía por período. $\Wb$ y $\Dslide$ en mJ;
-  $\Wlin$, $\Dpiv$, $-\Wcont$ y $\ave{K}$ en $\mu$J; $-\dKr$ en nJ. Entre
-  paréntesis, el error en la última cifra (bloques de dos períodos).}
+\caption{Balance de energía por período. Entre paréntesis, el error en la
+  última cifra (bloques de dos períodos).}
 \label{tab:balance}
 \begin{tabular}{rlllllrl}
   \toprule
   $D/d$ & $\Wb$ & $\Dslide$ & $\Wlin$ & $\Dpiv$ & $-\Wcont$ & $-\dKr$ &
     $\ave{K}$ \\
+  & (mJ) & (mJ) & ($\mu$J) & ($\mu$J) & ($\mu$J) & (nJ) & ($\mu$J) \\
   \midrule
 3 & $1.0847(3)$ & $1.047(2)$ & $37.4(14)$ & $2.04(8)$ & $35.4(13)$ & $7$ & $23.8(2)$ \\
 4 & $1.0858(5)$ & $1.046(2)$ & $39.9(19)$ & $2.67(11)$ & $37.4(17)$ & $14$ & $24.1(3)$ \\
@@ -455,15 +465,16 @@ $\varphi$ los dos armónicos se compensan en parte: $\max|v_b| =
 \begin{table}[ht]
 \centering
 \small
-\caption{Fracciones del balance, en \%: lo que entra a los granos y cómo
-  se reparte según (\ref{eq:reparto}). $\Delta K_\text{tot}$, en $\mu$J, es
-  el cambio de energía cinética por período, compatible con cero
-  (estado estacionario).}
+\caption{Fracciones del balance: lo que entra a los granos y cómo se
+  reparte según (\ref{eq:reparto}). $\Delta K_\text{tot}$ es el cambio de
+  energía cinética por período, compatible con cero (estado
+  estacionario).}
 \label{tab:fracciones}
 \begin{tabular}{rlllll}
   \toprule
   $D/d$ & $\Wlin/\Wb$ & $-\Wcont/\Wlin$ & $\Dpiv/\Wlin$ & $-\dKr/\Wlin$ &
     $\Delta K_\text{tot}$ \\
+  & (\symbol{37}) & (\symbol{37}) & (\symbol{37}) & (\symbol{37}) & ($\mu$J) \\
   \midrule
 3 & $3.45(13)$ & $94.7(22)$ & $5.5$ & 0.02 & $-0.1(9)$ \\
 4 & $3.68(17)$ & $93.7(6)$ & $6.7$ & 0.04 & $-0.2(2)$ \\
@@ -650,12 +661,8 @@ interrumpe y se retoma corrida en un período.
 
 La excitación es periódica de período $T$ (el segundo armónico tiene
 período $T/2$), así que una respuesta de período $2T$ es subarmónica: la
-rompe espontáneamente el medio granular. Una hipótesis es que el lecho
-alterna entre dos estados de empaquetamiento o de adherencia a la base,
-uno que la base arrastra con más facilidad que el otro. Comprobarlo
-requiere separar los períodos pares e impares (en fase y en los perfiles)
-y ver si el comportamiento persiste en registros más largos y con otras
-semillas. Que $D = 13d$, la corrida con $\Wlin/\Wb$ más bajo, tenga una de
+rompe espontáneamente el medio granular. La sección~\ref{sec:paridad}
+muestra que el lecho alterna entre dos ciclos de naturaleza distinta. Que $D = 13d$, la corrida con $\Wlin/\Wb$ más bajo, tenga una de
 las alternancias más fuertes, y que $D = 12d$ y $14d$ tengan las más
 débiles, sugiere que el estado de cada corrida pesa en el balance tanto
 como $D$.
@@ -679,6 +686,98 @@ respecto de dos. Por eso \code{plot-energia.py} usa bloques de dos períodos.
   \caption{$\Wlin$ por período para cuatro orificios. Trazos: media.
     $r_1$: autocorrelación entre períodos consecutivos.}
   \label{fig:alternancia}
+\end{figure}
+
+\subsection{Períodos pares e impares}
+\label{sec:paridad}
+
+\code{tools/scripts/plot-energia-paridad.py} separa los períodos completos
+según la paridad de $b = \lfloor f t \rfloor$. Los totales por período
+salen directamente de \code{energy\_<pre>.dat}. En fase, en cambio, el
+archivo del simulador suma todos los períodos, así que solo se puede
+separar la energía cinética, que se reconstruye con los \code{.ve}: cada
+frame se asigna a su período por $t$ y a su bin por la fase de la
+cabecera. Los trabajos en fase separados por paridad requieren una salida
+nueva del simulador (sección de pendientes).
+
+Qué paridad es la alta depende de cuándo empieza el registro, así que las
+figuras comparan el período de $\Wlin$ alto con el de $\Wlin$ bajo de cada
+corrida. La coherencia, la fracción de pares de períodos consecutivos en
+que el de la paridad alta tiene más $\Wlin$, vale 1 en seis corridas,
+0.93--0.96 en cuatro y 0.82 en $D = 12d$ y $14d$: la alternancia está
+trabada a la paridad durante todo el registro, salvo uno o dos saltos.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Medias en los períodos de $\Wlin$ alto y bajo, en $\mu$J
+  (error estándar entre los 14 o 15 períodos de cada paridad).}
+\label{tab:paridad}
+\begin{tabular}{rcc rr rr rr}
+  \toprule
+  & & & \multicolumn{2}{c}{$\Wlin$} & \multicolumn{2}{c}{$-\Wcont$} &
+    \multicolumn{2}{c}{$\ave{K}$} \\
+  \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
+  $D/d$ & alta & coher. & alto & bajo & alto & bajo & alto & bajo \\
+  \midrule
+  3 & par & 1.00 & 115(3) & $-41(2)$ & 67(3) & 4(1) & 15.4(5) & 32.2(1) \\
+  4 & impar & 1.00 & 112(3) & $-33(3)$ & 69(2) & 6(2) & 16.4(6) & 31.8(1) \\
+  5 & impar & 1.00 & 103(3) & $-16(6)$ & 68(2) & 15(4) & 19.3(11) & 31.1(4) \\
+  6 & par & 0.93 & 90(6) & $-3(9)$ & 62(2) & 21(5) & 22.9(6) & 31.5(5) \\
+  7 & impar & 0.96 & 85(5) & 6(6) & 61(2) & 25(3) & 24.7(6) & 31.3(4) \\
+  8 & par & 1.00 & 96(3) & $-16(3)$ & 62(2) & 14(2) & 23.0(6) & 32.6(2) \\
+  9 & par & 1.00 & 84(3) & $-14(3)$ & 54(2) & 12(2) & 22.2(4) & 33.0(2) \\
+  10 & par & 0.93 & 62(6) & 15(6) & 47(3) & 25(3) & 26.8(5) & 32.0(5) \\
+  11 & impar & 0.96 & 62(4) & 13(5) & 46(2) & 24(3) & 26.1(5) & 33.0(4) \\
+  12 & impar & 0.82 & 44(3) & 28(3) & 37(2) & 30(2) & 28.9(5) & 32.0(4) \\
+  13 & par & 1.00 & 66(1) & $-16(1)$ & 41(1) & 6(1) & 24.4(4) & 34.8(1) \\
+  14 & impar & 0.82 & 37(2) & 24(1) & 31(1) & 26(1) & 30.6(3) & 31.4(4) \\
+  \bottomrule
+\end{tabular}
+\end{table}
+
+La tabla~\ref{tab:paridad} y las figuras~\ref{fig:paridadD}
+y~\ref{fig:paridadfase} muestran que los dos ciclos son de naturaleza
+distinta:
+\begin{itemize}
+  \item En el ciclo de $\Wlin$ \emph{alto} la base inyecta mucha energía
+    (hasta $115~\mu$J por período en $D = 3d$, tres veces la media), los
+    contactos disipan casi toda, y la energía cinética es baja.
+  \item En el ciclo de $\Wlin$ \emph{bajo} la energía cinética es alta, los
+    contactos casi no disipan (4--6~$\mu$J en $D = 3d$, $4d$ y $13d$), y la
+    base le \emph{quita} energía al lecho: $\Wlin < 0$ en siete de las doce
+    corridas.
+\end{itemize}
+En fase (figura~\ref{fig:paridadfase}), el ciclo de $\Wlin$ bajo tiene dos
+máximos de $\ave{K}$ grandes, en la fase $\approx 0.1$ y en la
+$\approx 0.7$, de hasta 0.08--0.10~mJ; el de $\Wlin$ alto tiene los mismos
+máximos mucho más chicos. Una lectura compatible con esto: en el ciclo de
+$\Wlin$ bajo los granos se mueven juntos, arrastrados por la base, con
+mucha energía cinética pero pocas colisiones, y la base los frena al
+cambiar de sentido; en el siguiente, el lecho no acompaña a la base, que
+lo agita, y la energía se disipa en los contactos. Separar los trabajos en
+fase por paridad permitiría confirmarlo.
+
+El contraste disminuye con $D$: $\ave{K}$ del ciclo bajo es $\approx
+32~\mu$J en todas las corridas, mientras que el del ciclo alto sube de 15
+a 31~$\mu$J. En $D = 14d$ los dos ciclos casi coinciden.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figuras/energia-paridad-D}
+  \caption{Medias por período en los ciclos de $\Wlin$ alto (línea) y bajo
+    (trazos), en función de $D$ (\code{energia-paridad-D.pdf}).}
+  \label{fig:paridadD}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figuras/energia-paridad-fase}
+  \caption{Energía cinética total en fase en los ciclos de $\Wlin$ alto
+    (línea) y bajo (trazos), de los \code{.ve}
+    (\code{energia-paridad-fase.pdf}). Entre paréntesis, la paridad del
+    ciclo alto y la coherencia.}
+  \label{fig:paridadfase}
 \end{figure}
 
 % ---------------------------------------------------------------------------
@@ -706,9 +805,10 @@ Respecto de esa propuesta:
 \section{Pendientes}
 
 \begin{itemize}
-  \item Período 2: separar períodos pares e impares en el balance en fase y
-    en los perfiles, y verificar con registros más largos y otras
-    semillas.
+  \item Período 2: guardar el balance en fase de cada período (o por
+    paridad) en el simulador, para separar $\Wb$, $\Wlin$ y $\Wcont$ en
+    fase; separar también los perfiles por paridad; verificar con registros
+    más largos y otras semillas.
   \item Réplicas con otras semillas para decidir si la dependencia de
     $\Wlin/\Wb$ con $D$ (máximo en $D \approx 6d$--$7d$, mínimo en $13d$)
     es una tendencia o una diferencia entre corridas.
