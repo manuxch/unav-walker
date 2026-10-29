@@ -83,6 +83,7 @@ def figura(qty, perfiles, args):
               f" - min = {np.nanmin(v):.4g}")
         ax.plot(y, v, '.-', color=cmap(norm(d)), label=fr"$D = {d} \, d$",
                 alpha=0.7)
+    ax.axvline(0.0, color="0.5", lw=0.8, ls=":")  # orificio
     ax.set_ylabel(etiqueta_y)
     ax.set_xlabel(r'$y$ (cm)')
     ax.set_title(titulo)

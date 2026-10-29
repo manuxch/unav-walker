@@ -62,7 +62,7 @@ def leer_perfil(archivo):
 
 def banda(ax, y, v, e, color):
     """Curva con banda de error (si hay errores finitos)."""
-    ax.plot(y, v, "-", color=color, lw=1.5)
+    ax.plot(y, v, "-", color=color, lw=1.5, alpha=0.7)
     if e is not None and np.isfinite(e).any():
         ax.fill_between(y, v - e, v + e, color=color, alpha=0.25, lw=0)
 
@@ -130,12 +130,12 @@ def main():
         banda(ax[1], y, -d["syy"], d["e_syy"], c)
         banda(ax[2], y, -d["sxx"], d["e_sxx"], c)
         banda(ax[3], y, d["sxy"], d["e_sxy"], c)
-        ax[3].plot(y, d["syx"], "--", color=c, lw=1.2)
-        ax[4].plot(y, d["stxy"], "-", color=c, lw=1.5)
-        ax[4].plot(y, d["styx"], "--", color=c, lw=1.2)
+        ax[3].plot(y, d["syx"], "--", color=c, lw=1.2, alpha=0.7)
+        ax[4].plot(y, d["stxy"], "-", color=c, lw=1.5, alpha=0.7)
+        ax[4].plot(y, d["styx"], "--", color=c, lw=1.2, alpha=0.7)
         # Las salidas anteriores a los errores de k no tienen e_k*
         banda(ax[5], y, -d["kyy"], d.get("e_kyy"), c)
-        ax[5].plot(y, -d["kxx"], "--", color=c, lw=1.2)
+        ax[5].plot(y, -d["kxx"], "--", color=c, lw=1.2, alpha=0.7)
         if d.get("e_kxx") is not None:
             ax[5].fill_between(y, -d["kxx"] - d["e_kxx"], -d["kxx"] + d["e_kxx"],
                                color=c, alpha=0.15, lw=0)
@@ -143,6 +143,7 @@ def main():
     for a, t in zip(ax, titulos):
         a.set_title(t, fontsize=11)
         a.axhline(0.0, color="0.6", lw=0.6)
+        a.axvline(0.0, color="0.5", lw=0.8, ls=":")  # orificio
         a.grid(alpha=0.3)
     for a in axs[:, 0]:
         a.set_ylabel(u_s)

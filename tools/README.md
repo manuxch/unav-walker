@@ -95,7 +95,7 @@ Para una tanda de producción (`scripts/start.sh` + `scripts/empaquetar.sh`),
 con los `frm-<NN>.tar.xz` copiados a un directorio local:
 
 ```bash
-tools/scripts/analizar-todo.sh /ruta/a/los/paquetes      # -f rehace todo, -s sin gráficos
+tools/scripts/analizar-todo.sh /ruta/a/los/paquetes      # -f rehace el análisis, -s sin gráficos, -y Y0
 ```
 
 Extrae cada paquete una vez en `datos/` y deja en `analisis/` los perfiles
@@ -103,7 +103,9 @@ Extrae cada paquete una vez en `datos/` y deja en `analisis/` los perfiles
 `estres-fase-D<NN>.dat`), los registros de cada herramienta
 (`log-*.txt`) y las figuras de `plot-perfil.py`, `plot-fuerzas.py`,
 `plot_stress_profile.py` y `plot-energia.py`. La franja es la del orificio y
-los perfiles van de `y = 0` a `altura_silo` con bines de un diámetro; altura
+los perfiles van de `y = -10` (los granos que salen se registran hasta ahí,
+donde se reinyectan; `-y Y0` cambia el límite) a `altura_silo`, con bines de
+un diámetro; en los gráficos, una línea punteada marca el orificio; altura
 y frecuencia se leen del `p-<i>.in` de cada paquete. Es reanudable: no repite
 los pasos cuya salida ya existe. Los pasos de abajo son los que corre, por si
 hace falta otra elección de argumentos.
@@ -508,8 +510,13 @@ Salidas (con `--etiqueta E`, sufijo `-E`):
 | `energia-D.dat` | medias y errores de todos los términos y de los cocientes, una fila por `D` |
 
 Solo se usan los períodos completos. Los errores son el error estándar de
-la media entre períodos (cada período es un bloque; los cocientes, por
-linealización). Unidades: mJ y s; `--reducidas` deja `m g d` y unidades de
+la media entre bloques de dos períodos consecutivos (`--bloque N` cambia el
+tamaño; los cocientes, por linealización): la respuesta del lecho alterna de
+un período al siguiente (muy marcado para `D` chico), así que los períodos
+sueltos no son independientes. En la tanda PRL-energia, con bloques de un
+período los errores salían 3 a 10 veces más grandes, y con bloques de 4 casi
+no cambian respecto de 2. Las series de `energia-periodos.pdf` son siempre
+por período. Unidades: mJ y s; `--reducidas` deja `m g d` y unidades de
 la simulación.
 
 ### plot-mapa-fuerzas.py

@@ -353,3 +353,4 @@ src/doc/
 
 # PDF de la documentación en LaTeX (se compila desde el .tex)
 docs/stress/estres.pdf
+docs/balance-energia/balance-energia.pdf

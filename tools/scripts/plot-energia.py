@@ -27,8 +27,12 @@ contra la base y el resto (Wlin) entra a los granos, que lo pierden por
 pivoteo, en los contactos o se lo llevan al salir por el orificio.
 
 Se usan solo los períodos completos (se descartan el primero y el último si
-están cortados). Los errores son el error estándar de la media entre
-períodos (cada período es un bloque).
+están cortados). Los errores son el error estándar de la media entre bloques
+de --bloque períodos consecutivos (por defecto 2): la respuesta del lecho
+puede alternar de un período al siguiente (período 2), y entonces los
+períodos sueltos no son independientes. Un período que no completa un
+bloque al final se descarta de las medias. Las series de
+energia-periodos.pdf son siempre por período.
 
 Figuras (con --etiqueta E, el sufijo -E antes de .pdf):
     energia-D.pdf        medias por período en función de D: (a) términos
@@ -153,8 +157,26 @@ def cociente_error(a, b):
     return r, e
 
 
-def leer_corridas(archivos):
-    """Lista ordenada por D de (D, archivo, períodos completos, fase|None)."""
+def bloques(p, n):
+    """Promedios por bloque de n períodos completos consecutivos.
+
+    Cada columna del resultado es la media de la columna en el bloque (el
+    trabajo sigue siendo por período). Solo se usan bloques con n períodos
+    contiguos.
+    """
+    per = p["periodo"].astype(int)
+    idx = (per - per[0]) // n
+    sel = []
+    for i in np.unique(idx):
+        m = np.flatnonzero(idx == i)
+        if len(m) == n and per[m[-1]] - per[m[0]] == n - 1:
+            sel.append(m)
+    return {k: np.array([v[m].mean() for m in sel]) for k, v in p.items()}
+
+
+def leer_corridas(archivos, n_bloque):
+    """Lista ordenada por D de (D, archivo, períodos completos, fase|None,
+    bloques de n_bloque períodos)."""
     corridas = []
     for f in archivos:
         d = d_de_archivo(f)
@@ -178,7 +200,11 @@ def leer_corridas(archivos):
         fase = agregar_derivadas(leer(ff, COLUMNAS_FASE)) if ff.exists() else None
         if fase is None:
             print(f"aviso: falta {ff}", file=sys.stderr)
-        corridas.append((d, f, p, fase))
+        pb = bloques(p, n_bloque)
+        if len(pb["Wb"]) < 2:
+            print(f"aviso: {f}: menos de dos bloques de {n_bloque} períodos; "
+                  "sin errores", file=sys.stderr)
+        corridas.append((d, f, p, fase, pb))
     corridas.sort(key=lambda c: (c[0], c[1]))
     return corridas
 
@@ -198,8 +224,8 @@ def figura_D(corridas, args, salida):
 
     ax = axs[0]
     for (k, etiqueta, signo), mk in zip(TERMINOS, "osd^vx"):
-        me = np.array([media_error(signo * c[2][k] * fe) for c in corridas])
-        ax.errorbar(ds, me[:, 0], yerr=me[:, 1], fmt=mk + "-", capsize=3,
+        me = np.array([media_error(signo * c[4][k] * fe) for c in corridas])
+        ax.errorbar(ds, me[:, 0], yerr=me[:, 1], fmt=mk + "-", capsize=3, alpha=0.7,
                     label=etiqueta)
     ax.set_yscale("log")
     ax.set_ylabel(f"energía por período ({ue})")
@@ -207,16 +233,16 @@ def figura_D(corridas, args, salida):
     ax.legend(ncols=2)
 
     ax = axs[1]
-    me = np.array([cociente_error(c[2]["Wlin"], c[2]["Wb"]) for c in corridas])
-    ax.errorbar(ds, me[:, 0], yerr=me[:, 1], fmt="o-", capsize=3)
+    me = np.array([cociente_error(c[4]["Wlin"], c[4]["Wb"]) for c in corridas])
+    ax.errorbar(ds, me[:, 0], yerr=me[:, 1], fmt="o-", capsize=3, alpha=0.7)
     ax.set_ylabel(r"$W_\mathrm{lin} / W_b$")
     ax.set_title(r"(b) Fracción de $W_b$ que entra a los granos")
 
     ax = axs[2]
     for (k, etiqueta, signo), mk in zip(REPARTO, "odvs"):
-        me = np.array([cociente_error(signo * c[2][k], c[2]["Wlin"])
+        me = np.array([cociente_error(signo * c[4][k], c[4]["Wlin"])
                        for c in corridas])
-        ax.errorbar(ds, me[:, 0], yerr=me[:, 1], fmt=mk + "-", capsize=3,
+        ax.errorbar(ds, me[:, 0], yerr=me[:, 1], fmt=mk + "-", capsize=3, alpha=0.7,
                     label=etiqueta)
     ax.axhline(0, color="0.6", lw=0.8)
     ax.set_ylabel(r"fracción de $W_\mathrm{lin}$")
@@ -239,14 +265,14 @@ def figura_fase(corridas, args, salida):
                ("K", r"$\langle K \rangle$", 1, False)]
     fig, axs = plt.subplots(2, 2, figsize=(10, 7.5), sharex=True)
     for ax, (k, etiqueta, signo, por_periodo) in zip(axs.flat, paneles):
-        for d, _, _, fase in corridas:
+        for d, _, _, fase, _ in corridas:
             if fase is None:
                 continue
             x = fase["fase"] / (2 * np.pi)
             y = signo * fase[k] * fe
             if por_periodo:  # trabajo por período en el bin -> por unidad de fase
                 y = y / (fase["dfase"] / (2 * np.pi))
-            ax.plot(x, y, ".-", color=cmap(norm(d)), alpha=0.8,
+            ax.plot(x, y, ".-", color=cmap(norm(d)), alpha=0.7,
                     label=fr"$D = {d} \, d$")
         ax.axhline(0, color="0.6", lw=0.8)
         unidad = (f"{ue} por período por unidad de fase" if por_periodo
@@ -272,10 +298,10 @@ def figura_periodos(corridas, args, salida):
                ("K", r"$\langle K \rangle$", 1)]
     fig, axs = plt.subplots(2, 2, figsize=(10, 7.5), sharex=True)
     for ax, (k, etiqueta, signo) in zip(axs.flat, paneles):
-        for d, _, p, _ in corridas:
+        for d, _, p, _, _ in corridas:
             t = 0.5 * (p["t_ini"] + p["t_fin"]) * ft
             ax.plot(t, signo * p[k] * fe, ".-", color=cmap(norm(d)),
-                    alpha=0.8, label=fr"$D = {d} \, d$")
+                    alpha=0.7, label=fr"$D = {d} \, d$")
         unidad = ue if k == "K" else f"{ue} por período"
         ax.set_ylabel(f"{etiqueta} ({unidad})", fontsize=10)
     for ax in axs[1]:
@@ -291,18 +317,21 @@ def tabla_D(corridas, args, salida):
     """Medias y errores por período en función de D."""
     fe, ue, _, _ = unidades_de(args)
     claves = ["Wb", "Dslide", "Wlin", "Dpiv", "Wcont", "dK_reiny", "DK", "K"]
-    cols = ["D", "nper", "N"]
+    cols = ["D", "nper", "nbloq", "N"]
     for k in claves:
         cols += [k, "e_" + k]
     cols += ["Wlin/Wb", "e_Wlin/Wb", "-Wcont/Wlin", "e_-Wcont/Wlin"]
     with open(salida, "w") as h:
         h.write(f"# Balance de energía por período, medias entre períodos "
-                f"completos y errores estándar de la media.\n"
+                f"completos y errores estándar de la media entre bloques de "
+                f"{args.bloque} períodos.\n"
                 f"# Energías en {ue.strip('$')} por período (K: media, en "
                 f"{ue.strip('$')}). Ver plot-energia.py.\n")
         h.write("# " + " ".join(cols) + "\n")
-        for d, f, p, _ in corridas:
-            fila = [f"{d}", f"{len(p['Wb'])}", f"{np.mean(p['N']):.1f}"]
+        for d, f, p, _, pb in corridas:
+            fila = [f"{d}", f"{len(p['Wb'])}", f"{len(pb['Wb'])}",
+                    f"{np.mean(pb['N']):.1f}"]
+            p = pb
             for k in claves:
                 m, e = media_error(p[k] * fe)
                 fila += [f"{m:.6e}", f"{e:.6e}"]
@@ -318,6 +347,8 @@ def main():
     ap.add_argument("archivos", nargs="*",
                     help="energy_<pre>.dat (por defecto, los de . y frames_*/)")
     ap.add_argument("--etiqueta", help="sufijo de las salidas: energia-*-<E>")
+    ap.add_argument("--bloque", type=int, default=2,
+                    help="períodos por bloque para medias y errores (def. 2)")
     ap.add_argument("--reducidas", action="store_true",
                     help="unidades de la simulación (m g d) en lugar de mJ y s")
     ap.add_argument("--sin-tex", action="store_true",
@@ -335,16 +366,18 @@ def main():
     archivos = args.archivos or sorted(
         f for f in glob.glob("energy_*.dat") + glob.glob("frames_*/energy_*.dat")
         if not Path(f).name.startswith("energy_fase_"))
-    corridas = leer_corridas(archivos)
+    if args.bloque < 1:
+        ap.error("--bloque debe ser >= 1")
+    corridas = leer_corridas(archivos, args.bloque)
     if not corridas:
         print("No hay balances de energía para graficar.", file=sys.stderr)
         return 1
 
     fe, ue, _, _ = unidades_de(args)
-    for d, f, p, _ in corridas:
+    for d, f, _, _, p in corridas:
         wb, e = media_error(p["Wb"] * fe)
         r, er = cociente_error(-p["Wcont"], p["Wlin"])
-        print(f"D = {d:3d}: {len(p['Wb'])} períodos, Wb = {wb:.4g} ± {e:.2g} "
+        print(f"D = {d:3d}: {len(p['Wb'])} bloques, Wb = {wb:.4g} ± {e:.2g} "
               f"{ue.strip('$')}, -Wcont/Wlin = {r:.3f} ± {er:.3f}  ({f})")
 
     suf = f"-{args.etiqueta}" if args.etiqueta else ""
