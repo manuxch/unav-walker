@@ -20,6 +20,7 @@ descrito en [`../src/README.md`](../src/README.md).
 | `bin/force_profile` | `fc_<pre>_*.dat` | perfil en `y` | Fuerzas de contacto medias en una franja vertical |
 | `bin/force_map2d` | `fc_<pre>_*.dat` | mapa `(x, y)` | Fuerzas de contacto medias en todo el silo |
 | `bin/stress_profile` | `<pre>_*.sxy` | perfil en `y` (y por fase) | Tensor de estrés (contacto y cinético) en una franja vertical |
+| `scripts/analizar-todo.sh` | `<pre>.tar.xz` de `scripts/empaquetar.sh` | `analisis/` | Extrae los paquetes y corre todo: perfiles de velocidad, fuerzas y estrés, energía y gráficos |
 | `scripts/plot-perfil.py` | salidas de `vel_profile` | `perfiles-<qty>.pdf` | Una figura por columna (`v_y`, `v_x`, ...), una curva por `D` |
 | `scripts/plot-fuerzas.py` | salidas de `force_profile` | `perfiles-fuerzas.pdf` | Un panel por cantidad (`Fn`, `\|Ft\|`, `\|F\|`, ...), una curva por `D` |
 | `scripts/plot-energia.py` | `energy_<pre>.dat`, `energy_fase_<pre>.dat` | `energia-*.pdf`, `energia-D.dat` | Balance de energía de la base en función de `D`, en fase y por período |
@@ -87,6 +88,25 @@ Según la herramienta, la selección es por el punto de contacto
 `stress_profile`).
 
 ## Pipeline de uso
+
+### Todo de una vez: `analizar-todo.sh`
+
+Para una tanda de producción (`scripts/start.sh` + `scripts/empaquetar.sh`),
+con los `frm-<NN>.tar.xz` copiados a un directorio local:
+
+```bash
+tools/scripts/analizar-todo.sh /ruta/a/los/paquetes      # -f rehace todo, -s sin gráficos
+```
+
+Extrae cada paquete una vez en `datos/` y deja en `analisis/` los perfiles
+(`perfil-ve-<NN>.dat`, `perfil-f-<NN>.dat`, `estres-D<NN>.dat`,
+`estres-fase-D<NN>.dat`), los registros de cada herramienta
+(`log-*.txt`) y las figuras de `plot-perfil.py`, `plot-fuerzas.py`,
+`plot_stress_profile.py` y `plot-energia.py`. La franja es la del orificio y
+los perfiles van de `y = 0` a `altura_silo` con bines de un diámetro; altura
+y frecuencia se leen del `p-<i>.in` de cada paquete. Es reanudable: no repite
+los pasos cuya salida ya existe. Los pasos de abajo son los que corre, por si
+hace falta otra elección de argumentos.
 
 Ejemplo completo para una corrida con `D = 3 d` (`radio_out_silo: 1.5`),
 `H = 30`, frecuencia `f = 0.45175395` y los archivos en `frames_walker/`
