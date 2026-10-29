@@ -24,6 +24,7 @@ descrito en [`../src/README.md`](../src/README.md).
 | `scripts/plot-perfil.py` | salidas de `vel_profile` | `perfiles-<qty>.pdf` | Una figura por columna (`v_y`, `v_x`, ...), una curva por `D` |
 | `scripts/plot-fuerzas.py` | salidas de `force_profile` | `perfiles-fuerzas.pdf` | Un panel por cantidad (`Fn`, `\|Ft\|`, `\|F\|`, ...), una curva por `D` |
 | `scripts/plot-energia.py` | `energy_<pre>.dat`, `energy_fase_<pre>.dat` | `energia-*.pdf`, `energia-D.dat` | Balance de energía de la base en función de `D`, en fase y por período |
+| `scripts/plot-energia-paridad.py` | `energy_<pre>.dat` y `<pre>_*.ve` | `energia-paridad-*.pdf`, `energia-paridad.dat` | Balance separado en períodos pares e impares (respuesta de período 2) |
 | `scripts/plot-mapa-fuerzas.py` | salida de `force_map2d` | figura | Mapas de `Fn` y `\|Ft\|` |
 | `scripts/plot_stress_profile.py` | salidas de `stress_profile` | figura | Perfiles del tensor de estrés para varios `D` |
 | `scripts/unidades.py` | — | — | Conversión a unidades experimentales |
@@ -518,6 +519,25 @@ período los errores salían 3 a 10 veces más grandes, y con bloques de 4 casi
 no cambian respecto de 2. Las series de `energia-periodos.pdf` son siempre
 por período. Unidades: mJ y s; `--reducidas` deja `m g d` y unidades de
 la simulación.
+
+### plot-energia-paridad.py
+
+```bash
+python3 tools/scripts/plot-energia-paridad.py [archivos ...] [--bines B] [--etiqueta E] [--reducidas] [--sin-tex]
+```
+
+Separa los períodos completos según la paridad de `b = floor(f t)`, porque
+la respuesta del lecho alterna de un período al siguiente. De
+`energy_<pre>.dat` saca las medias de `Wb`, `Wlin`, `-Wcont` y `K` por
+paridad; de los `<pre>_*.ve` que están al lado, la energía cinética total
+en fase por paridad (el archivo de fase del simulador suma todos los
+períodos, así que los trabajos en fase no se pueden separar). Como qué
+paridad es la alta depende de cuándo empieza el registro, las figuras
+comparan el período de `Wlin` alto con el de `Wlin` bajo e indican la
+paridad y la coherencia (fracción de pares de períodos consecutivos que
+respetan la alternancia). Salidas: `energia-paridad-D.pdf`,
+`energia-paridad-fase.pdf` y `energia-paridad.dat`. Lee todos los `.ve`:
+unos 2 minutos para 12 corridas de 2656 frames.
 
 ### plot-mapa-fuerzas.py
 
