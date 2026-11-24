@@ -9,11 +9,11 @@
 #include "body_data.hpp"
 #include "contacts.hpp"
 #include "git_version.hpp" // GIT_HASH, generado por CMake
+#include "gzstream.hpp"
 
 #include <chrono>
 #include <cmath>
 #include <ctime>
-#include <fstream>
 #include <iomanip>
 #include <map>
 #include <numbers>
@@ -72,7 +72,7 @@ string provenance_header(const GlobalSetup &gs, double t, uint32_t n_step,
 }
 
 void save_frame(b2World *w, int n_frame, int n_step, const GlobalSetup &gs) {
-  std::ofstream fout(frame_path(gs, "", n_frame, ".xy"));
+  ogzstream fout(frame_path(gs, "", n_frame, ".xy"), gs.comprimir_salidas);
   fout << "# time: " << n_step * gs.dt << " ";
   fout << "# r_out: " << gs.silo.r << " ";
   fout << endl;
@@ -120,10 +120,12 @@ void save_frame(b2World *w, int n_frame, int n_step, const GlobalSetup &gs) {
 
 void save_velocities(int n_frame, double t, uint32_t n_step, b2World *w,
                      const GlobalSetup &gs) {
-  std::ofstream fout(frame_path(gs, "", n_frame, ".ve"));
+  ogzstream fout(frame_path(gs, "", n_frame, ".ve"), gs.comprimir_salidas);
   fout << " ## sim_time: " << t << endl;
   fout << provenance_header(gs, t, n_step, n_frame);
   fout << "# gID type x y vx vy w E_kin_lin E_kin_rot" << endl;
+  // Con compresión se guardan 9 cifras: reproducen exactamente los float
+  if (gs.comprimir_salidas) fout << std::setprecision(9);
   for (b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
     const BodyData *bd = body_data(b);
     if (!bd->is_grain) continue;
@@ -143,7 +145,7 @@ void save_velocities(int n_frame, double t, uint32_t n_step, b2World *w,
 
 void save_contacts(b2World *w, double t, uint32_t n_step, int n_frame,
                    const GlobalSetup &gs) {
-  std::ofstream fout(frame_path(gs, "fc_", n_frame, ".dat"));
+  ogzstream fout(frame_path(gs, "fc_", n_frame, ".dat"), gs.comprimir_salidas);
   fout << "# Time: " << std::setprecision(10) << t << endl;
   fout << provenance_header(gs, t, n_step, n_frame);
   fout << "# Fn, Ft: componentes normal y tangencial (impulso / dt) de la "
@@ -155,7 +157,8 @@ void save_contacts(b2World *w, double t, uint32_t n_step, int n_frame,
           "# n_pc: puntos del manifold. tipo: GG grano-grano, GW "
           "grano-pared.\n";
   fout << "# gID_A gID_B cp.x cp.y Fn Ft nx ny xA yA xB yB n_pc tipo" << endl;
-  fout << std::scientific << std::uppercase << std::setprecision(6);
+  fout << std::scientific << std::uppercase
+       << std::setprecision(gs.comprimir_salidas ? 8 : 6);
   const double inv_dt = 1.0 / gs.dt;
   for (b2Contact *c = w->GetContactList(); c; c = c->GetNext()) {
     if (!c->IsTouching()) continue;
@@ -186,7 +189,7 @@ void save_contacts(b2World *w, double t, uint32_t n_step, int n_frame,
 
 void save_stress(b2World *w, int n_frame, const GlobalSetup &gs, double *p_min,
                  double *p_max, double t, uint32_t n_step) {
-  std::ofstream fout(frame_path(gs, "", n_frame, ".sxy"));
+  ogzstream fout(frame_path(gs, "", n_frame, ".sxy"), gs.comprimir_salidas);
   fout << "# tSim: " << std::setprecision(10) << t << endl;
   fout << provenance_header(gs, t, n_step, n_frame);
   fout << "# s_ij = (1/A_grano) sum_c f_i l_j, f: fuerza de contacto sobre el "
@@ -259,7 +262,7 @@ void save_stress(b2World *w, int n_frame, const GlobalSetup &gs, double *p_min,
     }
   }
 
-  fout << std::scientific << std::setprecision(6);
+  fout << std::scientific << std::setprecision(gs.comprimir_salidas ? 8 : 6);
   for (const auto &[gid, g] : stress) {
     b2Vec2 p = g.body->GetWorldCenter();
     b2Vec2 v = g.body->GetLinearVelocity();

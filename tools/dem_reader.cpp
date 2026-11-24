@@ -7,6 +7,8 @@
 
 #include "dem_reader.hpp"
 
+#include "gzstream.hpp"
+
 #include <iostream>
 #include <charconv>
 #include <cmath>
@@ -45,6 +47,30 @@ static int extract_frame_id(const std::string& stem, int case_id)
                                       id_str.data() + id_str.size(), val);
     if (ec != std::errc{}) return -1;
     return val;
+}
+
+/// Si \p path no existe pero existe `path.gz`, devuelve este último: los
+/// archivos de salida comprimidos del simulador (comprimir_salidas: T) se
+/// leen igual que los de texto.
+static std::filesystem::path resolve_gz(const std::filesystem::path& path)
+{
+    if (!std::filesystem::exists(path)) {
+        std::filesystem::path gz = path;
+        gz += ".gz";
+        if (std::filesystem::exists(gz)) return gz;
+    }
+    return path;
+}
+
+/// Nombre de archivo sin la extensión \p ext (con o sin ".gz"); vacío si el
+/// archivo no tiene esa extensión.
+static std::string stem_if_ext(const std::filesystem::path& p,
+                               const std::string& ext)
+{
+    std::string name = p.filename().string();
+    if (name.ends_with(".gz")) name.resize(name.size() - 3);
+    if (!name.ends_with(ext)) return "";
+    return name.substr(0, name.size() - ext.size());
 }
 
 // ============================================================================
@@ -95,9 +121,10 @@ std::vector<int> list_frames(const std::filesystem::path& dir,
     std::vector<int> ids;
     for (const auto& entry : std::filesystem::directory_iterator(dir)) {
         if (!entry.is_regular_file()) continue;
-        if (entry.path().extension() != ext) continue;
+        const std::string stem = stem_if_ext(entry.path(), ext);
+        if (stem.empty()) continue;
 
-        int fid = extract_frame_id(entry.path().stem().string(), case_id);
+        int fid = extract_frame_id(stem, case_id);
         if (fid >= 0) ids.push_back(fid);
     }
     std::sort(ids.begin(), ids.end());
@@ -110,7 +137,7 @@ std::vector<int> list_frames(const std::filesystem::path& dir,
 
 XYFrame read_xy(const std::filesystem::path& path)
 {
-    std::ifstream fin(path);
+    igzstream fin(resolve_gz(path).string());
     if (!fin.is_open()) {
         throw std::runtime_error("dem::read_xy: no se puede abrir: "
                                   + path.string());
@@ -219,7 +246,7 @@ XYFrame read_xy(const std::filesystem::path& dir, int case_id, int frame_id)
 
 VEFrame read_ve(const std::filesystem::path& path)
 {
-    std::ifstream fin(path);
+    igzstream fin(resolve_gz(path).string());
     if (!fin.is_open()) {
         throw std::runtime_error("dem::read_ve: no se puede abrir: "
                                   + path.string());
@@ -282,7 +309,7 @@ VEFrame read_ve(const std::filesystem::path& dir, int case_id, int frame_id)
 
 FCFrame read_fc(const std::filesystem::path& path)
 {
-    std::ifstream fin(path);
+    igzstream fin(resolve_gz(path).string());
     if (!fin.is_open()) {
         throw std::runtime_error("dem::read_fc: no se puede abrir: "
                                   + path.string());
@@ -363,7 +390,7 @@ std::filesystem::path frame_path(const std::filesystem::path& dir,
                                  const std::string& pre, int frame_id,
                                  const std::string& ext)
 {
-    return dir / (pre + "_" + frame_id_to_str(frame_id) + ext);
+    return resolve_gz(dir / (pre + "_" + frame_id_to_str(frame_id) + ext));
 }
 
 std::vector<int> list_frames_with_prefix(const std::filesystem::path& dir,
@@ -378,9 +405,8 @@ std::vector<int> list_frames_with_prefix(const std::filesystem::path& dir,
     std::vector<int> ids;
     for (const auto& entry : std::filesystem::directory_iterator(dir)) {
         if (!entry.is_regular_file()) continue;
-        if (entry.path().extension() != ext) continue;
-        const std::string stem = entry.path().stem().string();
-        if (!stem.starts_with(prefix)) continue;
+        const std::string stem = stem_if_ext(entry.path(), ext);
+        if (stem.empty() || !stem.starts_with(prefix)) continue;
         const std::string id_str = stem.substr(prefix.size());
         int val = 0;
         auto [ptr, ec] = std::from_chars(id_str.data(),
@@ -424,7 +450,7 @@ bool parse_provenance_line(const std::string& line, Provenance& prov)
 
 SXYFrame read_sxy(const std::filesystem::path& path)
 {
-    std::ifstream fin(path);
+    igzstream fin(resolve_gz(path).string());
     if (!fin.is_open()) {
         throw std::runtime_error("dem::read_sxy: no se puede abrir: "
                                  + path.string());

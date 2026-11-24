@@ -9,7 +9,10 @@ find_package(Threads REQUIRED)
 add_library(dem_reader STATIC
     dem_reader.cpp
 )
-target_include_directories(dem_reader PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+find_package(ZLIB REQUIRED)
+target_include_directories(dem_reader PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+                                          ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(dem_reader PUBLIC ZLIB::ZLIB)
 target_compile_options(dem_reader PRIVATE -Wall -Wextra)
 
 # -----------------------------------------------------------------------

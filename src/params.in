@@ -92,6 +92,9 @@ continuous_physics: F
 #     (frames_<dirID>/balance_<preFrameFile>.dat)
 # [save_energy]: balance de energía de la base por período y por fase
 #     (frames_<dirID>/energy_<preFrameFile>.dat y energy_fase_<...>.dat)
+# [comprimir_salidas]: T = los archivos por frame (.xy, .ve, .sxy, fc_*) se
+#     escriben comprimidos (gzip, extensión .gz) y con 9 cifras significativas
+#     (reproducen exactamente los valores de Box2D); F = texto, 6 cifras
 dirID: walker
 preFrameFile: frm
 saveFrameFreq: 5
@@ -106,6 +109,7 @@ freq_save_contacts: 0
 save_ve_freq: 0
 check_balance_freq: 0
 save_energy: F
+comprimir_salidas: F
 #
 # Región de interés (ROI) para las salidas por grano y por contacto
 # [save_roi_only]: F = se guarda todo el sistema; T = solo el rectángulo

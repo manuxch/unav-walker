@@ -82,7 +82,8 @@ def k_en_fase(directorio, pre, p, bines):
     """<K> por (paridad, bin de fase) de los .ve; y conteo de frames."""
     suma = np.zeros((2, bines))
     n = np.zeros((2, bines))
-    archivos = sorted(Path(directorio).glob(f"{pre}_*.ve"))
+    archivos = sorted(Path(directorio).glob(f"{pre}_*.ve")) + sorted(
+        Path(directorio).glob(f"{pre}_*.ve.gz"))
     for f in archivos:
         t, fase = cabecera_ve(f)
         i = np.searchsorted(p["t_fin"], t, side="right")

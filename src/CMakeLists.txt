@@ -17,6 +17,7 @@ set_target_properties(box2d PROPERTIES
   IMPORTED_LOCATION ${BOX2D_LIBRARY}
   INTERFACE_INCLUDE_DIRECTORIES ${BOX2D_ROOT}/include)
 
+
 option(UNAV_STATIC "Enlazar unav-walkers estáticamente" ON)
 
 # ---------------------------------------------------------------------------
@@ -48,7 +49,11 @@ add_library(sim_core STATIC
   silo_builder.cpp)
 target_include_directories(sim_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
                                     PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(sim_core PUBLIC box2d)
+if(UNAV_STATIC)
+  set(ZLIB_USE_STATIC_LIBS ON)
+endif()
+find_package(ZLIB REQUIRED)
+target_link_libraries(sim_core PUBLIC box2d ZLIB::ZLIB)
 target_compile_options(sim_core PRIVATE -Wall -Wextra)
 add_dependencies(sim_core git_version)
 
@@ -77,6 +82,9 @@ add_test(NAME friccion_con_la_base COMMAND test_friction)
 add_test(NAME balance_de_energia COMMAND test_energy)
 add_test(NAME reinyeccion
          COMMAND test_reinjection ${CMAKE_CURRENT_SOURCE_DIR}/tests/params_test.in)
+add_test(NAME salidas_comprimidas
+         COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_gzip.sh
+                 $<TARGET_FILE:unav-walkers>)
 add_test(NAME lector_de_parametros
          COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_params.sh
                  $<TARGET_FILE:unav-walkers>)
