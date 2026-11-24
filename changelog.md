@@ -1,3 +1,48 @@
+# Versión 3.5
+
+2026.11.24
+
+Cambios para la validación de la potencia de contacto (propuesta de
+2026-12; plan en `run-unav-walker/2026-12/plan-validacion-potencia.tex`).
+Todas las opciones nuevas están apagadas por defecto: con ellas apagadas,
+las salidas son idénticas byte a byte a las de la versión 3.4
+(`src/tests/regression.sh`).
+
+- `comprimir_salidas: T`: los archivos por frame (`.xy`, `.ve`, `.sxy`,
+  `fc_*`) se escriben en gzip (`.gz`) con 9 cifras significativas, que
+  reproducen exactamente los `float` de Box2D (antes 6). Las herramientas de
+  `tools/` leen archivos comprimidos y de texto. `src/gzstream.hpp`.
+- `y_eliminacion`, `x_eliminacion`: dónde se reinyectan o eliminan los
+  granos descargados (antes `y = -10` fijo): permite una base larga aguas
+  abajo sin paredes laterales.
+- `granos_registro`, `periodos_registro`: el registro empieza al inicio de un
+  período con esa cantidad de granos en el silo o menos, y la simulación
+  termina tras ese número de períodos registrados.
+- `paredes_moviles: T`: el silo y la tapa son cuerpos cinemáticos que siguen
+  exactamente la posición de la base.
+- `save_power: T` (módulo `contact_power`): potencia exacta de los
+  contactos. Con la velocidad media del paso en el punto de contacto, el
+  trabajo de los contactos se reparte exactamente entre ellos (traslación y
+  rotación): `T_{j->i}` y `D_ij` por contacto, y el trabajo de las paredes.
+  Agrega a `energy_*.dat` las columnas `Wpar Dgg Dgp Wcont_tr Wcont_rot`.
+- `save_fz_freq` (`<pre>_<frame>.fz`): por grano, promedios entre cuadros de
+  las fuerzas y potencias de contacto, y el ángulo del disco (que no se
+  guardaba en ningún archivo).
+- `save_power_maps` (`potencia_celdas_<pre>.dat`, `potencia_pares_<pre>.dat`):
+  potencia por celdas de un diámetro y por fase sobre dos períodos (separa
+  períodos pares e impares), y flujos de energía entre ocho regiones.
+- `bin/grano_aislado`: deriva y movilidad de un disco solo sobre la base,
+  con Karnopp y con Coulomb.
+- `scripts/params-potencia.tpl`, `start-potencia.sh`, `submit-potencia.tpl`:
+  la tanda de la validación; `empaquetar.sh` arma un `.tar` sin recomprimir
+  cuando los archivos ya están en gzip.
+- Pruebas nuevas: salidas comprimidas, registro por llenado, paredes
+  móviles, grano aislado, potencia de los contactos (cierre exacto) y
+  salidas de potencia.
+- Observación: un grano que Box2D duerme pierde su velocidad sin contactos
+  (queda como trabajo de contacto en `energy_*.dat`); `save_power` no lo
+  cuenta como trabajo de contacto.
+
 # Versión 3.4
 
 2026.10.26

@@ -12,10 +12,13 @@
 #   - frames_<dirID>/<pre>_*       (.xy, .sxy, .ve)
 #   - frames_<dirID>/fc_<pre>_*    (contactos)
 #   - frames_<dirID>/wall_force_<pre>.dat, balance_<pre>.dat,
-#     energy_<pre>.dat, energy_fase_<pre>.dat (si existen)
+#     energy_<pre>.dat, energy_fase_<pre>.dat, potencia_celdas_<pre>.dat*,
+#     potencia_pares_<pre>.dat* (si existen)
 #   - fluxFile y pf_file (si existen);
 #   - la salida estándar de SLURM flx_<job>_<i>.out, con i el índice de
 #     p-<i>.in (si existe).
+# Con comprimir_salidas: T los archivos por frame ya están en gzip (.gz): el
+# paquete es entonces un .tar sin recomprimir (xz no los achica y tarda).
 # Después de crear cada paquete verifica su integridad y que tenga todos los
 # archivos. No borra nada.
 #
@@ -56,7 +59,12 @@ for pfile in "$@"; do
     continue
   fi
   frames=frames_$dir_id
+  comprimido=0
+  if find "$frames" -maxdepth 1 -name "${pre}_*.gz" -print -quit | grep -q .; then
+    comprimido=1
+  fi
   paquete=$pre.tar.xz
+  ((comprimido)) && paquete=$pre.tar
   if [[ -e $paquete ]]; then
     echo "$paquete ya existe; se saltea (borrarlo para rehacerlo)" >&2
     continue
@@ -67,7 +75,8 @@ for pfile in "$@"; do
   find "$frames" -maxdepth 1 -type f \
     \( -name "${pre}_*" -o -name "fc_${pre}_*" \
     -o -name "wall_force_${pre}.dat" -o -name "balance_${pre}.dat" \
-    -o -name "energy_${pre}.dat" -o -name "energy_fase_${pre}.dat" \) |
+    -o -name "energy_${pre}.dat" -o -name "energy_fase_${pre}.dat" \
+    -o -name "potencia_celdas_${pre}.dat*" -o -name "potencia_pares_${pre}.dat*" \) |
     sort >>"$lista"
   n_frames=$(($(wc -l <"$lista") - 1))
   if ((n_frames == 0)); then
@@ -87,10 +96,15 @@ for pfile in "$@"; do
   n=$(wc -l <"$lista")
 
   echo "$paquete: $n archivos"
-  tar -cJf "$paquete.tmp" -T "$lista"
-  # Verificación: integridad de xz y cantidad de archivos
-  xz -t "$paquete.tmp"
-  m=$(tar -tJf "$paquete.tmp" | wc -l)
+  if ((comprimido)); then
+    tar -cf "$paquete.tmp" -T "$lista"
+    m=$(tar -tf "$paquete.tmp" | wc -l)
+  else
+    tar -cJf "$paquete.tmp" -T "$lista"
+    # Verificación: integridad de xz y cantidad de archivos
+    xz -t "$paquete.tmp"
+    m=$(tar -tJf "$paquete.tmp" | wc -l)
+  fi
   if ((m != n)); then
     echo "$paquete: el paquete tiene $m archivos y se esperaban $n" >&2
     errores=$((errores + 1))

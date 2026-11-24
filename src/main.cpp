@@ -120,8 +120,8 @@ int main(int argc, char *argv[]) {
          << "Uso: " << argv[0] << " <archivo_de_parámetros>" << endl;
     return 1;
   }
-  cout << "# unav-walkers ver. 3.4" << endl;
-  cout << "# 2026.10.26" << endl;
+  cout << "# unav-walkers ver. 3.5" << endl;
+  cout << "# 2026.11.24" << endl;
   cout << "# git: " << GIT_HASH << endl;
   const GlobalSetup gs(argv[1]);
   RNG rng(gs.rnd_seed);
