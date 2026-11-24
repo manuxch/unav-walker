@@ -21,6 +21,7 @@
 
 #include "base_friction.hpp"
 #include "body_data.hpp"
+#include "contact_power.hpp"
 #include "contacts.hpp"
 #include "diagnostics.hpp"
 #include "discharge.hpp"
@@ -154,6 +155,8 @@ int main(int argc, char *argv[]) {
   // Archivos de salida continuos
   std::ofstream flux_file, wall_force_file, balance_file, pf_file;
   EnergyBudget energy(gs.silo.frec); // se abre en t_Register si save_energy
+  ContactPower power;                // potencia exacta de los contactos
+  if (gs.save_power) energy.attach(&power);
   if (gs.flux_freq > 0) open_flux_file(flux_file, gs);
   if (gs.fondo_medicion) open_wall_force_file(wall_force_file, gs);
   if (gs.check_balance_freq) open_balance_file(balance_file, gs);

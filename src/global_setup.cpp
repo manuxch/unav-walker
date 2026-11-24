@@ -155,6 +155,7 @@ void GlobalSetup::load(const string &input_file) {
       {"save_tensors_freq:", false},
       {"check_balance_freq:", false},
       {"save_energy:", false},
+      {"save_power:", false},
       {"comprimir_salidas:", false},
       {"save_roi_only:", false},
       {"x_roi:", false},
@@ -324,8 +325,10 @@ void GlobalSetup::load(const string &input_file) {
   save_tensors_freq = opt_freq("save_tensors_freq:");
   check_balance_freq = opt_freq("check_balance_freq:");
   save_energy = has("save_energy:") ? B("save_energy:") : false;
+  save_power = has("save_power:") ? B("save_power:") : false;
   comprimir_salidas =
       has("comprimir_salidas:") ? B("comprimir_salidas:") : false;
+  check(!save_power || save_energy, "save_power requiere save_energy: T.");
   check(save_frame_freq >= 0, "saveFrameFreq debe ser >= 0.");
   check(flux_freq >= 0, "fluxFreq debe ser >= 0.");
   if (has("pf_file:")) pf_file = vals.at("pf_file:");
@@ -427,6 +430,8 @@ void GlobalSetup::print() const {
   cout << "# \t Frecuencia del chequeo de balance de fuerzas: "
        << check_balance_freq << endl;
   cout << "# \t Balance de energía: " << (save_energy ? "Sí" : "No") << endl;
+  if (save_power)
+    cout << "# \t Potencia exacta de los contactos: Sí" << endl;
   if (paredes_moviles)
     cout << "# \t Paredes y tapa se mueven con la base." << endl;
   if (y_eliminacion != -10.0 || x_eliminacion > 0)

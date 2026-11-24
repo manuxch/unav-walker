@@ -39,6 +39,7 @@ add_custom_target(git_version
 # ---------------------------------------------------------------------------
 add_library(sim_core STATIC
   base_friction.cpp
+  contact_power.cpp
   contacts.cpp
   diagnostics.cpp
   discharge.cpp
@@ -77,7 +78,7 @@ endif()
 # Pruebas (ctest). Los ejecutables de prueba quedan en el directorio de
 # compilación, no en bin/.
 # ---------------------------------------------------------------------------
-foreach(t test_friction test_reinjection test_energy test_walls)
+foreach(t test_friction test_reinjection test_energy test_walls test_power)
   add_executable(${t} tests/${t}.cpp)
   target_link_libraries(${t} PRIVATE sim_core)
   target_compile_options(${t} PRIVATE -Wall -Wextra)
@@ -90,6 +91,8 @@ add_test(NAME balance_de_energia COMMAND test_energy)
 add_test(NAME grano_aislado
          COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_grano_aislado.sh
                  $<TARGET_FILE:grano_aislado>)
+add_test(NAME potencia_de_contactos
+         COMMAND test_power ${CMAKE_CURRENT_SOURCE_DIR}/tests/params_test.in)
 add_test(NAME paredes_moviles
          COMMAND test_walls ${CMAKE_CURRENT_SOURCE_DIR}/tests/params_test.in)
 add_test(NAME reinyeccion

@@ -97,6 +97,7 @@ public:
   int save_tensors_freq = 0;          //!< Frecuencia de .sxy
   int check_balance_freq = 0;         //!< Frecuencia del chequeo de balance
   bool save_energy = false;           //!< Balance de energía de la base
+  bool save_power = false;            //!< Potencia exacta de los contactos
   bool comprimir_salidas = false;     //!< Salidas por frame en gzip (.gz)
 
   // Región de interés (ROI) para las salidas por grano y por contacto

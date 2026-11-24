@@ -35,6 +35,7 @@ struct BodyData {
   float tau_base = 0.0f;              //!< Torque de la base (último paso)
   b2Vec2 v_prev = b2Vec2(0.0f, 0.0f); //!< Velocidad lineal antes del Step
   float w_prev = 0.0f;                //!< Velocidad angular antes del Step
+  int power_idx = -1; //!< Índice del grano en ContactPower (uso interno)
 };
 
 /*! Devuelve los datos propios de un cuerpo. */

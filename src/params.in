@@ -103,6 +103,9 @@ continuous_physics: F
 #     (frames_<dirID>/balance_<preFrameFile>.dat)
 # [save_energy]: balance de energía de la base por período y por fase
 #     (frames_<dirID>/energy_<preFrameFile>.dat y energy_fase_<...>.dat)
+# [save_power]: T = además, potencia exacta de los contactos (requiere
+#     save_energy: T): agrega a energy_*.dat las columnas Wpar, Dgg, Dgp,
+#     Wcont_tr y Wcont_rot (ver src/contact_power.hpp).
 # [comprimir_salidas]: T = los archivos por frame (.xy, .ve, .sxy, fc_*) se
 #     escriben comprimidos (gzip, extensión .gz) y con 9 cifras significativas
 #     (reproducen exactamente los valores de Box2D); F = texto, 6 cifras
@@ -120,6 +123,7 @@ freq_save_contacts: 0
 save_ve_freq: 0
 check_balance_freq: 0
 save_energy: F
+save_power: F
 comprimir_salidas: F
 #
 # Región de interés (ROI) para las salidas por grano y por contacto

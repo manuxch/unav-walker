@@ -39,6 +39,11 @@ void EnergyWork::add(const EnergyWork &o) {
   dk += o.dk;
   dk_reiny += o.dk_reiny;
   k_sum += o.k_sum;
+  w_par += o.w_par;
+  d_gg += o.d_gg;
+  d_gp += o.d_gp;
+  w_cont_tr += o.w_cont_tr;
+  w_cont_rot += o.w_cont_rot;
   n_steps += o.n_steps;
   n_grains += o.n_grains;
 }
@@ -64,11 +69,20 @@ void EnergyBudget::open(const std::string &period_file,
           "por descarga y reinyección; K: energía cinética media.\n"
           "# Cierre: K(fin) - K(inicio) = Wg + Wcont + dK_reiny.\n"
           "# periodo t_ini t_fin npasos N Wb Wlin Wpiv Wg Dslide Dpiv Wcont dK "
-          "dK_reiny K\n";
+          "dK_reiny K";
+  if (power_)
+    out_ << " Wpar Dgg Dgp Wcont_tr Wcont_rot\n"
+            "# Con la potencia exacta de los contactos: Wpar: trabajo de las "
+            "paredes sobre los granos; Dgg, Dgp: disipación en contactos "
+            "grano-grano y grano-pared;\n"
+            "# Wcont_tr, Wcont_rot: trabajo traslacional y rotacional de los "
+            "contactos. Wcont = Wcont_tr + Wcont_rot = -(Dgg + Dgp) + Wpar.";
+  out_ << "\n";
 }
 
 void EnergyBudget::before_step(b2World *w, double base_vel) {
   base_vel_ = b2Vec2(0.0f, static_cast<float>(-base_vel));
+  if (power_) power_->before_step(w);
   snap_.clear();
   k_before_ = 0.0;
   for (b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
@@ -81,7 +95,7 @@ void EnergyBudget::before_step(b2World *w, double base_vel) {
 }
 
 EnergyWork EnergyBudget::after_step(b2World *w, double t, double dt) {
-  (void)w; // los cuerpos son los de la foto: Step no crea ni destruye
+  // Los cuerpos son los de la foto: Step no crea ni destruye
   EnergyWork s;
   s.n_steps = 1;
   s.n_grains = static_cast<long>(snap_.size());
@@ -107,6 +121,15 @@ EnergyWork EnergyBudget::after_step(b2World *w, double t, double dt) {
   if (k_after_ >= 0.0) s.dk_reiny = k_before_ - k_after_;
   k_after_ = k_after;
   s.k_sum = k_after;
+  if (power_) {
+    power_->after_step(w, dt);
+    const PowerStep &p = power_->total();
+    s.w_par = p.w_par;
+    s.d_gg = p.d_gg;
+    s.d_gp = p.d_gp;
+    s.w_cont_tr = p.w_cont_tr;
+    s.w_cont_rot = p.w_cont_rot;
+  }
   if (!active()) return s;
 
   // Período: el mismo bloque que usa stress_profile, b = floor(f t)
@@ -134,7 +157,7 @@ EnergyWork EnergyBudget::after_step(b2World *w, double t, double dt) {
 }
 
 void EnergyBudget::write_row(std::ofstream &o, const std::string &prefix,
-                             const EnergyWork &a, double scale) {
+                             const EnergyWork &a, double scale) const {
   const double wg = a.w_lin + a.w_piv;
   o << prefix << " " << a.n_steps << " " << std::fixed << std::setprecision(4)
     << double(a.n_grains) / a.n_steps << std::scientific
@@ -143,7 +166,11 @@ void EnergyBudget::write_row(std::ofstream &o, const std::string &prefix,
   for (double x : {a.w_base, a.w_lin, a.w_piv, wg, a.w_base - a.w_lin,
                    0.0 - a.w_piv, a.w_cont(), a.dk, a.dk_reiny})
     o << " " << x * scale;
-  o << " " << a.k_sum / a.n_steps << "\n";
+  o << " " << a.k_sum / a.n_steps;
+  if (power_)
+    for (double x : {a.w_par, a.d_gg, a.d_gp, a.w_cont_tr, a.w_cont_rot})
+      o << " " << x * scale;
+  o << "\n";
 }
 
 void EnergyBudget::flush_period() {
@@ -173,7 +200,8 @@ void EnergyBudget::close() {
      << "  columnas como en el archivo por período; K es la media en el "
         "bin.\n"
         "# fase dfase npasos N Wb Wlin Wpiv Wg Dslide Dpiv Wcont dK dK_reiny "
-        "K\n";
+        "K"
+     << (power_ ? " Wpar Dgg Dgp Wcont_tr Wcont_rot" : "") << "\n";
   for (int i = 0; i < phase_bins_; ++i) {
     const EnergyWork &a = phase_acc_[i];
     if (a.n_steps == 0 || n_periods <= 0.0) continue;

@@ -49,6 +49,8 @@
 
 #pragma once
 
+#include "contact_power.hpp"
+
 #include <box2d/box2d.h>
 
 #include <fstream>
@@ -66,6 +68,12 @@ struct EnergyWork {
   double dk = 0.0;       //!< Cambio de energía cinética dentro de los pasos
   double dk_reiny = 0.0; //!< Cambio de K por descarga y reinyección
   double k_sum = 0.0;    //!< Suma de K total al final de cada paso
+  // Con ContactPower (EnergyBudget::attach):
+  double w_par = 0.0;      //!< Trabajo de las paredes sobre los granos
+  double d_gg = 0.0;       //!< Disipación en contactos grano-grano
+  double d_gp = 0.0;       //!< Disipación en contactos grano-pared
+  double w_cont_tr = 0.0;  //!< Trabajo traslacional de los contactos
+  double w_cont_rot = 0.0; //!< Trabajo rotacional de los contactos
   long n_steps = 0;      //!< Pasos acumulados
   long n_grains = 0;     //!< Suma del número de granos sobre los pasos
 
@@ -111,6 +119,13 @@ public:
    */
   EnergyWork after_step(b2World *w, double t, double dt);
 
+  /*! \brief Calcula además la potencia exacta de los contactos con \p power
+   * (que before_step y after_step llaman por su cuenta) y agrega a las
+   * salidas las columnas W_par, D_gg, D_gp, W_cont_tr y W_cont_rot. El
+   * objeto debe vivir más que este EnergyBudget.
+   */
+  void attach(ContactPower *power) { power_ = power; }
+
   /// Escribe el último período (posiblemente incompleto) y el perfil en fase.
   void close();
 
@@ -127,8 +142,9 @@ private:
   };
 
   void flush_period();
-  static void write_row(std::ofstream &o, const std::string &prefix,
-                        const EnergyWork &a, double scale);
+  void write_row(std::ofstream &o, const std::string &prefix,
+                 const EnergyWork &a, double scale) const;
+  ContactPower *power_ = nullptr;
 
   double freq_;
   int phase_bins_;
