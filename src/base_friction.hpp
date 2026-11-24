@@ -45,6 +45,10 @@ struct MovBase {
 MovBase base_excitation(double t, double gamma, double w,
                         const GlobalSetup &gs);
 
+/*! \brief Igual que la anterior, con rho, phi y g explícitos (sin GlobalSetup). */
+MovBase base_excitation(double t, double gamma, double w, double rho,
+                        double phi, double g);
+
 /*! \brief Fuerza de fricción de la base sobre un grano (modelo de Karnopp).
  *
  * Adherencia: si |v_rel| < v_stick, la fuerza es la necesaria para que el

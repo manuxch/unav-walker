@@ -66,6 +66,13 @@ if(UNAV_STATIC)
   target_link_options(unav-walkers PRIVATE -static)
 endif()
 
+add_executable(grano_aislado grano_aislado.cpp)
+target_link_libraries(grano_aislado PRIVATE sim_core)
+target_compile_options(grano_aislado PRIVATE -Wall -Wextra)
+if(UNAV_STATIC)
+  target_link_options(grano_aislado PRIVATE -static)
+endif()
+
 # ---------------------------------------------------------------------------
 # Pruebas (ctest). Los ejecutables de prueba quedan en el directorio de
 # compilación, no en bin/.
@@ -80,6 +87,9 @@ endforeach()
 
 add_test(NAME friccion_con_la_base COMMAND test_friction)
 add_test(NAME balance_de_energia COMMAND test_energy)
+add_test(NAME grano_aislado
+         COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_grano_aislado.sh
+                 $<TARGET_FILE:grano_aislado>)
 add_test(NAME paredes_moviles
          COMMAND test_walls ${CMAKE_CURRENT_SOURCE_DIR}/tests/params_test.in)
 add_test(NAME reinyeccion

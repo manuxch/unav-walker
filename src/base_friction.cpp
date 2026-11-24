@@ -14,8 +14,13 @@
 
 MovBase base_excitation(double t, double gamma, double w,
                         const GlobalSetup &gs) {
-  double y, vy, ay, rho = gs.silo.rho, phi = gs.silo.phi;
-  double Aa = gamma * gs.g;
+  return base_excitation(t, gamma, w, gs.silo.rho, gs.silo.phi, gs.g);
+}
+
+MovBase base_excitation(double t, double gamma, double w, double rho,
+                        double phi, double g) {
+  double y, vy, ay;
+  double Aa = gamma * g;
   double Av = Aa / w;
   double Ax = Av / w;
   y = -rho * Ax * std::sin(w * t) -
