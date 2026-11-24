@@ -41,6 +41,15 @@ int count_discharged(b2World *w, std::vector<int> &suma_tipo, int paso,
   return n_desc;
 }
 
+int count_in_silo(const b2World *w) {
+  int n = 0;
+  for (const b2Body *b = w->GetBodyList(); b; b = b->GetNext()) {
+    const BodyData *bd = body_data(b);
+    if (bd->is_grain && bd->is_in) ++n;
+  }
+  return n;
+}
+
 namespace {
 
 /*! Detecta si un disco de prueba se superpone con algún fixture del mundo. */
@@ -93,7 +102,8 @@ bool find_free_spot(b2World *w, const b2Body *self, float radius,
 
 void reinject_grains(b2World *w, const GlobalSetup &gs, RNG &rng,
                      bool reinject) {
-  const double y_elim = -10.0; // altura por debajo de la cual se reinyecta
+  const double y_elim = gs.y_eliminacion; // altura bajo la cual se reinyecta
+  const double x_elim = gs.x_eliminacion; // 0: sin límite lateral
   static unsigned long n_fail = 0;
 
   b2Body *b = w->GetBodyList();
@@ -114,7 +124,7 @@ void reinject_grains(b2World *w, const GlobalSetup &gs, RNG &rng,
       b = next_body;
       continue;
     }
-    if (pos.y > y_elim) {
+    if (pos.y > y_elim && (x_elim <= 0.0 || std::fabs(pos.x) <= x_elim)) {
       b = next_body;
       continue;
     }

@@ -72,6 +72,13 @@ public:
   int max_granos_desc = 0;     //!< Granos descargados para terminar (0: no)
   bool fondo_medicion = false; //!< Silo cerrado con fondo de medición
   bool continuous_physics = false; //!< Detección continua de colisiones (TOI)
+  double y_eliminacion = -10.0; //!< Altura bajo la cual se reinyecta o elimina
+  double x_eliminacion = 0.0;   //!< |x| desde el cual se reinyecta o elimina
+                                //!< (0: sin límite lateral)
+  int granos_registro = 0;      //!< Comenzar el registro con esta cantidad de
+                                //!< granos en el silo o menos (0: t_Register)
+  int periodos_registro = 0;    //!< Terminar tras este número de períodos de
+                                //!< registro (0: tMax)
 
   // Registros
   std::string dir_id;                 //!< Sufijo del directorio frames_<dir_id>

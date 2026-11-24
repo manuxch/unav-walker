@@ -63,6 +63,15 @@ pIter: 60
 vIter: 60
 g: 1.0
 do_reinyection: T
+# [y_eliminacion], [x_eliminacion]: los granos descargados que quedan debajo de
+#     y = y_eliminacion (por defecto -10) o más allá de |x| = x_eliminacion
+#     (por defecto 0: sin límite lateral) se reinyectan o se eliminan, según
+#     do_reinyection. La base se extiende hasta allí sin paredes laterales.
+# [granos_registro]: > 0 = el registro empieza al inicio del primer período
+#     posterior a t_Register en que quedan en el silo (sin descargar) esta
+#     cantidad de granos o menos (por defecto 0: empieza en t_Register).
+# [periodos_registro]: > 0 = la simulación termina tras este número de
+#     períodos de registro (por defecto 0: termina en tMax).
 # [fondo_medicion]: T = silo cerrado con fondo de medición (gID=-200) y sin
 #     descarga; la fuerza sobre el fondo se guarda en cada paso en
 #     frames_<dirID>/wall_force_<preFrameFile>.dat. F = silo con orificio.

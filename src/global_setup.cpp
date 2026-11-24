@@ -136,6 +136,10 @@ void GlobalSetup::load(const string &input_file) {
       {"do_reinyection:", true},
       {"fondo_medicion:", false},
       {"continuous_physics:", false},
+      {"y_eliminacion:", false},
+      {"x_eliminacion:", false},
+      {"granos_registro:", false},
+      {"periodos_registro:", false},
       {"dirID:", true},
       {"preFrameFile:", true},
       {"saveFrameFreq:", true},
@@ -281,6 +285,12 @@ void GlobalSetup::load(const string &input_file) {
   fondo_medicion = has("fondo_medicion:") ? B("fondo_medicion:") : false;
   continuous_physics =
       has("continuous_physics:") ? B("continuous_physics:") : false;
+  if (has("y_eliminacion:")) y_eliminacion = D("y_eliminacion:");
+  if (has("x_eliminacion:")) x_eliminacion = D("x_eliminacion:");
+  granos_registro =
+      has("granos_registro:") ? static_cast<int>(L("granos_registro:")) : 0;
+  periodos_registro =
+      has("periodos_registro:") ? static_cast<int>(L("periodos_registro:")) : 0;
   check(dt > 0, "timeStep debe ser > 0.");
   check(t_max > 0, "tMax debe ser > 0.");
   check(t_block >= 0 && t_block <= t_max, "tBlock debe estar en [0, tMax].");
@@ -289,6 +299,10 @@ void GlobalSetup::load(const string &input_file) {
   check(p_iter > 0 && v_iter > 0, "pIter y vIter deben ser > 0.");
   check(g >= 0, "g debe ser >= 0.");
   check(max_granos_desc >= 0, "maxGranosDesc debe ser >= 0.");
+  check(y_eliminacion < 0, "y_eliminacion debe ser < 0.");
+  check(x_eliminacion >= 0, "x_eliminacion debe ser >= 0 (0: sin límite).");
+  check(granos_registro >= 0, "granos_registro debe ser >= 0.");
+  check(periodos_registro >= 0, "periodos_registro debe ser >= 0.");
 
   // Salidas
   dir_id = vals.at("dirID:");
@@ -411,6 +425,19 @@ void GlobalSetup::print() const {
   cout << "# \t Frecuencia del chequeo de balance de fuerzas: "
        << check_balance_freq << endl;
   cout << "# \t Balance de energía: " << (save_energy ? "Sí" : "No") << endl;
+  if (y_eliminacion != -10.0 || x_eliminacion > 0)
+    cout << "# \t Eliminación (o reinyección) de granos descargados: y < "
+         << y_eliminacion
+         << (x_eliminacion > 0 ? ", |x| > " + std::to_string(x_eliminacion)
+                               : string(""))
+         << endl;
+  if (granos_registro > 0)
+    cout << "# \t El registro comienza (al inicio de un período, desde "
+            "t_Register) con "
+         << granos_registro << " granos en el silo o menos." << endl;
+  if (periodos_registro > 0)
+    cout << "# \t El registro dura " << periodos_registro << " períodos."
+         << endl;
   if (comprimir_salidas)
     cout << "# \t Salidas por frame comprimidas (gzip, 9 cifras)." << endl;
   cout << "# \t Guardar solo partículas en ROI: "

@@ -30,7 +30,8 @@ int count_discharged(b2World *w, std::vector<int> &suma_tipo, int paso,
                      std::ofstream &flux_file, const GlobalSetup &gs);
 
 /*! \brief Reinyecta (o elimina) los granos descargados que cayeron por
- * debajo de y = -10.
+ * debajo de y = y_eliminacion (por defecto -10) o que se alejaron lateralmente
+ * más de |x| = x_eliminacion (por defecto, sin límite).
  *
  * Con \p reinject, cada grano se coloca en una posición al azar de la franja
  * |x| <= 0.9 R, 0.75 H <= y <= 0.95 H sin superposición con otros cuerpos, y
@@ -43,6 +44,9 @@ int count_discharged(b2World *w, std::vector<int> &suma_tipo, int paso,
  */
 void reinject_grains(b2World *w, const GlobalSetup &gs, RNG &rng,
                      bool reinject);
+
+/*! \brief Cantidad de granos que no salieron del silo (is_in). */
+int count_in_silo(const b2World *w);
 
 /*! \brief Escribe "t pf_bulk pf_out": fracción de área ocupada en la franja
  * R <= y <= 2 R (bulk) y fracción lineal ocupada sobre el orificio (y = 0).

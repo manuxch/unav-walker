@@ -85,6 +85,9 @@ add_test(NAME reinyeccion
 add_test(NAME salidas_comprimidas
          COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_gzip.sh
                  $<TARGET_FILE:unav-walkers>)
+add_test(NAME registro_por_llenado
+         COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_registro.sh
+                 $<TARGET_FILE:unav-walkers>)
 add_test(NAME lector_de_parametros
          COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_params.sh
                  $<TARGET_FILE:unav-walkers>)

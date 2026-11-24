@@ -34,6 +34,7 @@
 #include <box2d/box2d.h>
 
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -173,11 +174,21 @@ int main(int argc, char *argv[]) {
   double p_max = -1.0e8; // presión máxima registrada en los .sxy
   const bool stop_by_grains = gs.max_granos_desc > 0;
   bool blocked = true;
+  // Registro: desde t_Register o, con granos_registro > 0, desde el primer
+  // comienzo de período posterior a t_Register con esa cantidad de granos en
+  // el silo o menos (así los períodos registrados están completos).
+  bool registrando = false;
+  double t_reg = 0.0;
+  const double frec = gs.silo.frec;
+  auto fin_registro = [&](double tiempo) {
+    return gs.periodos_registro > 0 && registrando &&
+           tiempo >= t_reg + gs.periodos_registro / frec;
+  };
   const bool any_output =
       save_frm || save_ve || gs.save_contact_freq || gs.save_tensors_freq;
   auto every = [&n_step](int freq) { return freq && !(n_step % freq); };
 
-  while (t < gs.t_max &&
+  while (t < gs.t_max && !fin_registro(t) &&
          !(stop_by_grains &&
            n_granos_desc >= static_cast<unsigned int>(gs.max_granos_desc))) {
     if (blocked && t >= gs.t_block) {
@@ -191,9 +202,23 @@ int main(int argc, char *argv[]) {
              << endl;
       }
     }
+    if (!registrando) {
+      if (gs.granos_registro == 0) {
+        registrando = t >= gs.t_register;
+      } else if (!blocked && t >= gs.t_register &&
+                 std::floor(frec * t) > std::floor(frec * (t - dt))) {
+        const int en_silo = count_in_silo(&world);
+        registrando = en_silo <= gs.granos_registro;
+        if (registrando)
+          cout << "# Comienzo del registro: t = " << t << " (período "
+               << static_cast<long>(std::floor(frec * t)) << "), " << en_silo
+               << " granos en el silo." << endl;
+      }
+      if (registrando) t_reg = t;
+    }
     MovBase base = base_excitation(t, gs.silo.gamma, omega, gs);
     apply_base_friction(&world, base.v, base.a, gs.silo.zero_tol, gs.g, dt);
-    if (t >= gs.t_register) {
+    if (registrando) {
       if (any_output) ++n_frame;
       if (save_frm && every(gs.save_frame_freq))
         save_frame(&world, n_frame, n_step, gs);
@@ -220,7 +245,7 @@ int main(int argc, char *argv[]) {
     const bool check_now = every(gs.check_balance_freq);
     if (check_now) record_pre_step(&world);
     // Balance de energía: foto después de la descarga y la reinyección
-    const bool energy_now = gs.save_energy && t >= gs.t_register;
+    const bool energy_now = gs.save_energy && registrando;
     if (energy_now) {
       if (!energy.active()) {
         const std::string dir = "frames_" + gs.dir_id + "/";
@@ -247,6 +272,9 @@ int main(int argc, char *argv[]) {
       n_granos_desc >= static_cast<unsigned int>(gs.max_granos_desc))
     cout << "# Simulación finalizada por número de granos descargados (N = "
          << n_granos_desc << ")." << endl;
+  else if (fin_registro(t))
+    cout << "# Simulación finalizada: " << gs.periodos_registro
+         << " períodos registrados." << endl;
   else
     cout << "# Simulación finalizada por tiempo máximo." << endl;
 
