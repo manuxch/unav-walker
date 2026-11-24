@@ -72,6 +72,7 @@ public:
   int max_granos_desc = 0;     //!< Granos descargados para terminar (0: no)
   bool fondo_medicion = false; //!< Silo cerrado con fondo de medición
   bool continuous_physics = false; //!< Detección continua de colisiones (TOI)
+  bool paredes_moviles = false;    //!< Paredes y tapa se mueven con la base
   double y_eliminacion = -10.0; //!< Altura bajo la cual se reinyecta o elimina
   double x_eliminacion = 0.0;   //!< |x| desde el cual se reinyecta o elimina
                                 //!< (0: sin límite lateral)

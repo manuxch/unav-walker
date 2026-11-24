@@ -63,6 +63,8 @@ pIter: 60
 vIter: 60
 g: 1.0
 do_reinyection: T
+# [paredes_moviles]: T = el silo y la tapa se mueven con la base (cuerpos
+#     cinemáticos que siguen exactamente su posición); F = paredes fijas.
 # [y_eliminacion], [x_eliminacion]: los granos descargados que quedan debajo de
 #     y = y_eliminacion (por defecto -10) o más allá de |x| = x_eliminacion
 #     (por defecto 0: sin límite lateral) se reinyectan o se eliminan, según

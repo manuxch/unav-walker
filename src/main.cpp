@@ -217,6 +217,9 @@ int main(int argc, char *argv[]) {
       if (registrando) t_reg = t;
     }
     MovBase base = base_excitation(t, gs.silo.gamma, omega, gs);
+    if (gs.paredes_moviles)
+      move_walls(bodies, -base_excitation(t + dt, gs.silo.gamma, omega, gs).x,
+                 dt);
     apply_base_friction(&world, base.v, base.a, gs.silo.zero_tol, gs.g, dt);
     if (registrando) {
       if (any_output) ++n_frame;

@@ -139,6 +139,7 @@ un valor fuera de rango terminan el programa con un mensaje de error.
 | `save_tensors_freq` | no (0) | Frecuencia de `.sxy` |
 | `check_balance_freq` | no (0) | Frecuencia del chequeo de balance |
 | `save_energy` | no (F) | Balance de energía por período y por fase (`energy_<pre>.dat`, `energy_fase_<pre>.dat`) |
+| `paredes_moviles` | no (F) | T: las paredes y la tapa se mueven con la base (cinemáticas); F: fijas |
 | `y_eliminacion`, `x_eliminacion` | no (-10, 0) | Los granos descargados que quedan por debajo de `y_eliminacion` o más allá de `\|x\| = x_eliminacion` (0: sin límite) se reinyectan o se eliminan |
 | `granos_registro` | no (0) | > 0: el registro empieza al inicio del primer período posterior a `t_Register` con esa cantidad de granos en el silo o menos |
 | `periodos_registro` | no (0) | > 0: la simulación termina tras este número de períodos de registro |

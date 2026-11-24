@@ -70,7 +70,7 @@ endif()
 # Pruebas (ctest). Los ejecutables de prueba quedan en el directorio de
 # compilación, no en bin/.
 # ---------------------------------------------------------------------------
-foreach(t test_friction test_reinjection test_energy)
+foreach(t test_friction test_reinjection test_energy test_walls)
   add_executable(${t} tests/${t}.cpp)
   target_link_libraries(${t} PRIVATE sim_core)
   target_compile_options(${t} PRIVATE -Wall -Wextra)
@@ -80,6 +80,8 @@ endforeach()
 
 add_test(NAME friccion_con_la_base COMMAND test_friction)
 add_test(NAME balance_de_energia COMMAND test_energy)
+add_test(NAME paredes_moviles
+         COMMAND test_walls ${CMAKE_CURRENT_SOURCE_DIR}/tests/params_test.in)
 add_test(NAME reinyeccion
          COMMAND test_reinjection ${CMAKE_CURRENT_SOURCE_DIR}/tests/params_test.in)
 add_test(NAME salidas_comprimidas

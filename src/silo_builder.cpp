@@ -16,10 +16,11 @@ namespace {
 
 /*! Paredes del silo: una cadena de segmentos en cada orientación, porque las
  * cadenas de Box2D colisionan de un solo lado. */
-void create_walls(b2World *world, const GlobalSetup &gs, BodyData *data) {
+b2Body *create_walls(b2World *world, const GlobalSetup &gs, BodyData *data) {
   b2BodyDef bd;
   bd.position.Set(0.0f, 0.0f);
-  bd.type = b2_staticBody;
+  bd.type = gs.paredes_moviles ? b2_kinematicBody : b2_staticBody;
+  bd.allowSleep = !gs.paredes_moviles;
   data->is_grain = false;
   data->gid = kGidSilo;
   bd.userData.pointer = reinterpret_cast<uintptr_t>(data);
@@ -47,6 +48,7 @@ void create_walls(b2World *world, const GlobalSetup &gs, BodyData *data) {
     silo->CreateFixture(&fix);
   }
   cout << "#\t- Silo creado." << endl;
+  return silo;
 }
 
 /*! Tapa del orificio (gid = kGidLid) o fondo de medición de ancho completo
@@ -54,7 +56,8 @@ void create_walls(b2World *world, const GlobalSetup &gs, BodyData *data) {
 b2Body *create_lid(b2World *world, const GlobalSetup &gs, BodyData *data) {
   b2BodyDef bd;
   bd.position.Set(0.0f, 0.0f);
-  bd.type = b2_staticBody;
+  bd.type = gs.paredes_moviles ? b2_kinematicBody : b2_staticBody;
+  bd.allowSleep = !gs.paredes_moviles;
   data->is_grain = false;
   data->gid = gs.fondo_medicion ? kGidMeasuringFloor : kGidLid;
   bd.userData.pointer = reinterpret_cast<uintptr_t>(data);
@@ -136,9 +139,17 @@ void create_grains(b2World *world, const GlobalSetup &gs, RNG &rng,
 
 } // namespace
 
+void move_walls(SiloBodies &bodies, double y_target, double dt) {
+  for (b2Body *b : {bodies.silo, bodies.lid}) {
+    if (!b) continue;
+    const double vy = (y_target - b->GetPosition().y) / dt;
+    b->SetLinearVelocity(b2Vec2(0.0f, static_cast<float>(vy)));
+  }
+}
+
 void build_silo(b2World *world, const GlobalSetup &gs, RNG &rng,
                 SiloBodies &bodies) {
-  create_walls(world, gs, &bodies.silo_data);
+  bodies.silo = create_walls(world, gs, &bodies.silo_data);
   bodies.lid = create_lid(world, gs, &bodies.lid_data);
   create_grains(world, gs, rng, bodies);
 }

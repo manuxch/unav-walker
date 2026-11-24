@@ -136,6 +136,7 @@ void GlobalSetup::load(const string &input_file) {
       {"do_reinyection:", true},
       {"fondo_medicion:", false},
       {"continuous_physics:", false},
+      {"paredes_moviles:", false},
       {"y_eliminacion:", false},
       {"x_eliminacion:", false},
       {"granos_registro:", false},
@@ -285,6 +286,7 @@ void GlobalSetup::load(const string &input_file) {
   fondo_medicion = has("fondo_medicion:") ? B("fondo_medicion:") : false;
   continuous_physics =
       has("continuous_physics:") ? B("continuous_physics:") : false;
+  paredes_moviles = has("paredes_moviles:") ? B("paredes_moviles:") : false;
   if (has("y_eliminacion:")) y_eliminacion = D("y_eliminacion:");
   if (has("x_eliminacion:")) x_eliminacion = D("x_eliminacion:");
   granos_registro =
@@ -425,6 +427,8 @@ void GlobalSetup::print() const {
   cout << "# \t Frecuencia del chequeo de balance de fuerzas: "
        << check_balance_freq << endl;
   cout << "# \t Balance de energía: " << (save_energy ? "Sí" : "No") << endl;
+  if (paredes_moviles)
+    cout << "# \t Paredes y tapa se mueven con la base." << endl;
   if (y_eliminacion != -10.0 || x_eliminacion > 0)
     cout << "# \t Eliminación (o reinyección) de granos descargados: y < "
          << y_eliminacion
