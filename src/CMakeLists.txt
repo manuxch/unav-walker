@@ -46,6 +46,7 @@ add_library(sim_core STATIC
   energy_budget.cpp
   global_setup.cpp
   output.cpp
+  power_output.cpp
   rng.cpp
   silo_builder.cpp)
 target_include_directories(sim_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
@@ -99,6 +100,9 @@ add_test(NAME reinyeccion
          COMMAND test_reinjection ${CMAKE_CURRENT_SOURCE_DIR}/tests/params_test.in)
 add_test(NAME salidas_comprimidas
          COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_gzip.sh
+                 $<TARGET_FILE:unav-walkers>)
+add_test(NAME salidas_de_potencia
+         COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_potencia_salidas.sh
                  $<TARGET_FILE:unav-walkers>)
 add_test(NAME registro_por_llenado
          COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_registro.sh

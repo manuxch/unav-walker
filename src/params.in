@@ -106,6 +106,16 @@ continuous_physics: F
 # [save_power]: T = además, potencia exacta de los contactos (requiere
 #     save_energy: T): agrega a energy_*.dat las columnas Wpar, Dgg, Dgp,
 #     Wcont_tr y Wcont_rot (ver src/contact_power.hpp).
+# [save_fz_freq]: > 0 = archivos <pre>_<frame>.fz cada esta cantidad de pasos
+#     (requiere save_power): por grano, promedios de las fuerzas y potencias
+#     de contacto sobre los pasos del intervalo, con el ángulo de cada disco.
+# [save_power_maps]: T = potencia por celdas de un diámetro y fase
+#     (potencia_celdas_<pre>.dat) y flujos entre regiones
+#     (potencia_pares_<pre>.dat), con el ciclo de dos períodos en
+#     [fase_bines] bines (por defecto 40). Celdas: [celdas_ancho] (1),
+#     [celdas_x_max] (R + 20), [celdas_y_min] (-40), [celdas_y_max] (H).
+#     Regiones: [reg_cuna_h] (2 r), [reg_costado_w] (5), [reg_lecho_y] (15),
+#     [reg_chorro_L] (15), [reg_fuera_y] (-40); ver src/power_output.hpp.
 # [comprimir_salidas]: T = los archivos por frame (.xy, .ve, .sxy, fc_*) se
 #     escriben comprimidos (gzip, extensión .gz) y con 9 cifras significativas
 #     (reproducen exactamente los valores de Box2D); F = texto, 6 cifras

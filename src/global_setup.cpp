@@ -156,6 +156,18 @@ void GlobalSetup::load(const string &input_file) {
       {"check_balance_freq:", false},
       {"save_energy:", false},
       {"save_power:", false},
+      {"save_fz_freq:", false},
+      {"save_power_maps:", false},
+      {"fase_bines:", false},
+      {"celdas_ancho:", false},
+      {"celdas_x_max:", false},
+      {"celdas_y_min:", false},
+      {"celdas_y_max:", false},
+      {"reg_cuna_h:", false},
+      {"reg_costado_w:", false},
+      {"reg_lecho_y:", false},
+      {"reg_chorro_L:", false},
+      {"reg_fuera_y:", false},
       {"comprimir_salidas:", false},
       {"save_roi_only:", false},
       {"x_roi:", false},
@@ -326,6 +338,23 @@ void GlobalSetup::load(const string &input_file) {
   check_balance_freq = opt_freq("check_balance_freq:");
   save_energy = has("save_energy:") ? B("save_energy:") : false;
   save_power = has("save_power:") ? B("save_power:") : false;
+  pot.fz_freq = opt_freq("save_fz_freq:");
+  pot.mapas = has("save_power_maps:") ? B("save_power_maps:") : false;
+  if (has("fase_bines:")) pot.fase_bines = static_cast<int>(L("fase_bines:"));
+  if (has("celdas_ancho:")) pot.celda = D("celdas_ancho:");
+  pot.x_max = has("celdas_x_max:") ? D("celdas_x_max:") : silo.R + 20.0;
+  if (has("celdas_y_min:")) pot.y_min = D("celdas_y_min:");
+  pot.y_max = has("celdas_y_max:") ? D("celdas_y_max:") : silo.H;
+  pot.cuna_h = has("reg_cuna_h:") ? D("reg_cuna_h:") : 2.0 * silo.r;
+  if (has("reg_costado_w:")) pot.costado_w = D("reg_costado_w:");
+  if (has("reg_lecho_y:")) pot.lecho_y = D("reg_lecho_y:");
+  if (has("reg_chorro_L:")) pot.chorro_L = D("reg_chorro_L:");
+  if (has("reg_fuera_y:")) pot.fuera_y = D("reg_fuera_y:");
+  check((pot.fz_freq == 0 && !pot.mapas) || save_power,
+        "save_fz_freq y save_power_maps requieren save_power: T.");
+  check(pot.fase_bines > 0 && pot.celda > 0 && pot.x_max > 0 &&
+            pot.y_min < pot.y_max,
+        "opciones de las celdas de potencia inválidas.");
   comprimir_salidas =
       has("comprimir_salidas:") ? B("comprimir_salidas:") : false;
   check(!save_power || save_energy, "save_power requiere save_energy: T.");
@@ -431,7 +460,9 @@ void GlobalSetup::print() const {
        << check_balance_freq << endl;
   cout << "# \t Balance de energía: " << (save_energy ? "Sí" : "No") << endl;
   if (save_power)
-    cout << "# \t Potencia exacta de los contactos: Sí" << endl;
+    cout << "# \t Potencia exacta de los contactos: Sí (.fz cada "
+         << pot.fz_freq << " pasos, mapas: " << (pot.mapas ? "Sí" : "No")
+         << ")" << endl;
   if (paredes_moviles)
     cout << "# \t Paredes y tapa se mueven con la base." << endl;
   if (y_eliminacion != -10.0 || x_eliminacion > 0)

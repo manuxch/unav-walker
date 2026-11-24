@@ -72,7 +72,16 @@ struct ContactRecord {
  * \brief Magnitudes de un grano en un paso, sumadas sobre sus contactos. */
 struct GrainPower {
   const b2Body *body = nullptr;
+  b2Vec2 pos;                //!< Posición al inicio del paso
   b2Vec2 vm;                 //!< Velocidad media del paso
+  b2Vec2 f_base;             //!< Fuerza de Karnopp aplicada
+  double tau_base = 0.0;     //!< Torque de pivoteo aplicado
+  double w_lin = 0.0;        //!< Trabajo de Karnopp en el paso (K(v') - K(v0))
+  double w_piv = 0.0;        //!< Trabajo del pivoteo en el paso
+  double p_wall = 0.0;       //!< Potencia de las paredes sobre el grano
+  double t_in = 0.0;         //!< Potencia recibida de otros granos, sum T_{j->i}
+  double d_gg = 0.0;         //!< Disipación gg atribuida al grano (D_ij / 2)
+  double d_gw = 0.0;         //!< Disipación grano-pared del grano
   double wm = 0.0;           //!< Velocidad angular media del paso
   double c_gg[2] = {0, 0};   //!< Fuerza de contacto con otros granos
   double c_gw[2] = {0, 0};   //!< Fuerza de contacto con paredes
@@ -114,6 +123,7 @@ public:
   const std::vector<ContactRecord> &records() const { return records_; }
   const std::vector<GrainPower> &grains() const { return grains_; }
   const PowerStep &total() const { return total_; }
+  double dt() const { return dt_; }
   /// Mayor residuo relativo por grano del último paso, |dK medido - dK por
   /// contactos| / (K(v') + K(v'')): el redondeo float del solver (~1e-6).
   double max_residual() const { return max_residual_; }

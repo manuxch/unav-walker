@@ -29,6 +29,7 @@
 #include "git_version.hpp" // GIT_HASH, generado por CMake
 #include "global_setup.hpp"
 #include "output.hpp"
+#include "power_output.hpp"
 #include "rng.hpp"
 #include "silo_builder.hpp"
 
@@ -157,6 +158,10 @@ int main(int argc, char *argv[]) {
   EnergyBudget energy(gs.silo.frec); // se abre en t_Register si save_energy
   ContactPower power;                // potencia exacta de los contactos
   if (gs.save_power) energy.attach(&power);
+  FzFrames fz_frames(gs);
+  PowerMaps power_maps(gs);
+  const bool save_fz = gs.pot.fz_freq > 0;
+  std::string power_header; // procedencia de los mapas (se fija al empezar)
   if (gs.flux_freq > 0) open_flux_file(flux_file, gs);
   if (gs.fondo_medicion) open_wall_force_file(wall_force_file, gs);
   if (gs.check_balance_freq) open_balance_file(balance_file, gs);
@@ -188,7 +193,8 @@ int main(int argc, char *argv[]) {
            tiempo >= t_reg + gs.periodos_registro / frec;
   };
   const bool any_output =
-      save_frm || save_ve || gs.save_contact_freq || gs.save_tensors_freq;
+      save_frm || save_ve || gs.save_contact_freq || gs.save_tensors_freq ||
+      gs.pot.fz_freq;
   auto every = [&n_step](int freq) { return freq && !(n_step % freq); };
 
   while (t < gs.t_max && !fin_registro(t) &&
@@ -232,6 +238,8 @@ int main(int argc, char *argv[]) {
         save_packing_fraction(&world, gs, t, pf_file);
       if (save_ve && every(gs.save_ve_freq))
         save_velocities(n_frame, t, n_step, &world, gs);
+      if (save_fz && every(gs.pot.fz_freq))
+        fz_frames.write(&world, n_frame, t, n_step);
       if (every(gs.freq_perfiles)) {
         update_outlet_profiles(&world, vel_0.data(), pf_0.data(),
                                bin_count.data(), gs.n_bin_perfiles, gs.silo.r);
@@ -258,11 +266,16 @@ int main(int argc, char *argv[]) {
         energy.open(dir + "energy_" + gs.pre_frame_file + ".dat",
                     dir + "energy_fase_" + gs.pre_frame_file + ".dat",
                     provenance_header(gs, t, n_step, n_frame));
+        power_header = provenance_header(gs, t, n_step, n_frame);
       }
       energy.before_step(&world, base.v);
     }
     world.Step(dt, gs.p_iter, gs.v_iter);
-    if (energy_now) energy.after_step(&world, t, dt);
+    if (energy_now) {
+      energy.after_step(&world, t, dt);
+      if (save_fz) fz_frames.add_step(power);
+      if (gs.pot.mapas) power_maps.add_step(power, t);
+    }
     if (check_now) check_force_balance(&world, gs, t, n_step, balance_file);
     if (gs.fondo_medicion) {
       b2Vec2 wf = wall_force(&world, dt, kGidMeasuringFloor);
@@ -299,6 +312,7 @@ int main(int argc, char *argv[]) {
   wall_force_file.close();
   balance_file.close();
   energy.close();
+  if (gs.pot.mapas && !power_header.empty()) power_maps.write(power_header);
   cout << "# Simulación finalizada." << endl;
   print_elapsed(start_time);
   if (gs.save_tensors_freq) {

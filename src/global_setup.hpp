@@ -29,6 +29,23 @@ struct Contenedor {
   double phi = 0.0;      //!< Diferencia de fase entre armónicos
 };
 
+/*! \struct PotenciaOpciones
+ * \brief Opciones de las salidas de potencia (power_output.hpp). */
+struct PotenciaOpciones {
+  int fz_freq = 0;          //!< Frecuencia (pasos) de los .fz (0: no)
+  bool mapas = false;       //!< Potencia por celdas y entre regiones
+  int fase_bines = 40;      //!< Bines de fase sobre dos períodos
+  double celda = 1.0;       //!< Lado de las celdas
+  double x_max = 0.0;       //!< Semiancho de las celdas (0: R + 20)
+  double y_min = -40.0;     //!< Límite inferior de las celdas
+  double y_max = 0.0;       //!< Límite superior de las celdas (0: H)
+  double cuna_h = 0.0;      //!< Altura de la cuña (0: D = 2 r)
+  double costado_w = 5.0;   //!< Ancho de los costados
+  double lecho_y = 15.0;    //!< Límite entre el lecho bajo y el alto
+  double chorro_L = 15.0;   //!< Largo del chorro
+  double fuera_y = -40.0;   //!< Debajo de esta altura, la región "fuera"
+};
+
 /*! \struct TipoGrano
  * \brief Propiedades de un tipo de grano (disco).
  */
@@ -98,6 +115,7 @@ public:
   int check_balance_freq = 0;         //!< Frecuencia del chequeo de balance
   bool save_energy = false;           //!< Balance de energía de la base
   bool save_power = false;            //!< Potencia exacta de los contactos
+  PotenciaOpciones pot;               //!< Salidas de la potencia
   bool comprimir_salidas = false;     //!< Salidas por frame en gzip (.gz)
 
   // Región de interés (ROI) para las salidas por grano y por contacto

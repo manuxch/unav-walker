@@ -58,6 +58,12 @@ void ContactPower::after_step(b2World *w, double dt) {
     const float w2 = s.body->GetAngularVelocity();
     GrainPower &g = grains_[i];
     g.body = s.body;
+    g.pos = s.xf.p;
+    g.f_base = s.force;
+    g.tau_base = s.torque;
+    g.w_lin = 0.5 * m * (double(v1.x) * v1.x + double(v1.y) * v1.y) -
+              0.5 * m * (double(s.v0.x) * s.v0.x + double(s.v0.y) * s.v0.y);
+    g.w_piv = 0.5 * I * (double(w1) * w1 - double(s.w0) * s.w0);
     g.vm = b2Vec2(0.5f * (v1.x + v2.x), 0.5f * (v1.y + v2.y));
     g.wm = 0.5 * (double(w1) + w2);
     const double k1 = 0.5 * m * (double(v1.x) * v1.x + double(v1.y) * v1.y) +
@@ -133,6 +139,10 @@ void ContactPower::after_step(b2World *w, double dt) {
         r.t_ab = dot(r.ua + r.ub, r.fx, r.fy) * 0.5;
         r.d = -dot(r.ub - r.ua, r.fx, r.fy);
         total_.d_gg += r.d * dt_;
+        grains_[da->power_idx].t_in -= r.t_ab;
+        grains_[db->power_idx].t_in += r.t_ab;
+        grains_[da->power_idx].d_gg += 0.5 * r.d;
+        grains_[db->power_idx].d_gg += 0.5 * r.d;
       } else {
         // Un grano G y una pared W; f_G es la fuerza sobre el grano
         const bool g_is_b = r.b_grain;
@@ -144,6 +154,9 @@ void ContactPower::after_step(b2World *w, double dt) {
         r.t_ab = 0.0;
         total_.d_gp += r.d * dt_;
         total_.w_par += r.w_wall * dt_;
+        GrainPower &gr = grains_[(g_is_b ? db : da)->power_idx];
+        gr.d_gw += r.d;
+        gr.p_wall += r.w_wall;
       }
 
       // Sumas por grano

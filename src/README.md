@@ -140,6 +140,8 @@ un valor fuera de rango terminan el programa con un mensaje de error.
 | `check_balance_freq` | no (0) | Frecuencia del chequeo de balance |
 | `save_energy` | no (F) | Balance de energía por período y por fase (`energy_<pre>.dat`, `energy_fase_<pre>.dat`) |
 | `save_power` | no (F) | Con `save_energy: T`: potencia exacta de los contactos; agrega a `energy_*.dat` las columnas `Wpar Dgg Dgp Wcont_tr Wcont_rot` (trabajo de las paredes, disipación grano-grano y grano-pared, trabajo traslacional y rotacional de los contactos) |
+| `save_fz_freq` | no (0) | Con `save_power`: `<pre>_<frame>.fz` cada tantos pasos, por grano: promedios de las fuerzas y potencias de contacto del intervalo y el ángulo del disco |
+| `save_power_maps` | no (F) | Con `save_power`: `potencia_celdas_<pre>.dat` (celdas de un diámetro, 40 bines de fase sobre dos períodos) y `potencia_pares_<pre>.dat` (flujos de energía entre regiones). Opciones: `fase_bines`, `celdas_ancho`, `celdas_x_max`, `celdas_y_min`, `celdas_y_max`, `reg_cuna_h`, `reg_costado_w`, `reg_lecho_y`, `reg_chorro_L`, `reg_fuera_y` |
 | `paredes_moviles` | no (F) | T: las paredes y la tapa se mueven con la base (cinemáticas); F: fijas |
 | `y_eliminacion`, `x_eliminacion` | no (-10, 0) | Los granos descargados que quedan por debajo de `y_eliminacion` o más allá de `\|x\| = x_eliminacion` (0: sin límite) se reinyectan o se eliminan |
 | `granos_registro` | no (0) | > 0: el registro empieza al inicio del primer período posterior a `t_Register` con esa cantidad de granos en el silo o menos |
